@@ -39,11 +39,21 @@ export default function ChatDemo() {
       if (!session) throw new Error("Chưa đăng nhập");
 
       // We need the shop_id from the user table
-      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
-      if (!userData?.shop_id) throw new Error("Không tìm thấy shop");
+      const { data: userData } = await supabase.from('users').select('shop_id, role').eq('id', session.user.id).single();
+      
+      let shopConfig = null;
 
-      // 2. Fetch the chatbot configuration
-      const { data: shopConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
+      if (!userData?.shop_id) {
+         if (userData?.role === 'super_admin') {
+            shopConfig = { shop_name: 'Super Admin Test', product_info: 'Cửa hàng đang bảo trì', faq: 'Đây là không gian dành cho Super Admin thử nghiệm tính năng AI.' };
+         } else {
+            throw new Error("Tài khoản của bạn chưa được liên kết với bất kỳ cửa hàng nào!");
+         }
+      } else {
+         // 2. Fetch the chatbot configuration
+         const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
+         shopConfig = config;
+      }
 
       // 3. Call the Gemini API Route
       const res = await fetch('/api/chat', {

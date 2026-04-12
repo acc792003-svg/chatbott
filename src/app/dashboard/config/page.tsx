@@ -1,19 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Save, Info, ShoppingBag, DollarSign, HelpCircle, FileText } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function ConfigPage() {
   const [loading, setLoading] = useState(false);
+  const [shopName, setShopName] = useState('');
+  const [productInfo, setProductInfo] = useState('');
+  const [faq, setFaq] = useState('');
+  
+  useEffect(() => {
+    const fetchConfig = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      if (userData?.shop_id) {
+        const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
+        if (config) {
+          setShopName(config.shop_name || '');
+          setProductInfo(config.product_info || '');
+          setFaq(config.faq || '');
+        }
+      }
+    };
+    fetchConfig();
+  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Simulating save
-    setTimeout(() => {
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Chưa đăng nhập");
+
+      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      if (!userData?.shop_id) throw new Error("Tài khoản chưa được liên kết cửa hàng");
+
+      const { error } = await supabase.from('chatbot_configs').upsert({
+        shop_id: userData.shop_id,
+        shop_name: shopName,
+        product_info: productInfo,
+        faq: faq,
+        is_active: true
+      }, { onConflict: 'shop_id' });
+
+      if (error) throw error;
       alert('Đã lưu cấu hình thành công!');
+    } catch (err: any) {
+      alert('Lỗi: ' + err.message);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -33,6 +73,8 @@ export default function ConfigPage() {
               </label>
               <input 
                 type="text" 
+                value={shopName}
+                onChange={e => setShopName(e.target.value)}
                 placeholder="Ví dụ: Shop Yến Sào Cao Cấp" 
                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
               />
@@ -56,6 +98,8 @@ export default function ConfigPage() {
             </label>
             <textarea 
               rows={4}
+              value={productInfo}
+              onChange={e => setProductInfo(e.target.value)}
               placeholder="Nhập danh sách sản phẩm và giá cả..." 
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
             ></textarea>
@@ -68,6 +112,8 @@ export default function ConfigPage() {
             </label>
             <textarea 
               rows={4}
+              value={faq}
+              onChange={e => setFaq(e.target.value)}
               placeholder="Q: Phí ship bao nhiêu? A: Miễn phí toàn quốc..." 
               className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-medium focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
             ></textarea>
