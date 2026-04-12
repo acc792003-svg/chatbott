@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
@@ -23,9 +24,9 @@ export async function POST(req: Request) {
     // Fetch config
     const { data: shopConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', shop.id).single();
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY || ''}`;
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
-    const prompt = `
+    const systemInstruction = `
       Bạn là trợ lý ảo AI bán hàng thông minh của cửa hàng: ${shopConfig?.shop_name || shop.name}.
       Nhiệm vụ của bạn là tư vấn, giải đáp thắc mắc và thuyết phục khách hàng mua hàng một cách lịch sự, chuyên nghiệp.
       
@@ -40,28 +41,17 @@ export async function POST(req: Request) {
       2. Luôn xưng "Dạ", "Shop", "Em" và gọi khách là "Anh/Chị" hoặc "Bạn".
       3. KHÔNG TỰ BỊA RA THÔNG TIN SẢN PHẨM HOẶC KHUYẾN MÃI NẾU KHÔNG CÓ TRONG HƯỚNG DẪN TRÊN.
       4. Hãy chốt sale một cách khéo léo sau khi cung cấp thông tin.
-
-      Tin nhắn khách hàng: "${message}"
-      Trả lời ngay:
     `;
 
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }]
-      }),
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: systemInstruction
     });
 
-    const bodyData = await response.json();
+    const result = await model.generateContent(message);
+    const responseText = result.response.text();
 
-    if (bodyData.error) {
-      return NextResponse.json({ error: `Gemini API Lỗi: ${bodyData.error.message}` }, { status: 500 });
-    }
-
-    const responseText = bodyData.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể tạo câu trả lời lúc này.";
-
-    return NextResponse.json({ response: responseText.trim() });
+    return NextResponse.json({ response: responseText });
 
   } catch (error: any) {
     console.error('Gemini API Error:', error);
