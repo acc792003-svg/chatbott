@@ -3,16 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Bot, ArrowRight } from 'lucide-react';
+import { Bot, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [shopName, setShopName] = useState('');
+  const [shopCode, setShopCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -32,18 +33,16 @@ export default function LoginPage() {
         if (authErr) throw authErr;
         
         if (authData.user) {
-          // Lưu thông tin shop vào database
-          const { data: shopData, error: shopErr } = await supabase.from('shops').insert([
-            { name: shopName }
-          ]).select().single();
-          
-          if (!shopErr && shopData) {
-            await supabase.from('users').insert([
-              { id: authData.user.id, email: email, shop_id: shopData.id, role: 'admin' }
-            ]);
-            await supabase.from('chatbot_configs').insert([
-              { shop_id: shopData.id, shop_name: shopName }
-            ]);
+          // Verify code and logic
+          if (shopCode) {
+             const { data: existingShop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
+             if (existingShop) {
+                await supabase.from('users').insert([
+                  { id: authData.user.id, email: email, shop_id: existingShop.id, role: 'admin' }
+                ]);
+             } else {
+                 throw new Error("Mã cửa hàng không hợp lệ!");
+             }
           }
         }
         alert('Đăng ký thành công! Vui lòng đăng nhập lại.');
@@ -78,13 +77,13 @@ export default function LoginPage() {
         <form onSubmit={handleAuth} className="space-y-4">
           {!isLogin && (
              <div>
-               <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1">Tên cửa hàng/Shop</label>
+               <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1">Mã cửa hàng (Do Super Admin cấp)</label>
                <input 
                  type="text" 
-                 value={shopName}
-                 onChange={e => setShopName(e.target.value)}
+                 value={shopCode}
+                 onChange={e => setShopCode(e.target.value)}
                  required
-                 placeholder="Ví dụ: Cửa hàng Yến Sào" 
+                 placeholder="Ví dụ: 89ABC" 
                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
                />
              </div>
@@ -102,14 +101,23 @@ export default function LoginPage() {
           </div>
           <div>
              <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1">Mật khẩu</label>
-             <input 
-               type="password" 
-               value={password}
-               onChange={e => setPassword(e.target.value)}
-               required
-               placeholder="••••••••" 
-               className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
-             />
+             <div className="relative">
+               <input 
+                 type={showPassword ? "text" : "password"} 
+                 value={password}
+                 onChange={e => setPassword(e.target.value)}
+                 required
+                 placeholder="••••••••" 
+                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 pr-10 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+               />
+               <button 
+                 type="button" 
+                 onClick={() => setShowPassword(!showPassword)}
+                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+               >
+                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+               </button>
+             </div>
           </div>
 
           <button 

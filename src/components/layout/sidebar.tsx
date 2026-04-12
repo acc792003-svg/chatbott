@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   MessageSquare, 
@@ -9,7 +10,8 @@ import {
   History, 
   CreditCard,
   Bot,
-  LogOut
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -26,6 +28,18 @@ const menuItems = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRole = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data } = await supabase.from('users').select('role').eq('id', session.user.id).single();
+      if (data) setRole(data.role);
+    };
+    fetchRole();
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -62,6 +76,21 @@ export default function Sidebar() {
             <span className="font-semibold text-sm">{item.name}</span>
           </Link>
         ))}
+
+        {role === 'super_admin' && (
+          <Link
+            href="/dashboard/superadmin"
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group mt-4 border border-red-200",
+              pathname === '/dashboard/superadmin' 
+                ? "bg-red-600 text-white shadow-lg shadow-red-200" 
+                : "bg-red-50 text-red-600 hover:bg-red-100"
+            )}
+          >
+            <ShieldAlert size={20} className={pathname === '/dashboard/superadmin' ? "text-white" : "text-red-600"} />
+            <span className="font-bold text-sm">Super Admin</span>
+          </Link>
+        )}
       </nav>
 
       <div className="mt-auto border-t border-white/20 pt-4">

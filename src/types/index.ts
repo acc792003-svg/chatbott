@@ -1,13 +1,16 @@
 export type Shop = {
   id: string;
   name: string;
+  code: string;
+  subscription_days: number;
+  expiry_date: string;
   created_at: string;
 };
 
 export type AppUser = {
   id: string;
   shop_id: string;
-  role: 'admin' | 'user';
+  role: 'super_admin' | 'admin' | 'manager' | 'user';
   email: string;
   full_name: string;
 };
