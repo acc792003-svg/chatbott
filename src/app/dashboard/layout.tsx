@@ -1,13 +1,39 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/sidebar';
-import { User, Bell, Search } from 'lucide-react';
+import { User, Bell, Search, Loader2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push('/login');
+      } else {
+        setLoading(false);
+      }
+    };
+    checkSession();
+  }, [router]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+         <Loader2 className="animate-spin text-blue-600" size={32} />
+      </div>
+    );
+  }
+
   return (
     <div className="flex bg-slate-50 min-h-screen">
       <Sidebar />
