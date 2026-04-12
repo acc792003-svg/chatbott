@@ -1,0 +1,9 @@
+API Key
+AIzaSyB5GDToRK_vPGIT4b2aVyHWu7gswr4hZ-Y
+
+Name
+Gemini API Key chatbot
+Project name
+projects/1040481421372
+Project number
+1040481421372

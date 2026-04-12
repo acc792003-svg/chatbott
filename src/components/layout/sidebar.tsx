@@ -1,0 +1,78 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, 
+  MessageSquare, 
+  Settings, 
+  History, 
+  CreditCard,
+  Bot,
+  LogOut
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
+
+const menuItems = [
+  { name: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Chat Demo', href: '/dashboard/chat', icon: MessageSquare },
+  { name: 'Cấu hình Chatbot', href: '/dashboard/config', icon: Settings },
+  { name: 'Lịch sử', href: '/dashboard/history', icon: History },
+  { name: 'Gói dịch vụ', href: '/dashboard/pricing', icon: CreditCard },
+];
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
+  return (
+    <aside className="w-64 h-screen glass border-r border-white/20 fixed left-0 top-0 z-50 flex flex-col p-4">
+      <div className="flex items-center gap-3 px-2 mb-8">
+        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+          <Bot size={24} />
+        </div>
+        <span className="font-extrabold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
+          AI Chat
+        </span>
+      </div>
+
+      <nav className="flex-1 space-y-2">
+        {menuItems.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
+              pathname === item.href 
+                ? "bg-blue-600 text-white shadow-lg shadow-blue-200" 
+                : "text-slate-600 hover:bg-white/60 hover:text-blue-600"
+            )}
+          >
+            <item.icon size={20} className={cn(
+              "transition-colors",
+              pathname === item.href ? "text-white" : "text-slate-400 group-hover:text-blue-600"
+            )} />
+            <span className="font-semibold text-sm">{item.name}</span>
+          </Link>
+        ))}
+      </nav>
+
+      <div className="mt-auto border-t border-white/20 pt-4">
+        <button 
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-semibold text-sm"
+        >
+          <LogOut size={20} />
+          <span>Đăng xuất</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
