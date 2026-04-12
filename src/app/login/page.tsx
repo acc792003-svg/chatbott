@@ -41,12 +41,7 @@ export default function LoginPage() {
         
         if (authData.user) {
           // Verify code and logic
-          if (shopCode === 'ADMINVIP') {
-             // MASTER OVERRIDE: Create Super Admin directly without a shop
-             await supabase.from('users').insert([
-                { id: authData.user.id, email: email, role: 'super_admin' }
-             ]);
-          } else if (shopCode) {
+          if (shopCode) {
              const { data: existingShop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
              if (existingShop) {
                 await supabase.from('users').insert([
