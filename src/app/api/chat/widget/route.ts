@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     // Fetch config
     const { data: shopConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', shop.id).single();
 
-    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY || ''}`;
+    const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${process.env.GEMINI_API_KEY || ''}`;
 
     const prompt = `
       Bạn là trợ lý ảo AI bán hàng thông minh của cửa hàng: ${shopConfig?.shop_name || shop.name}.
