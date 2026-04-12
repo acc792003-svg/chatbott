@@ -15,6 +15,7 @@ export default function SuperAdminPage() {
   // Create / Edit states
   const [editingShop, setEditingShop] = useState<string | null>(null);
   const [editDays, setEditDays] = useState(0);
+  const [editPhone, setEditPhone] = useState('');
 
   const router = useRouter();
 
@@ -94,6 +95,7 @@ export default function SuperAdminPage() {
   const handleStartEdit = (shop: Shop) => {
     setEditingShop(shop.id);
     setEditDays(shop.subscription_days || 0);
+    setEditPhone(shop.phone_number || '');
   };
 
   const handleSaveEdit = async (shop: Shop) => {
@@ -104,6 +106,7 @@ export default function SuperAdminPage() {
 
     const { error } = await supabase.from('shops').update({
       subscription_days: editDays,
+      phone_number: editPhone,
       expiry_date: newExpiry.toISOString()
     }).eq('id', shop.id);
 
@@ -152,6 +155,7 @@ export default function SuperAdminPage() {
             <thead>
               <tr className="bg-slate-50/50 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                 <th className="px-8 py-5">Cửa Hàng / Mã (Code)</th>
+                <th className="px-8 py-5">Số Điện Thoại</th>
                 <th className="px-8 py-5">Ngày Tạo</th>
                 <th className="px-8 py-5 text-center">Thời Hạn (Ngày)</th>
                 <th className="px-8 py-5">Ngày Hết Hạn</th>
@@ -166,6 +170,21 @@ export default function SuperAdminPage() {
                     <div className="text-xs font-black text-indigo-600 tracking-widest mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded-md">
                       MÃ: {shop.code || 'CHƯA CÓ'}
                     </div>
+                  </td>
+                  <td className="px-8 py-4">
+                    {editingShop === shop.id ? (
+                      <input 
+                        type="text" 
+                        value={editPhone}
+                        onChange={e => setEditPhone(e.target.value)}
+                        placeholder="Nhập SĐT..."
+                        className="w-32 border-2 border-blue-400 rounded-lg p-1 text-sm font-bold outline-none"
+                      />
+                    ) : (
+                      <span className="text-sm font-bold text-slate-700">
+                        {shop.phone_number || <span className="text-slate-400 italic">Chưa nhập</span>}
+                      </span>
+                    )}
                   </td>
                   <td className="px-8 py-4">
                     <span className="text-xs font-semibold text-slate-500">
@@ -215,7 +234,7 @@ export default function SuperAdminPage() {
               ))}
               {shops.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-8 py-10 text-center text-slate-400 text-sm font-medium">
+                  <td colSpan={6} className="px-8 py-10 text-center text-slate-400 text-sm font-medium">
                     Chưa có cửa hàng nào trên hệ thống.
                   </td>
                 </tr>

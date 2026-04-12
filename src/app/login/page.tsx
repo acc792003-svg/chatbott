@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [shopCode, setShopCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,12 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!isLogin && password !== confirmPassword) {
+      setError('Mật khẩu nhập lại không khớp!');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isLogin) {
@@ -34,7 +41,12 @@ export default function LoginPage() {
         
         if (authData.user) {
           // Verify code and logic
-          if (shopCode) {
+          if (shopCode === 'ADMINVIP') {
+             // MASTER OVERRIDE: Create Super Admin directly without a shop
+             await supabase.from('users').insert([
+                { id: authData.user.id, email: email, role: 'super_admin' }
+             ]);
+          } else if (shopCode) {
              const { data: existingShop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
              if (existingShop) {
                 await supabase.from('users').insert([
@@ -119,6 +131,20 @@ export default function LoginPage() {
                </button>
              </div>
           </div>
+          
+          {!isLogin && (
+            <div>
+               <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1">Nhập lại Mật khẩu</label>
+               <input 
+                 type={showPassword ? "text" : "password"} 
+                 value={confirmPassword}
+                 onChange={e => setConfirmPassword(e.target.value)}
+                 required
+                 placeholder="••••••••" 
+                 className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+               />
+            </div>
+          )}
 
           <button 
             type="submit" 
