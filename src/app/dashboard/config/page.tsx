@@ -9,13 +9,19 @@ export default function ConfigPage() {
   const [shopName, setShopName] = useState('');
   const [productInfo, setProductInfo] = useState('');
   const [faq, setFaq] = useState('');
+  const [isSuperAdminNoShop, setIsSuperAdminNoShop] = useState(false);
   
   useEffect(() => {
     const fetchConfig = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      const { data: userData } = await supabase.from('users').select('shop_id, role').eq('id', session.user.id).single();
+      
+      if (!userData?.shop_id && userData?.role === 'super_admin') {
+         setIsSuperAdminNoShop(true);
+      }
+
       if (userData?.shop_id) {
         const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
         if (config) {
@@ -62,6 +68,13 @@ export default function ConfigPage() {
         <h1 className="text-3xl font-black text-slate-900 tracking-tight">Cấu Hình Chatbot</h1>
         <p className="text-slate-500 font-medium">Huấn luyện AI của bạn để bán hàng hiệu quả hơn.</p>
       </div>
+
+      {isSuperAdminNoShop && (
+        <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl flex items-center gap-3">
+           <Info className="text-orange-600" />
+           <p className="text-orange-800 text-sm font-semibold">Tài khoản này là Super Admin, không bị ràng buộc bởi cửa hàng nào.<br/>Để cấu hình AI thực tế, vui lòng dùng tính năng "Tạo Mã Cửa Hàng" ở Web Mẹ, tạo 1 Shop và Đăng Nhập bằng mã đó.</p>
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-6">
         <div className="glass p-8 rounded-[2.5rem] space-y-8">

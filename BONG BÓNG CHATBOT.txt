@@ -1,0 +1,18 @@
+{/* CHATBOT WIDGET */}
+<div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}>
+  
+  {/* Khung chat iframe */}
+  <iframe 
+    src="https://chatbott-blond.vercel.app/widget/ĐIỀN-MÃ-CỬA-HÀNG" 
+    style={{
+      width: '350px',
+      height: '500px',
+      border: 'none',
+      borderRadius: '16px',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+      display: 'block', /* Có thể dùng code State để ẩn/hiện iframe này khi bấm nút */
+      marginBottom: '15px'
+    }}
+  />
+
+</div>
