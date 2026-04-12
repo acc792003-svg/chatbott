@@ -54,7 +54,12 @@ export async function POST(req: Request) {
     });
 
     const bodyData = await response.json();
-    const responseText = bodyData.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi gặp chút trục trặc khi xử lý tin nhắn.";
+
+    if (bodyData.error) {
+      return NextResponse.json({ error: `Gemini API Lỗi: ${bodyData.error.message}` }, { status: 500 });
+    }
+
+    const responseText = bodyData.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể tạo câu trả lời lúc này.";
 
     return NextResponse.json({ response: responseText.trim() });
 

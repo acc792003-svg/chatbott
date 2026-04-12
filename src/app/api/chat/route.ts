@@ -35,7 +35,12 @@ export async function POST(req: Request) {
     });
 
     const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi gặp chút trục trặc khi xử lý tin nhắn.";
+    
+    if (data.error) {
+      return NextResponse.json({ error: `Gemini API Lỗi: ${data.error.message}` }, { status: 500 });
+    }
+
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || "Xin lỗi, tôi không thể tạo câu trả lời lúc này.";
 
     return NextResponse.json({ response: aiResponse.trim() });
   } catch (error: any) {
