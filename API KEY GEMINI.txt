@@ -7,3 +7,6 @@ Project name
 projects/1040481421372
 Project number
 1040481421372
+
+INSERT INTO public.users (id, email, role) 
+VALUES ('1102e0c5-3c29-4854-84b0-3a33b351d561', 'acc792003@gmail.com', 'super_admin');
