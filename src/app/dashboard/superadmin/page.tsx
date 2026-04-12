@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 
 export default function SuperAdminPage() {
   const [shops, setShops] = useState<Shop[]>([]);
+  const [shopUsers, setShopUsers] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   
@@ -44,6 +45,19 @@ export default function SuperAdminPage() {
   const fetchShops = async () => {
     const { data } = await supabase.from('shops').select('*').order('created_at', { ascending: false });
     if (data) setShops(data as Shop[]);
+
+    const { data: usersData } = await supabase.from('users').select('id, shop_id, email, role');
+    if (usersData) {
+       const userMap: Record<string, any[]> = {};
+       usersData.forEach(u => {
+          if (u.shop_id) {
+             if (!userMap[u.shop_id]) userMap[u.shop_id] = [];
+             userMap[u.shop_id].push(u);
+          }
+       });
+       setShopUsers(userMap);
+    }
+
     setLoading(false);
   };
 
@@ -170,6 +184,17 @@ export default function SuperAdminPage() {
                     <div className="text-xs font-black text-indigo-600 tracking-widest mt-1 bg-indigo-50 inline-block px-2 py-0.5 rounded-md">
                       MÃ: {shop.code || 'CHƯA CÓ'}
                     </div>
+                    {shopUsers[shop.id] && shopUsers[shop.id].length > 0 && (
+                      <div className="mt-2 text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                        <span className="font-bold block mb-1">Tài khoản quản lý:</span>
+                        {shopUsers[shop.id].map(u => (
+                          <div key={u.id} className="flex gap-2">
+                             <span>• {u.email || 'Ẩn danh'}</span>
+                             <span className="text-orange-500 font-bold uppercase">{u.role}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-8 py-4">
                     {editingShop === shop.id ? (
