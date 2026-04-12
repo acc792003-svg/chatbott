@@ -44,9 +44,13 @@ export default function LoginPage() {
           if (shopCode) {
              const { data: existingShop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
              if (existingShop) {
-                await supabase.from('users').insert([
+                const { error: insertError } = await supabase.from('users').insert([
                   { id: authData.user.id, email: email, shop_id: existingShop.id, role: 'admin' }
                 ]);
+                if (insertError) {
+                  // Fallback: Delete the user from auth so they can try again once DB is fixed
+                  throw new Error("Lưu thông tin thất bại: " + insertError.message);
+                }
              } else {
                  throw new Error("Mã cửa hàng không hợp lệ!");
              }
