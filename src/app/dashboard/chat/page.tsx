@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Trash2, ArrowDownCircle, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
 
 type Message = {
   role: 'user' | 'assistant';
@@ -33,16 +34,38 @@ export default function ChatDemo() {
     setLoading(true);
 
     try {
-      // API call to our /api/chat would go here
-      // For now, simulate AI response
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: 'Đây là phản hồi mô phỏng từ AI Gemini. Khi bạn kết nối API Key, tôi sẽ trả lời dựa trên dữ liệu thật của shop bạn.' 
-        }]);
-        setLoading(false);
-      }, 1000);
-    } catch (err) {
+      // 1. Get current session and shop info
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Chưa đăng nhập");
+
+      // We need the shop_id from the user table
+      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      if (!userData?.shop_id) throw new Error("Không tìm thấy shop");
+
+      // 2. Fetch the chatbot configuration
+      const { data: shopConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
+
+      // 3. Call the Gemini API Route
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsg,
+          shopConfig: shopConfig || { shop_name: 'Cửa hàng', product_info: '', faq: '' }
+        }),
+      });
+
+      const data = await res.json();
+      
+      if (data.error) {
+         throw new Error(data.error);
+      }
+
+      setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+
+    } catch (err: any) {
+      setMessages(prev => [...prev, { role: 'assistant', content: `[Lỗi hệ thống]: ${err.message}. Hãy kiểm tra kết nối API.` }]);
+    } finally {
       setLoading(false);
     }
   };
