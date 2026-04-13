@@ -10,6 +10,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing message or shop code' }, { status: 400 });
     }
 
+    if (!supabaseAdmin) {
+      return NextResponse.json({ error: 'Database connection not initialized' }, { status: 500 });
+    }
+
     // 1. Tìm shop theo code
     const { data: shop, error: shopError } = await supabaseAdmin
       .from('shops')

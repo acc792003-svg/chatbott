@@ -9,6 +9,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing Gemini API Key' }, { status: 500 });
     }
 
+    if (!shopConfig) {
+      return NextResponse.json({ error: 'Missing shop configuration' }, { status: 400 });
+    }
+
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const systemInstruction = `
@@ -25,7 +29,7 @@ export async function POST(req: Request) {
     `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-1.5-flash',
       systemInstruction: systemInstruction
     });
 

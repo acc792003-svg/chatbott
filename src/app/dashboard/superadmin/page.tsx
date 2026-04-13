@@ -49,7 +49,7 @@ export default function SuperAdminPage() {
     const { data: usersData } = await supabase.from('users').select('id, shop_id, email, role');
     if (usersData) {
        const userMap: Record<string, any[]> = {};
-       usersData.forEach(u => {
+       usersData.forEach((u: any) => {
           if (u.shop_id) {
              if (!userMap[u.shop_id]) userMap[u.shop_id] = [];
              userMap[u.shop_id].push(u);
