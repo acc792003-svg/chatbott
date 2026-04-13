@@ -160,7 +160,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto flex flex-col items-center">
           <h1 
             style={{ fontFamily: 'Arial, sans-serif !important' }}
-            className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase text-center"
+            className="text-xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase text-center"
           >
             <span className="inline-block whitespace-nowrap">BIẾN KHÁCH TRUY CẬP THÀNH</span>
             <br />
