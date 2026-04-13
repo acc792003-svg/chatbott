@@ -71,7 +71,7 @@ ${faq}
     // 6. Khởi tạo model Gemini với chat session (có lịch sử hội thoại)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       systemInstruction,
     });
 
