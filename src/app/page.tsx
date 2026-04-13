@@ -53,32 +53,32 @@ export default function LandingPage() {
       {/* ===== DEMO MODAL ===== */}
       {showDemo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm sm:p-4"
           onClick={() => setShowDemo(false)}
         >
           <div
-            className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden"
+            className="relative bg-white sm:rounded-[2rem] shadow-2xl w-full max-w-4xl h-full sm:h-auto max-h-[100dvh] sm:max-h-[90dvh] overflow-hidden flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-indigo-600">
+            <div className="flex items-center justify-between px-6 sm:px-8 py-4 sm:py-5 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-indigo-600 shrink-0">
               <div className="flex items-center gap-3 text-white">
-                <Bot size={22} />
-                <span className="font-black text-lg">Demo AI Chatbot Bán Hàng</span>
-                <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full text-white">LIVE</span>
+                <Bot size={20} className="sm:w-[22px]" />
+                <span className="font-black text-base sm:text-lg">Demo AI Chatbot</span>
+                <span className="hidden sm:inline-block bg-white/20 text-[10px] font-bold px-3 py-1 rounded-full text-white">LIVE</span>
               </div>
               <button
                 onClick={() => setShowDemo(false)}
-                className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-xl transition-all"
+                className="text-white bg-white/10 hover:bg-white/20 p-2 rounded-xl transition-all"
               >
-                <X size={22} />
+                <X size={24} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="flex flex-col md:flex-row">
-              {/* Left: Giải thích */}
-              <div className="md:w-2/5 p-8 bg-slate-50 border-r border-slate-100 space-y-5">
+            <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
+              {/* Left: Giải thích (Ẩn trên mobile để ưu tiên chat) */}
+              <div className="hidden md:block md:w-2/5 p-8 bg-slate-50 border-r border-slate-100 space-y-5">
                 <h3 className="text-xl font-black text-slate-900">Thử ngay — không cần đăng ký</h3>
                 <p className="text-sm text-slate-600 leading-relaxed">
                   Chat thử với AI bán hàng của chúng tôi. Hỏi về sản phẩm, giá, chính sách vận chuyển...
@@ -107,14 +107,12 @@ export default function LandingPage() {
               </div>
 
               {/* Right: Chatbot iframe */}
-              <div className="md:w-3/5 bg-slate-100 flex items-center justify-center p-4" style={{ minHeight: '480px' }}>
+              <div className="flex-1 md:w-3/5 bg-slate-100 flex flex-col h-full overflow-hidden">
                 <iframe
-                  src="https://chatbott-blond.vercel.app/widget/68XCS"
+                  src="/widget/68XCS"
+                  className="w-full h-full min-h-[400px]"
                   style={{
-                    width: '100%',
-                    height: '460px',
                     border: 'none',
-                    borderRadius: '16px',
                   }}
                   title="Demo Chatbot AI"
                 />
