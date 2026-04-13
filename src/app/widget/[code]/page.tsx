@@ -43,7 +43,9 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg,
-          code: code
+          code: code,
+          // Gửi toàn bộ lịch sử (trừ tin nhắn chào mặc định đầu tiên)
+          history: messages.slice(1).map(m => ({ role: m.role, content: m.content })),
         }),
       });
 

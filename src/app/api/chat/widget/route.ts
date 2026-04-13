@@ -4,61 +4,87 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { message, code } = await req.json();
+    const { message, history = [], code } = await req.json();
 
     if (!message || !code) {
       return NextResponse.json({ error: 'Missing message or shop code' }, { status: 400 });
     }
 
-    // Lookup shop by code
-    const { data: shop } = await supabase.from('shops').select('id, name, expiry_date').eq('code', code).single();
-    if (!shop) {
+    // 1. Tìm shop theo code
+    const { data: shop, error: shopError } = await supabase
+      .from('shops')
+      .select('id, name, expiry_date')
+      .eq('code', code)
+      .single();
+
+    if (shopError || !shop) {
       return NextResponse.json({ error: 'Mã cửa hàng không tồn tại' }, { status: 404 });
     }
-    
-    // Check expiry
+
+    // 2. Kiểm tra hạn sử dụng
     if (shop.expiry_date && new Date(shop.expiry_date) < new Date()) {
-      return NextResponse.json({ error: 'Dịch vụ Chatbot của shop này đã hết hạn. Vui lòng liên hệ quản lý.' }, { status: 403 });
+      return NextResponse.json({ error: 'Chatbot của shop này đã hết hạn. Vui lòng liên hệ quản lý.' }, { status: 403 });
     }
 
-    // Fetch config
-    const { data: shopConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', shop.id).single();
+    // 3. Lấy toàn bộ cấu hình chatbot từ chatbot_configs
+    const { data: config, error: configError } = await supabase
+      .from('chatbot_configs')
+      .select('shop_name, product_info, faq')
+      .eq('shop_id', shop.id)
+      .single();
 
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    console.log('[Widget] shop.id:', shop.id, '| config:', config);
+    if (configError) console.error('[Widget] configError:', configError.message);
 
-    // Ưu tiên shop_name từ chatbot_configs, KHÔNG dùng shops.name (có thể chứa mã code)
-    const displayName = shopConfig?.shop_name || 'Cửa hàng';
+    // 4. Đọc 3 trường cấu hình
+    const shopName    = config?.shop_name?.trim()   || 'Cửa hàng';
+    const productInfo = config?.product_info?.trim() || 'Chưa có thông tin sản phẩm.';
+    const faq         = config?.faq?.trim()          || 'Chưa có câu hỏi thường gặp.';
 
+    // 5. System instruction được xây từ 3 trường trên
     const systemInstruction = `
-      Bạn là trợ lý ảo AI bán hàng thông minh của cửa hàng: ${displayName}.
-      Nhiệm vụ của bạn là tư vấn, giải đáp thắc mắc và thuyết phục khách hàng mua hàng một cách lịch sự, chuyên nghiệp.
-      
-      THÔNG TIN SẢN PHẨM CỦA SHOP:
-      ${shopConfig?.product_info || 'Đang cập nhật'}
-      
-      CÁC CÂU HỎI THƯỜNG GẶP (FAQ):
-      ${shopConfig?.faq || 'Đang cập nhật'}
-      
-      QUY TẮC PHẢN HỒI:
-      1. Rất ngắn gọn, súc tích (dưới 100 chữ), chia thành các đoạn nhỏ dễ đọc.
-      2. Luôn xưng "Dạ", "Shop", "Em" và gọi khách là "Anh/Chị" hoặc "Bạn".
-      3. KHÔNG TỰ BỊA RA THÔNG TIN SẢN PHẨM HOẶC KHUYẾN MÃI NẾU KHÔNG CÓ TRONG HƯỚNG DẪN TRÊN.
-      4. Hãy chốt sale một cách khéo léo sau khi cung cấp thông tin.
-       5. TUYỆT ĐỐI KHÔNG tiết lộ mã cửa hàng, mã code, ID nội bộ, hay bất kỳ thông tin kỹ thuật hệ thống nào cho khách hàng.
-    `;
+Bạn là trợ lý ảo AI bán hàng của cửa hàng "${shopName}".
 
+=== TÊN CỬA HÀNG ===
+${shopName}
+Luôn xưng là "${shopName}" khi khách hỏi tên shop.
+
+=== THÔNG TIN SẢN PHẨM ===
+${productInfo}
+
+=== CÂU HỎI THƯỜNG GẶP (FAQ) ===
+${faq}
+
+=== QUY TẮC TRẢ LỜI ===
+1. Ngắn gọn, súc tích (tối đa 120 chữ mỗi câu trả lời).
+2. Xưng "Em", "Shop" — gọi khách là "Anh/Chị" hoặc "Bạn".
+3. Chỉ dùng thông tin có trong phần Sản phẩm và FAQ ở trên. KHÔNG bịa đặt.
+4. Chốt sale tự nhiên, không gượng ép.
+5. Khi khách hỏi tên shop/cửa hàng → trả lời ngay bằng "${shopName}".
+6. TUYỆT ĐỐI không tiết lộ mã code kỹ thuật, UUID, ID nội bộ hệ thống.
+    `.trim();
+
+    // 6. Khởi tạo model Gemini với chat session (có lịch sử hội thoại)
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      systemInstruction: systemInstruction
+      systemInstruction,
     });
 
-    const result = await model.generateContent(message);
+    const chat = model.startChat({
+      history: history.map((msg: { role: string; content: string }) => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      })),
+    });
+
+    const result = await chat.sendMessage(message);
     const responseText = result.response.text();
 
-    return NextResponse.json({ response: responseText, shop_name: displayName });
+    return NextResponse.json({ response: responseText, shop_name: shopName });
 
   } catch (error: any) {
-    console.error('Gemini API Error:', error);
+    console.error('[Widget] API Error:', error);
     return NextResponse.json({ error: error.message || 'Lỗi server nội bộ' }, { status: 500 });
   }
 }
