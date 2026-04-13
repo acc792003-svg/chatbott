@@ -3,12 +3,12 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Bot, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
+// Ép trang luôn là động để tránh lỗi Build trên Vercel
 export const dynamic = 'force-dynamic';
 
-function LoginFormContent() {
+function LoginForm() {
   const [mounted, setMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -17,12 +17,10 @@ function LoginFormContent() {
   const [shopCode, setShopCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showPassword, setShowPassword] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Đảm bảo không có hydration mismatch
   useEffect(() => {
     setMounted(true);
     const mode = searchParams.get('mode');
@@ -33,153 +31,80 @@ function LoginFormContent() {
 
   if (!mounted) return null;
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
     try {
       if (isLogin) {
-        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
-        if (loginError) throw loginError;
+        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        if (err) throw err;
         router.push('/dashboard');
       } else {
-        if (password !== confirmPassword) {
-          setError('Mật khẩu nhập lại không khớp!');
-          setLoading(false);
-          return;
+        if (password !== confirmPassword) throw new Error('Mật khẩu không khớp');
+        const { data, error: err } = await supabase.auth.signUp({ email, password });
+        if (err) throw err;
+        if (data.user && shopCode) {
+          const { data: shop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
+          if (!shop) throw new Error('Mã shop không tồn tại');
+          await supabase.from('users').insert([{ id: data.user.id, email, shop_id: shop.id, role: 'admin' }]);
         }
-
-        const { data: authData, error: authErr } = await supabase.auth.signUp({ email, password });
-        if (authErr) throw authErr;
-        
-        if (authData.user && shopCode) {
-          const { data: existingShop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
-          if (existingShop) {
-            const { error: insertError } = await supabase.from('users').insert([
-              { id: authData.user.id, email: email, shop_id: existingShop.id, role: 'admin' }
-            ]);
-            if (insertError) throw new Error("Lưu thông tin thất bại: " + insertError.message);
-          } else {
-            throw new Error("Mã cửa hàng không hợp lệ!");
-          }
-        }
-        alert('Đăng ký thành công! Vui lòng đăng nhập.');
+        alert('Đăng ký thành công!');
         setIsLogin(true);
       }
     } catch (err: any) {
-      setError(err.message || 'Đã xảy ra lỗi.');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div 
-      className="w-full max-w-md bg-white p-8 rounded-[2rem] shadow-2xl border border-slate-200"
-      style={{ fontFamily: 'Arial, sans-serif' }}
-    >
-      <div className="flex flex-col items-center mb-6 text-center">
-        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white mb-4">
-          <Bot size={28} />
-        </div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          {isLogin ? 'Đăng Nhập' : 'Tạo Tài Khoản'}
-        </h1>
-        <p className="text-slate-500 text-sm mt-2">
-          {isLogin ? 'Vào bảng điều khiển của bạn' : 'Đăng ký cửa hàng mới'}
-        </p>
-      </div>
+    <div className="w-full max-w-md bg-white p-10 rounded-3xl shadow-2xl border border-slate-200" style={{ fontFamily: 'Arial, sans-serif' }}>
+      <h1 className="text-3xl font-black mb-6 text-center text-slate-900 uppercase tracking-tighter">
+        {isLogin ? 'Đăng Nhập' : 'Đăng Ký'}
+      </h1>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 text-center">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-xs font-bold rounded-lg">{error}</div>}
 
-      <form onSubmit={handleAuth} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mã cửa hàng</label>
-            <input 
-              type="text" 
-              value={shopCode}
-              onChange={e => setShopCode(e.target.value)}
-              required
-              placeholder="Nhập mã" 
-              className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
-            />
-          </div>
-        )}
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
           <input 
-            type="email" 
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            required
-            placeholder="email@example.com" 
-            className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
+            type="text" placeholder="Mã cửa hàng" value={shopCode} onChange={e => setShopCode(e.target.value)} required
+            className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
           />
-        </div>
-        <div>
-          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
-          <div className="relative">
-            <input 
-              type={showPassword ? "text" : "password"} 
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="••••••••" 
-              className="w-full border border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 outline-none"
-            />
-            <button 
-              type="button" 
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-            >
-              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
-        </div>
-        
-        {!isLogin && (
-          <div>
-            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nhập lại Mật khẩu</label>
-            <input 
-              type={showPassword ? "text" : "password"} 
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              required
-              placeholder="••••••••" 
-              className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
-            />
-          </div>
         )}
-
+        <input 
+          type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required
+          className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
+        />
+        <input 
+          type="password" placeholder="Mật khẩu" value={password} onChange={e => setPassword(e.target.value)} required
+          className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
+        />
+        {!isLogin && (
+          <input 
+            type="password" placeholder="Nhập lại mật khẩu" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
+            className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
+          />
+        )}
         <button 
-          type="submit" 
           disabled={loading}
-          className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 mt-4 hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg shadow-blue-100"
+          className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-700 transition-all uppercase tracking-widest"
         >
-          {loading ? 'Đang xử lý...' : (isLogin ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ')}
-          {!loading && <ArrowRight size={18} />}
+          {loading ? 'Đang tải...' : (isLogin ? 'Vào hệ thống' : 'Tạo tài khoản')}
         </button>
       </form>
 
-      <div className="mt-6 text-center">
-        <button 
-          onClick={() => { setIsLogin(!isLogin); setError(null); }}
-          className="text-sm font-bold text-blue-600 hover:underline"
-        >
-          {isLogin ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
+      <div className="mt-8 text-center space-y-4">
+        <button onClick={() => setIsLogin(!isLogin)} className="text-sm font-bold text-blue-600 hover:underline">
+          {isLogin ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
         </button>
-      </div>
-
-      <div className="mt-6 text-center">
-        <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 underline">
-          Quay lại trang chủ
-        </Link>
+        <div className="block pt-4 border-t border-slate-100">
+          <Link href="/" className="text-xs font-bold text-slate-400 hover:text-slate-600">
+            Quay lại trang chủ
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -187,9 +112,9 @@ function LoginFormContent() {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <Suspense fallback={<div className="font-bold text-slate-400">Đang tải...</div>}>
-        <LoginFormContent />
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <Suspense fallback={<div className="font-bold text-slate-400">Loading...</div>}>
+        <LoginForm />
       </Suspense>
     </div>
   );
