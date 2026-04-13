@@ -1,0 +1,177 @@
+Bạn nên chia FAQ chatbot thành 4 tầng:
+
+Thông tin cơ bản (dịch vụ, giá)
+Tạo niềm tin (an toàn, tay nghề)
+Xử lý từ chối (giá, phân vân)
+Chốt nhẹ (giữ lịch, combo)
+----
+
+Q: Spa mình có những dịch vụ gì vậy?
+A: Dạ bên em có gội đầu dưỡng sinh, massage thư giãn, chăm sóc da và các liệu trình làm đẹp ạ.
+
+Q: Gội đầu dưỡng sinh là gì vậy?
+A: Dạ là gội đầu kết hợp massage và thảo dược, giúp thư giãn, giảm stress và ngủ ngon hơn ạ.
+
+Q: Một liệu trình kéo dài bao lâu?
+A: Dạ tuỳ dịch vụ, thường từ 30 đến 90 phút ạ.
+
+Q: Mình có cần đặt lịch trước không?
+A: Dạ em khuyến khích mình đặt lịch trước để được phục vụ tốt nhất và không phải chờ ạ.
+
+Q: Spa có nhận khách nam không?
+A: Dạ bên em ưu tiên khách nữ, nhưng vẫn hỗ trợ khách nam tuỳ dịch vụ ạ.
+
+Q: Giá dịch vụ khoảng bao nhiêu vậy?
+A: Dạ giá dao động từ khoảng 100k – 300k+ tuỳ dịch vụ và gói mình chọn ạ.
+
+Q: Spa có combo hay ưu đãi không?
+A: Dạ bên em có combo tiết kiệm và ưu đãi thường xuyên, mình inbox để em tư vấn cụ thể nha ạ.
+
+Q: Phụ nữ mang thai có làm được không?
+A: Dạ được ạ, nhưng mình báo trước để bên em tư vấn liệu trình nhẹ nhàng, an toàn hơn ạ.
+
+Q: Sản phẩm bên spa có an toàn không?
+A: Dạ bên em dùng sản phẩm thiên nhiên, lành tính và có nguồn gốc rõ ràng ạ.
+
+Q: Sau khi làm xong có cần lưu ý gì không?
+A: Dạ mình nên tránh gió lạnh, uống nhiều nước và hạn chế makeup ngay sau khi làm da ạ.
+
+Q: Spa có phòng riêng không?
+A: Dạ bên em có không gian yên tĩnh và phòng riêng tuỳ dịch vụ ạ.
+
+Q: Nếu mình đến trễ hoặc huỷ lịch thì sao?
+A: Dạ mình báo trước giúp em 1–2 tiếng để bên em sắp xếp lại lịch ạ.
+
+Q: Spa có bán voucher không?
+A: Dạ bên em có voucher và thẻ quà tặng, rất phù hợp để tặng người thân ạ.
+
+Q: Bao lâu nên đi gội dưỡng sinh hoặc massage 1 lần?
+A: Dạ khoảng 1–2 lần/tuần là hợp lý để thư giãn và chăm sóc sức khoẻ ạ.
+
+Q: Mình đặt lịch như thế nào?
+A: Dạ mình có thể nhắn tin fanpage, Zalo hoặc gọi hotline để đặt lịch nhanh nhất ạ.
+
+Q: Sao dịch vụ bên em mắc vậy?
+A: Dạ em hiểu cảm nhận của mình ạ. Bên em sử dụng sản phẩm chất lượng và kỹ thuật chăm sóc chuyên sâu nên giá sẽ đi kèm với trải nghiệm tốt hơn. Nếu mình cần, em có thể tư vấn gói phù hợp ngân sách hơn ạ.
+
+Q: Làm không thấy hiệu quả gì hết?
+A: Dạ em rất tiếc vì trải nghiệm của mình chưa như mong đợi ạ. Mình cho em xin thêm thông tin để bên em kiểm tra và hỗ trợ mình tốt hơn nha ạ.
+
+Q: Nhân viên phục vụ không tốt!
+A: Dạ em xin lỗi vì trải nghiệm chưa tốt của mình ạ. Bên em sẽ ghi nhận và cải thiện ngay. Mình có thể chia sẻ thêm để bên em xử lý triệt để hơn không ạ?
+
+Q: Đợi lâu quá vậy?
+A: Dạ em xin lỗi mình vì sự bất tiện này ạ. Hiện tại khách hơi đông, bên em sẽ cố gắng sắp xếp nhanh nhất cho mình ạ. Lần sau mình đặt lịch trước giúp em để được ưu tiên hơn nha ạ.
+
+Q: Tôi bực rồi, phục vụ kiểu gì vậy?
+A: Dạ em rất xin lỗi vì đã làm mình không hài lòng ạ. Bên em luôn mong muốn mang lại trải nghiệm tốt nhất, mình cho em cơ hội hỗ trợ lại mình nha ạ.
+
+Q: Cho địa chỉ spa với?
+A: Dạ QLady Spa ở 41A Quang Trung, Nha Trang ạ.
+
+Q: Spa gần chỗ nào vậy?
+A: Dạ spa nằm trên đường Quang Trung, khu trung tâm Nha Trang, dễ tìm lắm ạ. Mình cần em gửi định vị Google Maps không ạ?
+
+Q: Chỉ mình đường đi với?
+A: Dạ mình đi đến đường Quang Trung, tìm số 41A là thấy QLady Spa ạ. Nếu cần em gửi map hoặc hướng dẫn chi tiết từ vị trí của mình nha ạ.
+
+Q: Có chỗ đậu xe không?
+A: Dạ bên em có chỗ để xe cho khách, mình yên tâm ghé spa ạ.
+
+Q: Mình tới trực tiếp luôn được không?
+A: Dạ được ạ, nhưng nếu đặt lịch trước thì mình sẽ không phải chờ lâu đâu ạ.
+
+Q: Spa có gói nào phù hợp cho người mới không?
+A: Dạ nếu mình lần đầu trải nghiệm, em gợi ý gói gội dưỡng sinh thư giãn nhẹ nhàng để mình cảm nhận trước ạ. Nếu mình thích, bên em có combo tiết kiệm hơn cho những lần sau nữa ạ.
+
+Q: Mình đang stress nhiều, nên chọn dịch vụ nào?
+A: Dạ trường hợp của mình rất hợp massage cổ vai gáy kết hợp gội dưỡng sinh ạ. Liệu trình này giúp thả lỏng cơ và dễ ngủ hơn. Nếu mình muốn, em giữ lịch sớm để mình được thư giãn ngay hôm nay nha ạ.
+
+Q: Da mình nhạy cảm, có làm được không?
+A: Dạ bên em có liệu trình riêng cho da nhạy cảm, sử dụng sản phẩm dịu nhẹ ạ. Mình ghé spa, bên em soi da và tư vấn kỹ hơn để chọn đúng liệu trình phù hợp nhất cho mình nha ạ.
+
+Q: Mình chỉ có ít thời gian thôi?
+A: Dạ bên em có gói nhanh khoảng 30–45 phút vẫn đảm bảo thư giãn ạ. Nếu mình cho em khung giờ, em giữ lịch sẵn để mình đến là làm ngay không phải chờ nha ạ.
+
+Q: Đi một mình hay đi cùng bạn được không?
+A: Dạ mình đi một mình hay đi cùng bạn đều được ạ. Nếu mình đi cùng người thân, bên em có thể sắp xếp làm cùng lúc để mình thư giãn trọn vẹn hơn ạ.
+
+Q: Mình muốn thư giãn nhẹ thôi, không massage mạnh?
+A: Dạ mình yên tâm ạ, kỹ thuật bên em điều chỉnh theo cảm nhận của mình. Nhân viên sẽ chăm sóc nhẹ nhàng, đúng kiểu thư giãn dễ chịu nhất ạ.
+
+Q: Mình hay bị mất ngủ?
+A: Dạ gội dưỡng sinh kết hợp massage đầu sẽ hỗ trợ ngủ ngon hơn rất tốt ạ. Nhiều khách bên em làm xong ngủ sâu hơn hẳn luôn ạ. Nếu mình muốn, em đặt lịch buổi tối cho mình trải nghiệm nha ạ.
+
+Q: Mình muốn chăm sóc định kỳ thì sao?
+A: Dạ bên em có thẻ liệu trình tiết kiệm hơn khi mình đi thường xuyên ạ. Em có thể tư vấn gói phù hợp để mình vừa tiết kiệm vừa chăm sóc đều đặn nha ạ.
+
+Q: Có gói nào vừa làm đẹp vừa thư giãn không?
+A: Dạ có ạ, bên em có combo vừa chăm sóc da vừa massage thư giãn rất được khách yêu thích. Nếu mình muốn trải nghiệm trọn vẹn, em recommend gói này cho mình nha ạ.
+
+Q: Mình sợ đông và ồn ào?
+A: Dạ spa bên em không gian yên tĩnh, ưu tiên sự riêng tư ạ. Mình đặt lịch trước, bên em sắp xếp khung giờ phù hợp để mình được thư giãn thoải mái nhất nha ạ.
+
+Q: Lần đầu đi spa nên hơi ngại?
+A: Dạ mình cứ yên tâm ạ, bên em sẽ hướng dẫn nhẹ nhàng từ đầu đến cuối. Khách lần đầu bên em chăm rất kỹ nên mình cứ thoải mái trải nghiệm nha ạ.
+
+Q: Mình muốn đặt lịch luôn thì sao?
+A: Dạ mình cho em xin thời gian phù hợp, bên em giữ lịch riêng cho mình ạ. Đặt trước thì mình tới là được phục vụ ngay, không phải chờ ạ.
+
+Q: Có chương trình cho khách quen không?
+A: Dạ khách quen bên em có ưu đãi riêng và tích điểm ạ. Nếu mình đi thường xuyên, em tư vấn gói tiết kiệm hơn cho mình nha ạ.
+
+Q: Mình muốn thử nhưng còn phân vân?
+A: Dạ mình có thể thử gói cơ bản trước để cảm nhận ạ. Nếu thấy phù hợp, mình nâng lên combo sẽ tiết kiệm hơn nhiều ạ.
+
+Q: Nhân viên có tay nghề không?
+A: Dạ đội ngũ bên em được đào tạo kỹ thuật bài bản và chăm sóc khách rất nhẹ nhàng ạ. Nếu mình cần, bên em sẽ sắp xếp kỹ thuật viên phù hợp nhất với mình nha ạ.
+
+Q: Có bị đau không?
+A: Dạ bên em điều chỉnh lực theo cảm nhận của mình ạ. Mục tiêu là thư giãn dễ chịu chứ không gây đau đâu ạ, mình cứ yên tâm nha.
+
+Q: Có phải tip thêm không?
+A: Dạ hoàn toàn không bắt buộc ạ. Nếu mình hài lòng và muốn gửi thêm cho kỹ thuật viên thì bên em rất trân trọng ạ 💖
+
+Q: Có bị “chèo kéo mua thêm” không?
+A: Dạ bên em chỉ tư vấn khi mình cần ạ, không ép buộc. Mục tiêu là để mình có trải nghiệm thoải mái nhất ạ.
+
+Q: Spa mình khác gì chỗ khác?
+A: Dạ bên em tập trung trải nghiệm thư giãn nhẹ nhàng, riêng tư và chăm sóc cá nhân hoá cho từng khách ạ. Nếu mình thử một lần, mình sẽ cảm nhận rõ sự khác biệt đó ạ 💖
+
+Q: Mình thấy chỗ khác rẻ hơn?
+A: Dạ mỗi spa sẽ có định hướng khác nhau ạ. Bên em chú trọng chất lượng và trải nghiệm thư giãn trọn vẹn. Nếu mình cần, em có thể tư vấn gói phù hợp ngân sách hơn cho mình nha ạ.
+
+Q: Làm mấy lần thì hiệu quả?
+A: Dạ thường mình sẽ cảm nhận thư giãn ngay sau lần đầu ạ. Nếu duy trì đều, hiệu quả sẽ rõ rệt và lâu dài hơn. Bên em có gói định kỳ tiết kiệm cho mình nữa nha ạ.
+
+Q: Có cam kết hiệu quả không?
+A: Dạ hiệu quả còn tuỳ cơ địa mỗi người ạ, nhưng bên em luôn cố gắng mang lại trải nghiệm tốt nhất và cải thiện rõ rệt cho mình qua từng lần ạ.
+
+Q: Mình khó tính lắm, sợ không hợp?
+A: Dạ bên em rất hiểu điều đó ạ 💖
+Bên em sẽ lắng nghe kỹ nhu cầu của mình và điều chỉnh phù hợp nhất để mình cảm thấy thoải mái ạ.
+
+Q: Mình muốn kỹ thuật viên nữ / người làm lần trước?
+A: Dạ được ạ, mình cứ báo trước giúp em, bên em sẽ ưu tiên sắp xếp đúng người mình mong muốn nha ạ.
+
+Q: Mình tới trễ chút có sao không?
+A: Dạ bên em vẫn hỗ trợ ạ, tuy nhiên có thể sẽ cần điều chỉnh thời gian để không ảnh hưởng khách sau. Mình báo trước giúp em để bên em sắp xếp tốt hơn nha ạ.
+
+Q: Mình muốn đổi lịch?
+A: Dạ mình cho em xin thời gian mới, bên em sẽ kiểm tra và giữ lịch phù hợp nhất cho mình ạ 💖
+
+Q: Có phòng riêng kín đáo không?
+A: Dạ bên em có không gian riêng tư, yên tĩnh để mình thư giãn thoải mái ạ.
+
+Q: Có camera trong phòng không?
+A: Dạ khu vực dịch vụ riêng tư bên em không lắp camera ạ, mình hoàn toàn yên tâm khi trải nghiệm ạ.
+
+Q: Để mình suy nghĩ đã?
+A: Dạ mình cứ thoải mái ạ 💖
+Khi nào cần, bên em luôn sẵn sàng giữ lịch đẹp cho mình để không phải chờ nha ạ.
+
+Q: Spa mở cửa mấy giờ?
+A: Dạ bên em mở cửa từ 8h30 đến 21h ạ. Mình ghé khung giờ nào em giữ lịch đẹp cho mình nha ạ 💖
+
+Q: Mình cần tư vấn nhanh?
+A: Dạ mình để lại số điện thoại hoặc nhắn trực tiếp, bên em sẽ hỗ trợ mình nhanh nhất có thể ạ 💖
