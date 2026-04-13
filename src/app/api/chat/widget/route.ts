@@ -1,72 +1,47 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
     const { message, history = [], code } = await req.json();
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    if (!message || !code) {
-      return NextResponse.json({ error: 'Missing message or shop code' }, { status: 400 });
-    }
+    if (!apiKey) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
+    if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
-    if (!supabaseAdmin) {
-      return NextResponse.json({ error: 'Database connection not initialized' }, { status: 500 });
-    }
+    // 1. Tìm shop
+    const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
+    if (!shop) return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
 
-    // 1. Tìm shop theo code
-    const { data: shop, error: shopError } = await supabaseAdmin
-      .from('shops')
-      .select('id, name, expiry_date')
-      .eq('code', code)
-      .single();
-
-    if (shopError || !shop) {
-      return NextResponse.json({ error: 'Mã cửa hàng không tồn tại' }, { status: 404 });
-    }
-
-    // 2. Kiểm tra hạn sử dụng
-    if (shop.expiry_date && new Date(shop.expiry_date) < new Date()) {
-      return NextResponse.json({ error: 'Chatbot của shop này đã hết hạn. Vui lòng liên hệ quản lý.' }, { status: 403 });
-    }
-
-    // 3. Lấy cấu hình chatbot
-    const { data: config } = await supabaseAdmin
-      .from('chatbot_configs')
-      .select('shop_name, product_info, faq')
-      .eq('shop_id', shop.id)
-      .single();
-
-    const shopName    = config?.shop_name || 'Cửa hàng';
-    const productInfo = config?.product_info || '';
-    const faq         = config?.faq || '';
-
-    const systemInstruction = `Bạn là trợ lý AI shop ${shopName}. Trả lời ngắn gọn dựa trên: ${productInfo}. FAQ: ${faq}.`;
-
-    // 4. Khởi tạo với API Version v1 (Chính thức) thay vì v1beta
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+    const { data: config } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop.id).single();
+    const shopName = config?.shop_name || shop.name;
     
-    // Ép kiểu để sử dụng model gemini-1.5-flash trên bản v1
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
-      systemInstruction 
+    // 2. Chuẩn bị dữ liệu gửi trực tiếp tới Google (Dùng bản v1)
+    const apiURL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const prompt = `Bạn là trợ lý cho ${shopName}. Thông tin: ${config?.product_info}. FAQ: ${config?.faq}. Khách hỏi: ${message}`;
+
+    const response = await fetch(apiURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 200 }
+      })
     });
 
-    const chat = model.startChat({
-      history: history.map((msg: any) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      })),
-    });
+    const data = await response.json();
 
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+    if (!response.ok) {
+      // Trả về lỗi chi tiết từ Google để chúng ta biết chính xác tại sao
+      return NextResponse.json({ error: `Google API Error: ${data.error?.message || response.statusText}` }, { status: response.status });
+    }
+
+    const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Shop chưa rõ ý bạn, bạn nói lại nhé!';
 
     return NextResponse.json({ response: responseText, shop_name: shopName });
 
   } catch (error: any) {
-    console.error('[Widget] API Error:', error);
-    // Nếu vẫn lỗi 404, có thể do Model Name ở bản v1 khác
-    return NextResponse.json({ error: `Lỗi: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
