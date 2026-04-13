@@ -12,6 +12,7 @@ export async function POST(req: Request) {
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
     const { data: config } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
     
+    const shopName = config?.shop_name || shop?.name || 'Shop';
     const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
     const prompt = `Hôm nay là ${now}. Bạn là trợ lý cho ${shopName}. Thông tin: ${config?.product_info}. FAQ: ${config?.faq}. Khách hỏi: ${message}`;
 
