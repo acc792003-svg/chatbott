@@ -19,6 +19,7 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shopName, setShopName] = useState('Trợ lý Tự động');
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -52,6 +53,9 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
          throw new Error(data.error);
       }
 
+      // Cập nhật tên shop từ chatbot_configs.shop_name
+      if (data.shop_name) setShopName(data.shop_name);
+
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
     } catch (err: any) {
       setMessages(prev => [...prev, { role: 'assistant', content: `[Lỗi]: ${err.message}` }]);
@@ -69,9 +73,9 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
              <Bot size={18} />
            </div>
            <div>
-             <h3 className="font-bold text-sm leading-tight">Trợ lý Tự động</h3>
-             <p className="text-[10px] text-blue-100 opacity-80">Luôn sẵn sàng hỗ trợ</p>
-           </div>
+              <h3 className="font-bold text-sm leading-tight">{shopName}</h3>
+              <p className="text-[10px] text-blue-100 opacity-80">Luôn sẵn sàng hỗ trợ</p>
+            </div>
          </div>
 
          {/* Chat Area */}

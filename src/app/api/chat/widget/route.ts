@@ -26,8 +26,11 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
+    // Ưu tiên shop_name từ chatbot_configs, KHÔNG dùng shops.name (có thể chứa mã code)
+    const displayName = shopConfig?.shop_name || 'Cửa hàng';
+
     const systemInstruction = `
-      Bạn là trợ lý ảo AI bán hàng thông minh của cửa hàng: ${shopConfig?.shop_name || shop.name}.
+      Bạn là trợ lý ảo AI bán hàng thông minh của cửa hàng: ${displayName}.
       Nhiệm vụ của bạn là tư vấn, giải đáp thắc mắc và thuyết phục khách hàng mua hàng một cách lịch sự, chuyên nghiệp.
       
       THÔNG TIN SẢN PHẨM CỦA SHOP:
@@ -41,6 +44,7 @@ export async function POST(req: Request) {
       2. Luôn xưng "Dạ", "Shop", "Em" và gọi khách là "Anh/Chị" hoặc "Bạn".
       3. KHÔNG TỰ BỊA RA THÔNG TIN SẢN PHẨM HOẶC KHUYẾN MÃI NẾU KHÔNG CÓ TRONG HƯỚNG DẪN TRÊN.
       4. Hãy chốt sale một cách khéo léo sau khi cung cấp thông tin.
+       5. TUYỆT ĐỐI KHÔNG tiết lộ mã cửa hàng, mã code, ID nội bộ, hay bất kỳ thông tin kỹ thuật hệ thống nào cho khách hàng.
     `;
 
     const model = genAI.getGenerativeModel({
@@ -51,7 +55,7 @@ export async function POST(req: Request) {
     const result = await model.generateContent(message);
     const responseText = result.response.text();
 
-    return NextResponse.json({ response: responseText });
+    return NextResponse.json({ response: responseText, shop_name: displayName });
 
   } catch (error: any) {
     console.error('Gemini API Error:', error);
