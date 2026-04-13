@@ -170,6 +170,8 @@ export default function LandingPage() {
         <div className="flex items-center gap-2 text-blue-600">
           <Bot size={18} />
           <span className="font-black text-sm">AI Chat Bán Hàng</span>
+          <span className="text-slate-400 font-semibold">•</span>
+          <span className="font-bold text-sm text-slate-700">LH: 0905550738</span>
         </div>
         <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest">© 2026 • Premium SaaS Solution</p>
       </footer>
