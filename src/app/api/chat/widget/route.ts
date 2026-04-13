@@ -30,65 +30,59 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Chatbot của shop này đã hết hạn. Vui lòng liên hệ quản lý.' }, { status: 403 });
     }
 
-    // 3. Lấy toàn bộ cấu hình chatbot từ chatbot_configs
-    const { data: config, error: configError } = await supabaseAdmin
+    // 3. Lấy cấu hình chatbot
+    const { data: config } = await supabaseAdmin
       .from('chatbot_configs')
       .select('shop_name, product_info, faq')
       .eq('shop_id', shop.id)
       .single();
 
-    console.log('[Widget] shop.id:', shop.id, '| config:', config);
-    if (configError) console.error('[Widget] configError:', configError.message);
+    const shopName    = config?.shop_name || 'Cửa hàng';
+    const productInfo = config?.product_info || '';
+    const faq         = config?.faq || '';
 
-    // 4. Đọc 3 trường cấu hình
-    const shopName    = config?.shop_name?.trim()   || 'Cửa hàng';
-    const productInfo = config?.product_info?.trim() || 'Chưa có thông tin sản phẩm.';
-    const faq         = config?.faq?.trim()          || 'Chưa có câu hỏi thường gặp.';
+    const systemInstruction = `Bạn là trợ lý AI của shop ${shopName}. Trả lời ngắn gọn, thân thiện dựa trên thông tin: ${productInfo}. FAQ: ${faq}.`;
 
-    // 5. System instruction được xây từ 3 trường trên
-    const systemInstruction = `
-Bạn là trợ lý ảo AI bán hàng của cửa hàng "${shopName}".
+    // 4. Danh sách các model để thử (từ mới đến cũ)
+    const MODELS_TO_TRY = [
+      'gemini-1.5-flash',
+      'gemini-1.5-flash-latest',
+      'gemini-pro',
+      'gemini-1.0-pro'
+    ];
 
-=== TÊN CỬA HÀNG ===
-${shopName}
-Luôn xưng là "${shopName}" khi khách hỏi tên shop.
-
-=== THÔNG TIN SẢN PHẨM ===
-${productInfo}
-
-=== CÂU HỎI THƯỜNG GẶP (FAQ) ===
-${faq}
-
-=== QUY TẮC TRẢ LỜI ===
-1. Ngắn gọn, súc tích (tối đa 120 chữ mỗi câu trả lời).
-2. Xưng "Em", "Shop" — gọi khách là "Anh/Chị" hoặc "Bạn".
-3. Chỉ dùng thông tin có trong phần Sản phẩm và FAQ ở trên. KHÔNG bịa đặt.
-4. Chốt sale tự nhiên, không gượng ép.
-5. Khi khách hỏi tên shop/cửa hàng → trả lời ngay bằng "${shopName}".
-6. TUYỆT ĐỐI không tiết lộ mã code kỹ thuật, UUID, ID nội bộ hệ thống.
-    `.trim();
-
-    // 6. Khởi tạo model Gemini với chat session (có lịch sử hội thoại)
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.0-pro',
-      systemInstruction,
-    });
+    let responseText = '';
+    let lastError = '';
 
-    const chat = model.startChat({
-      history: history.map((msg: { role: string; content: string }) => ({
-        role: msg.role === 'user' ? 'user' : 'model',
-        parts: [{ text: msg.content }],
-      })),
-    });
+    // Vòng lặp thử từng model cho đến khi thành công
+    for (const modelName of MODELS_TO_TRY) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+        const chat = model.startChat({
+          history: history.map((msg: any) => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.content }],
+          })),
+        });
+        const result = await chat.sendMessage(message);
+        responseText = result.response.text();
+        if (responseText) break; // Thành công thì thoát vòng lặp
+      } catch (err: any) {
+        console.error(`Thử model ${modelName} thất bại:`, err.message);
+        lastError = err.message;
+        continue; // Thử model tiếp theo
+      }
+    }
 
-    const result = await chat.sendMessage(message);
-    const responseText = result.response.text();
+    if (!responseText) {
+      throw new Error(`Tất cả model đều thất bại. Lỗi cuối cùng: ${lastError}`);
+    }
 
     return NextResponse.json({ response: responseText, shop_name: shopName });
 
   } catch (error: any) {
     console.error('[Widget] API Error:', error);
-    return NextResponse.json({ error: error.message || 'Lỗi server nội bộ' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
