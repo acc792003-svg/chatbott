@@ -4,7 +4,11 @@ import { useState, useEffect } from 'react';
 import { Save, Info, ShoppingBag, DollarSign, HelpCircle, FileText, Facebook } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
+// Lệnh này giúp Vercel biết đây là trang động, tránh lỗi build SSR
+export const dynamic = 'force-dynamic';
+
 export default function ConfigPage() {
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [shopName, setShopName] = useState('');
   const [productInfo, setProductInfo] = useState('');
@@ -14,6 +18,7 @@ export default function ConfigPage() {
   const [isSuperAdminNoShop, setIsSuperAdminNoShop] = useState(false);
   
   useEffect(() => {
+    setMounted(true);
     const fetchConfig = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
@@ -68,11 +73,13 @@ export default function ConfigPage() {
     }
   };
 
+  if (!mounted) return <div className="p-8 text-slate-500 font-bold">Đang tải cấu hình...</div>;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Cấu Hình Chatbot</h1>
-        <p className="text-slate-500 font-medium">Huấn luyện AI của bạn để bán hàng hiệu quả hơn.</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight" style={{ fontFamily: 'Arial, sans-serif' }}>Cấu Hình Chatbot</h1>
+        <p className="text-slate-500 font-medium">Huấn luyện AI và tích hợp Facebook cho cửa hàng của bạn.</p>
       </div>
 
       {isSuperAdminNoShop && (
@@ -83,7 +90,7 @@ export default function ConfigPage() {
       )}
 
       <form onSubmit={handleSave} className="space-y-6">
-        <div className="glass p-8 rounded-[2.5rem] space-y-8">
+        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-xl space-y-8">
           {/* Cấu hình Shop */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -147,7 +154,7 @@ export default function ConfigPage() {
                 <label className="block text-xs font-bold text-slate-400 px-2">Facebook Page ID</label>
                 <input 
                   type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)}
-                  placeholder="Ví dụ: 1029384756..." 
+                  placeholder="ID Fanpage của bạn" 
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none"
                 />
               </div>
@@ -155,7 +162,7 @@ export default function ConfigPage() {
                 <label className="block text-xs font-bold text-slate-400 px-2">Page Access Token</label>
                 <input 
                   type="password" value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)}
-                  placeholder="Dán token từ Facebook Developers..." 
+                  placeholder="Dán Token từ Facebook Developers" 
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-sm font-bold focus:border-blue-600 outline-none"
                 />
               </div>
