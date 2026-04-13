@@ -119,12 +119,12 @@ export default function LandingPage() {
 
       {/* Navbar */}
       <nav className="w-full max-w-7xl px-8 py-6 flex justify-between items-center">
-        <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
             <Bot size={24} />
           </div>
-          <span className="font-extrabold text-2xl text-slate-900 tracking-tight">AI Chat</span>
-        </div>
+          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-extrabold text-2xl text-slate-900 tracking-tight">AI Chat</span>
+        </Link>
         <div className="flex items-center gap-8">
           <Link href="#features" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
           <Link href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Bảng giá</Link>
@@ -146,7 +146,7 @@ export default function LandingPage() {
         {/* Hero Title - font Arial inline, 2 dòng */}
         <h1
           style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-          className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight uppercase"
+          className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight uppercase"
         >
           BIẾN KHÁCH TRUY CẬP THÀNH
           <br />
@@ -180,16 +180,16 @@ export default function LandingPage() {
 
         {/* Feature Cards */}
         <div id="features" className="pt-20">
-          <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Tính Năng Nổi Bật</h2>
-          <p className="text-slate-500 mb-10 font-medium">Mọi thứ bạn cần để bán hàng tự động hiệu quả</p>
+          <h2 style={{ fontFamily: 'Arial, sans-serif' }} className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Tính Năng Nổi Bật</h2>
+          <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-500 mb-10 font-medium">Mọi thứ bạn cần để bán hàng tự động hiệu quả</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((f, i) => (
               <div key={i} className={`glass p-8 rounded-[2.5rem] text-left space-y-4 hover:scale-[1.02] transition-transform border ${f.border}`}>
                 <div className={`w-14 h-14 ${f.bg} ${f.color} rounded-2xl flex items-center justify-center shadow-sm`}>
                   {f.icon}
                 </div>
-                <h3 className={`text-xl font-black tracking-tight ${f.color}`}>{f.title}</h3>
-                <p className="text-slate-600 font-medium leading-relaxed text-sm">{f.desc}</p>
+                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className={`text-xl font-black tracking-tight ${f.color}`}>{f.title}</h3>
+                <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-600 font-medium leading-relaxed text-sm">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -197,17 +197,17 @@ export default function LandingPage() {
 
         {/* Pricing */}
         <div id="pricing" className="pt-32 pb-20 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Gói Dịch Vụ</h2>
-          <p className="text-slate-500 mb-12 font-medium">Bắt đầu miễn phí — nâng cấp khi bạn phát triển.</p>
+          <h2 style={{ fontFamily: 'Arial, sans-serif' }} className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Gói Dịch Vụ</h2>
+          <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-500 mb-12 font-medium">Bắt đầu miễn phí — nâng cấp khi bạn phát triển.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* Free */}
             <div className="glass p-10 rounded-[3rem] text-left border border-slate-200">
               <div className="flex items-center gap-2 mb-2">
                 <Gift size={22} className="text-green-500" />
-                <h3 className="text-xl font-black uppercase text-slate-800">Gói Miễn Phí</h3>
+                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className="text-xl font-black uppercase text-slate-800">Gói Miễn Phí</h3>
               </div>
-              <p className="text-4xl font-black my-4 text-slate-900">0đ<span className="text-sm font-medium text-slate-500">/tháng</span></p>
+              <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-4xl font-black my-4 text-slate-900">0đ<span className="text-sm font-medium text-slate-500">/tháng</span></p>
               <ul className="space-y-3 mb-8">
                 <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-green-500 shrink-0" />
@@ -225,24 +225,24 @@ export default function LandingPage() {
 
             {/* Pro */}
             <div className="glass p-10 rounded-[3rem] text-left ring-4 ring-blue-500 shadow-2xl shadow-blue-100 relative">
-              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-1.5 text-xs font-black uppercase rounded-full shadow-lg tracking-widest whitespace-nowrap">
+              <div style={{ fontFamily: 'Arial, sans-serif' }} className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-1.5 text-xs font-black uppercase rounded-full shadow-lg tracking-widest whitespace-nowrap">
                 ⭐ Khuyên Dùng
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={22} className="text-blue-500" />
-                <h3 className="text-xl font-black uppercase text-blue-700">Gói Pro</h3>
+                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className="text-xl font-black uppercase text-blue-700">Gói Pro</h3>
               </div>
-              <p className="text-4xl font-black my-4 text-blue-700">299k<span className="text-sm font-medium text-slate-500">/tháng</span></p>
+              <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-4xl font-black my-4 text-blue-700">299k<span className="text-sm font-medium text-slate-500">/tháng</span></p>
               <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
                   Tin nhắn AI không giới hạn
                 </li>
-                <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
                   Tích hợp Webhook
                 </li>
-                <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
                   Hỗ trợ ưu tiên 24/7
                 </li>
@@ -259,11 +259,11 @@ export default function LandingPage() {
       <footer className="w-full border-t border-slate-100 py-12 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2 text-blue-600">
           <Bot size={18} />
-          <span className="font-black text-sm">AI Chat Bán Hàng</span>
+          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-black text-sm">AI Chat Bán Hàng</span>
           <span className="text-slate-400 font-semibold">•</span>
-          <span className="font-bold text-sm text-slate-700">LH: 0905550738</span>
+          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-bold text-sm text-slate-700">LH: 0905550738</span>
         </div>
-        <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest">© 2026 • Premium SaaS Solution</p>
+        <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-400 text-xs font-semibold uppercase tracking-widest">© 2026 • Premium SaaS Solution</p>
       </footer>
     </div>
   );
