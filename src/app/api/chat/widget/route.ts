@@ -3,56 +3,54 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { message, history = [], code } = await req.json();
-    const apiKey = process.env.GEMINI_API_KEY;
+    const { message, code } = await req.json();
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim(); // Trim để bỏ dấu cách thừa
 
     if (!apiKey) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
-    if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
-    const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
-    if (!shop) return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
+    // 1. DÒ TÌM MODEL: Hỏi Google xem tôi được dùng cái gì?
+    const listModelsURL = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+    const listResponse = await fetch(listModelsURL);
+    const listData = await listResponse.json();
 
-    const { data: config } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop.id).single();
-    const shopName = config?.shop_name || shop.name;
-    const prompt = `Bạn là trợ lý cho ${shopName}. Thông tin: ${config?.product_info}. FAQ: ${config?.faq}. Khách hỏi: ${message}`;
+    let modelToUse = 'gemini-1.5-flash'; // Mặc định
 
-    // Danh sách model để "Dò tìm"
-    const MODELS = ['gemini-1.5-flash', 'gemini-pro', 'gemini-1.0-pro', 'gemini-1.5-pro'];
-    let finalResponse = null;
-    let lastError = '';
-
-    for (const model of MODELS) {
-      try {
-        const apiURL = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-        const response = await fetch(apiURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          finalResponse = data.candidates[0].content.parts[0].text;
-          break; // Tìm thấy model chạy được, thoát vòng lặp
-        } else {
-          lastError = data.error?.message || response.statusText;
-          console.log(`Model ${model} thất bại: ${lastError}`);
-        }
-      } catch (e: any) {
-        lastError = e.message;
+    if (listData.models && listData.models.length > 0) {
+      // Tìm model hỗ trợ tạo nội dung
+      const supportedModel = listData.models.find((m: any) => 
+        m.supportedGenerationMethods.includes('generateContent') && 
+        !m.name.includes('vision') // Tránh model chỉ có mắt
+      );
+      if (supportedModel) {
+        modelToUse = supportedModel.name.split('/').pop(); // Lấy tên sau dấu /
+        console.log('Phát hiện model khả dụng:', modelToUse);
       }
     }
 
-    if (!finalResponse) {
-      return NextResponse.json({ error: `Tất cả model đều báo lỗi 404 hoặc lỗi Quota. Lỗi cuối: ${lastError}` }, { status: 500 });
+    // 2. Lấy thông tin shop (như cũ)
+    const { data: shop } = await supabaseAdmin!.from('shops').select('id, name').eq('code', code).single();
+    const { data: config } = await supabaseAdmin!.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+
+    // 3. GỌI API VỚI MODEL ĐÃ DÒ ĐƯỢC
+    const chatURL = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`;
+    
+    const chatResponse = await fetch(chatURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: `Shop: ${config?.shop_name || shop?.name}. Info: ${config?.product_info}. Hỏi: ${message}` }] }]
+      })
+    });
+
+    const chatData = await chatResponse.json();
+    if (!chatResponse.ok) {
+        return NextResponse.json({ error: `Dò được model ${modelToUse} nhưng lỗi: ${chatData.error?.message}` }, { status: chatResponse.status });
     }
 
-    return NextResponse.json({ response: finalResponse, shop_name: shopName });
+    const responseText = chatData.candidates?.[0]?.content?.parts?.[0]?.text || 'Shop chưa hiểu ý bạn.';
+    return NextResponse.json({ response: responseText, shop_name: config?.shop_name || shop?.name });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: `Lỗi hệ thống: ${error.message}` }, { status: 500 });
   }
 }
