@@ -9,7 +9,8 @@ export async function POST(req: Request) {
 
     const apiURL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
-    const prompt = `Cửa hàng: ${shopConfig?.shop_name}. Sản phẩm: ${shopConfig?.product_info}. FAQ: ${shopConfig?.faq}. Khách: ${message}`;
+    const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const prompt = `Hôm nay là ${now}. Cửa hàng: ${shopConfig?.shop_name}. Sản phẩm: ${shopConfig?.product_info}. FAQ: ${shopConfig?.faq}. Khách: ${message}`;
 
     const response = await fetch(apiURL, {
       method: 'POST',

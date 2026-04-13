@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -16,35 +17,45 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const PAGE_ACCESS_TOKEN = process.env.FACEBOOK_PAGE_ACCESS_TOKEN;
 
     if (body.object === 'page') {
       for (const entry of body.entry) {
+        const pageId = entry.id; // ID của Fanpage nhận tin nhắn
         const webhookEvent = entry.messaging[0];
         const senderId = webhookEvent.sender.id;
         const messageText = webhookEvent.message?.text;
 
-        if (messageText && PAGE_ACCESS_TOKEN) {
-          // 1. Gọi API nội bộ của chúng ta để lấy câu trả lời từ AI
-          // Ở bản SaaS, bạn cần logic tìm shop_id dựa trên PageID, 
-          // nhưng tạm thời chúng ta dùng cấu hình mặc định:
-          const chatResponse = await fetch(`${new URL(req.url).origin}/api/chat`, {
+        if (messageText && pageId) {
+          // 1. Tìm cấu hình shop dựa trên Facebook Page ID
+          const { data: config } = await supabaseAdmin
+            .from('chatbot_configs')
+            .select('*')
+            .eq('fb_page_id', pageId)
+            .single();
+
+          if (!config || !config.fb_access_token) {
+            console.error(`Không tìm thấy cấu hình cho Page ID: ${pageId}`);
+            continue;
+          }
+
+          // 2. Gọi AI Gemini để lấy câu trả lời (Dùng model ổn định nhất)
+          const aiResponse = await fetch(`${new URL(req.url).origin}/api/chat`, {
             method: 'POST',
             body: JSON.stringify({
               message: messageText,
               shopConfig: {
-                shop_name: "Cửa hàng của bạn",
-                product_info: "Vui lòng cập nhật thông tin sản phẩm trong dashboard",
-                faq: "Vui lòng cập nhật FAQ"
+                shop_name: config.shop_name,
+                product_info: config.product_info,
+                faq: config.faq
               }
             })
           });
 
-          const chatData = await chatResponse.json();
-          const aiReply = chatData.response || "Xin lỗi, em đang bận một chút.";
+          const chatData = await aiResponse.json();
+          const aiReply = chatData.response || "Dạ, em chưa hiểu ý mình, anh chị đợi nhân viên trực hỗ trợ ạ.";
 
-          // 2. Gửi trả lời lại Facebook Graph API
-          await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+          // 3. Gửi tin nhắn trả lời lại Facebook
+          await fetch(`https://graph.facebook.com/v19.0/me/messages?access_token=${config.fb_access_token}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -56,7 +67,9 @@ export async function POST(req: Request) {
       }
       return new Response('EVENT_RECEIVED', { status: 200 });
     }
-  } catch (error) {
+    return new Response('Not Found', { status: 404 });
+  } catch (error: any) {
+    console.error('FB Webhook Error:', error.message);
     return new Response('Error', { status: 500 });
   }
 }
