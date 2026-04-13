@@ -3,68 +3,75 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { message, code } = await req.json();
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim(); // Trim để bỏ dấu cách thừa
+    const { message, history = [], code } = await req.json();
+    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
     if (!apiKey) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
+    if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
-    // 1. DÒ TÌM MODEL: Hỏi Google xem tôi được dùng cái gì?
-    const listModelsURL = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-    const listResponse = await fetch(listModelsURL);
+    const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
+    const { data: config } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+    
+    const shopName = config?.shop_name || shop?.name || 'Shop';
+    const prompt = `Bạn là trợ lý cho ${shopName}. Thông tin: ${config?.product_info}. FAQ: ${config?.faq}. Khách hỏi: ${message}`;
+
+    // 1. DÒ TÌM DANH SÁCH MODEL KHẢ DỤNG
+    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     const listData = await listResponse.json();
-
-    let modelToUse = 'gemini-1.5-flash'; // Mặc định
-
-    if (listData.models && listData.models.length > 0) {
-      // Ưu tiên theo thứ tự: 1.5-flash -> pro -> bất kỳ cái nào khác chạy được
-      const preferred = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro', 'gemini-1.0-pro'];
-      
-      let found = null;
-      for (const p of preferred) {
-        if (listData.models.find((m: any) => m.name.includes(p))) {
-          found = p;
-          break;
-        }
-      }
-
-      if (found) {
-        modelToUse = found;
-      } else {
-        // Nếu không có cái nào trong list ưu tiên, lấy bừa 1 cái hỗ trợ generateContent nhưng không phải 2.5 (vì đang quá tải)
-        const fallback = listData.models.find((m: any) => 
-          m.supportedGenerationMethods.includes('generateContent') && 
-          !m.name.includes('vision') &&
-          !m.name.includes('2.5-flash')
-        );
-        if (fallback) modelToUse = fallback.name.split('/').pop();
-      }
-      console.log('Model được chọn sau khi lọc:', modelToUse);
+    
+    let candidates: string[] = [];
+    if (listData.models) {
+      candidates = listData.models
+        .filter((m: any) => m.supportedGenerationMethods.includes('generateContent'))
+        .map((m: any) => m.name); // Lấy tên đầy đủ: 'models/gemini-1.5-flash'
     }
 
-    // 2. Lấy thông tin shop (như cũ)
-    const { data: shop } = await supabaseAdmin!.from('shops').select('id, name').eq('code', code).single();
-    const { data: config } = await supabaseAdmin!.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+    // Nếu không dò được, dùng list mặc định
+    if (candidates.length === 0) {
+      candidates = ['models/gemini-1.5-flash', 'models/gemini-pro', 'models/gemini-1.0-pro'];
+    }
 
-    // 3. GỌI API VỚI MODEL ĐÃ DÒ ĐƯỢC
-    const chatURL = `https://generativelanguage.googleapis.com/v1beta/models/${modelToUse}:generateContent?key=${apiKey}`;
-    
-    const chatResponse = await fetch(chatURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: `Shop: ${config?.shop_name || shop?.name}. Info: ${config?.product_info}. Hỏi: ${message}` }] }]
-      })
+    // Ưu tiên né 2.5-flash nếu có thể vì đang overload
+    candidates.sort((a, b) => {
+      if (a.includes('2.5-flash')) return 1;
+      if (b.includes('2.5-flash')) return -1;
+      return 0;
     });
 
-    const chatData = await chatResponse.json();
-    if (!chatResponse.ok) {
-        return NextResponse.json({ error: `Dò được model ${modelToUse} nhưng lỗi: ${chatData.error?.message}` }, { status: chatResponse.status });
+    let finalResponse = null;
+    let lastError = '';
+
+    // 2. THỬ TỪNG MODEL VỚI CẢ V1 VÀ V1BETA
+    for (const fullModelName of candidates) {
+       for (const version of ['v1', 'v1beta']) {
+          try {
+            const apiURL = `https://generativelanguage.googleapis.com/${version}/${fullModelName}:generateContent?key=${apiKey}`;
+            const response = await fetch(apiURL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+            });
+            const data = await response.json();
+            if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              finalResponse = data.candidates[0].content.parts[0].text;
+              break;
+            } else {
+              lastError = data.error?.message || 'Unknown error';
+            }
+          } catch (e: any) {
+            lastError = e.message;
+          }
+       }
+       if (finalResponse) break;
     }
 
-    const responseText = chatData.candidates?.[0]?.content?.parts?.[0]?.text || 'Shop chưa hiểu ý bạn.';
-    return NextResponse.json({ response: responseText, shop_name: config?.shop_name || shop?.name });
+    if (!finalResponse) {
+      return NextResponse.json({ error: `Không có model nào phản hồi. Lỗi cuối: ${lastError}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ response: finalResponse, shop_name: shopName });
 
   } catch (error: any) {
-    return NextResponse.json({ error: `Lỗi hệ thống: ${error.message}` }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
