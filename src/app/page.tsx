@@ -143,9 +143,13 @@ export default function LandingPage() {
           AI Đã Sẵn Sàng Bán Hàng Cho Bạn
         </div>
 
-        {/* Hero Title */}
-        <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] uppercase">
-          BIẾN KHÁCH TRUY CẬP THÀNH{' '}
+        {/* Hero Title - font Arial inline, 2 dòng */}
+        <h1
+          style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+          className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-tight uppercase"
+        >
+          BIẾN KHÁCH TRUY CẬP THÀNH
+          <br />
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             ĐƠN HÀNG THỰC TẾ
           </span>
@@ -157,8 +161,8 @@ export default function LandingPage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
-          {/* Nút 1: Dùng Thử → /login */}
-          <Link href="/login" className="btn-gradient px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200">
+          {/* Nút 1: Dùng Thử → /login?mode=register (mở thẳng form đăng ký) */}
+          <Link href="/login?mode=register" className="btn-gradient px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200">
             <Zap size={20} className="text-yellow-300" />
             Dùng Thử Miễn Phí
             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
