@@ -1,9 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import { Bot, Sparkles, ChevronRight, CheckCircle2, Clock, Settings2, Globe2, Zap, Gift, Crown } from 'lucide-react';
+import { Bot, Sparkles, ChevronRight, CheckCircle2, Clock, Settings2, Globe2, Zap, Gift, Crown, X, Play } from 'lucide-react';
 
 export default function LandingPage() {
+  const [showDemo, setShowDemo] = useState(false);
+
   const features = [
     {
       icon: <Clock size={26} />,
@@ -33,6 +36,81 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen selection:bg-blue-100 flex flex-col items-center">
+
+      {/* ===== DEMO MODAL ===== */}
+      {showDemo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowDemo(false)}
+        >
+          <div
+            className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-8 py-5 border-b border-slate-100 bg-gradient-to-r from-blue-600 to-indigo-600">
+              <div className="flex items-center gap-3 text-white">
+                <Bot size={22} />
+                <span className="font-black text-lg">Demo AI Chatbot Bán Hàng</span>
+                <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full">LIVE</span>
+              </div>
+              <button
+                onClick={() => setShowDemo(false)}
+                className="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-xl transition-all"
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex flex-col md:flex-row">
+              {/* Left: Giải thích */}
+              <div className="md:w-2/5 p-8 bg-slate-50 border-r border-slate-100 space-y-5">
+                <h3 className="text-xl font-black text-slate-900">Thử ngay — không cần đăng ký</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  Chat thử với AI bán hàng của chúng tôi. Hỏi về sản phẩm, giá, chính sách vận chuyển...
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    { color: 'text-green-500', text: 'Trả lời tức thì bằng AI Gemini' },
+                    { color: 'text-blue-500',  text: 'Được huấn luyện theo thông tin shop' },
+                    { color: 'text-purple-500', text: 'Tích hợp vào web chỉ 1 dòng code' },
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <CheckCircle2 size={16} className={item.color} />
+                      {item.text}
+                    </li>
+                  ))}
+                </ul>
+                <div className="pt-4">
+                  <Link
+                    href="/login"
+                    onClick={() => setShowDemo(false)}
+                    className="block text-center btn-gradient py-3 px-6 rounded-2xl font-bold text-sm shadow-lg shadow-blue-200"
+                  >
+                    Tạo Chatbot Của Riêng Bạn →
+                  </Link>
+                </div>
+              </div>
+
+              {/* Right: Chatbot iframe */}
+              <div className="md:w-3/5 bg-slate-100 flex items-center justify-center p-4" style={{ minHeight: '480px' }}>
+                <iframe
+                  src="https://chatbott-blond.vercel.app/widget/68XCS"
+                  style={{
+                    width: '100%',
+                    height: '460px',
+                    border: 'none',
+                    borderRadius: '16px',
+                  }}
+                  title="Demo Chatbot AI"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background Decor */}
       <div className="fixed top-0 left-0 w-full h-full -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-400/20 blur-[120px] rounded-full"></div>
@@ -50,6 +128,7 @@ export default function LandingPage() {
         <div className="flex items-center gap-8">
           <Link href="#features" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
           <Link href="#pricing" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Bảng giá</Link>
+          <button onClick={() => setShowDemo(true)} className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Demo</button>
           <Link href="/login" className="bg-slate-900 text-white px-6 py-2.5 rounded-2xl text-sm font-bold shadow-xl hover:bg-slate-800 active:scale-95 transition-all">
             Đăng nhập
           </Link>
@@ -64,7 +143,7 @@ export default function LandingPage() {
           AI Đã Sẵn Sàng Bán Hàng Cho Bạn
         </div>
 
-        {/* Hero Title — đã sửa lỗi chính tả */}
+        {/* Hero Title */}
         <h1 className="text-5xl md:text-7xl font-black text-slate-900 tracking-tighter leading-[1.1] uppercase">
           BIẾN KHÁCH TRUY CẬP THÀNH{' '}
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
@@ -78,12 +157,19 @@ export default function LandingPage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
+          {/* Nút 1: Dùng Thử → /login */}
           <Link href="/login" className="btn-gradient px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200">
             <Zap size={20} className="text-yellow-300" />
             Dùng Thử Miễn Phí
             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </Link>
-          <button className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-bold hover:bg-slate-50 transition-all shadow-md">
+
+          {/* Nút 2: Xem Demo → mở modal */}
+          <button
+            onClick={() => setShowDemo(true)}
+            className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-bold hover:bg-slate-50 hover:border-blue-300 transition-all shadow-md flex items-center gap-2 group"
+          >
+            <Play size={20} className="text-blue-500 group-hover:scale-110 transition-transform" />
             Xem Demo
           </button>
         </div>
