@@ -1,11 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bot, Sparkles, ChevronRight, CheckCircle2, Clock, Settings2, Globe2, Zap, Gift, Crown, X, Play } from 'lucide-react';
 
 export default function LandingPage() {
   const [showDemo, setShowDemo] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const features = [
     {
@@ -34,15 +39,16 @@ export default function LandingPage() {
     },
   ];
 
+  if (!mounted) return null;
+
   return (
     <div className="min-h-screen selection:bg-blue-100 flex flex-col items-center" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
       
-      {/* ===== FORCE FONT ARIAL FOR ALL TITLES ===== */}
-      <style jsx global>{`
-        h1, h2, h3, h4, font-black {
-          font-family: Arial, Helvetica, sans-serif !important;
-        }
-      `}</style>
+      {/* ===== CSS OVERRIDE TO FORCE ARIAL EVERYWHERE ===== */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        * { font-family: Arial, Helvetica, sans-serif !important; }
+        h1, h2, h3, h4, span, div, p, button, a { font-family: Arial, Helvetica, sans-serif !important; }
+      `}} />
 
       {/* ===== DEMO MODAL ===== */}
       {showDemo && (
@@ -59,7 +65,7 @@ export default function LandingPage() {
               <div className="flex items-center gap-3 text-white">
                 <Bot size={22} />
                 <span className="font-black text-lg">Demo AI Chatbot Bán Hàng</span>
-                <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full">LIVE</span>
+                <span className="bg-white/20 text-xs font-bold px-3 py-1 rounded-full text-white">LIVE</span>
               </div>
               <button
                 onClick={() => setShowDemo(false)}
@@ -93,7 +99,7 @@ export default function LandingPage() {
                   <Link
                     href="/login"
                     onClick={() => setShowDemo(false)}
-                    className="block text-center btn-gradient py-3 px-6 rounded-2xl font-bold text-sm shadow-lg shadow-blue-200"
+                    className="block text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3 px-6 rounded-2xl font-bold text-sm shadow-xl"
                   >
                     Tạo Chatbot Của Riêng Bạn →
                   </Link>
@@ -130,7 +136,7 @@ export default function LandingPage() {
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
             <Bot size={24} />
           </div>
-          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-extrabold text-2xl text-slate-900 tracking-tight">AI Chat</span>
+          <span className="font-extrabold text-2xl text-slate-900 tracking-tight">AI Chat</span>
         </Link>
         <div className="flex items-center gap-8">
           <Link href="#features" className="text-sm font-semibold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
@@ -150,27 +156,24 @@ export default function LandingPage() {
           AI Đã Sẵn Sàng Bán Hàng Cho Bạn
         </div>
 
-        {/* Hero Title - Font Arial, 2 dòng */}
-        <div className="max-w-4xl mx-auto">
-          <h1
-            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-            className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase"
-          >
-            <span className="block sm:inline">BIẾN KHÁCH TRUY CẬP THÀNH</span>
-            <br className="hidden sm:block" />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 block sm:inline">
+        {/* Hero Title - Font Arial, FIX 2 DÒNG TUYỆT ĐỐI */}
+        <div className="max-w-5xl mx-auto flex flex-col items-center">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase">
+            <span className="whitespace-nowrap">BIẾN KHÁCH TRUY CẬP THÀNH</span>
+            <br />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 whitespace-nowrap">
               ĐƠN HÀNG THỰC TẾ
             </span>
           </h1>
         </div>
 
-        <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
+        <p className="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
           Nền tảng AI Chatbot thông minh giúp bạn tư vấn khách hàng 24/7, tự động chốt đơn và tăng doanh thu vượt trội cho doanh nghiệp vừa và nhỏ.
         </p>
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
-          <Link href="/login?mode=register" className="btn-gradient px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200">
+          <Link href="/login?mode=register" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200 font-bold transition-all active:scale-95">
             <Zap size={20} className="text-yellow-300" />
             Dùng Thử Miễn Phí
             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -178,7 +181,7 @@ export default function LandingPage() {
 
           <button
             onClick={() => setShowDemo(true)}
-            className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-bold hover:bg-slate-50 hover:border-blue-300 transition-all shadow-md flex items-center gap-2 group"
+            className="bg-white border-2 border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-bold hover:bg-slate-50 hover:border-blue-300 transition-all shadow-md flex items-center gap-2 group"
           >
             <Play size={20} className="text-blue-500 group-hover:scale-110 transition-transform" />
             Xem Demo
@@ -187,16 +190,16 @@ export default function LandingPage() {
 
         {/* Feature Cards */}
         <div id="features" className="pt-20">
-          <h2 style={{ fontFamily: 'Arial, sans-serif' }} className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Tính Năng Nổi Bật</h2>
-          <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-500 mb-10 font-medium">Mọi thứ bạn cần để bán hàng tự động hiệu quả</p>
+          <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Tính Năng Nổi Bật</h2>
+          <p className="text-slate-500 mb-10 font-medium font-arial">Mọi thứ bạn cần để bán hàng tự động hiệu quả</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((f, i) => (
-              <div key={i} className={`glass p-8 rounded-[2.5rem] text-left space-y-4 hover:scale-[1.02] transition-transform border ${f.border}`}>
+              <div key={i} className={`bg-white/50 backdrop-blur-md p-8 rounded-[2.5rem] text-left space-y-4 hover:scale-[1.02] transition-transform border ${f.border} shadow-lg`}>
                 <div className={`w-14 h-14 ${f.bg} ${f.color} rounded-2xl flex items-center justify-center shadow-sm`}>
                   {f.icon}
                 </div>
-                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className={`text-xl font-black tracking-tight ${f.color}`}>{f.title}</h3>
-                <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-600 font-medium leading-relaxed text-sm">{f.desc}</p>
+                <h3 className={`text-xl font-black tracking-tight ${f.color}`}>{f.title}</h3>
+                <p className="text-slate-600 font-medium leading-relaxed text-sm">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -204,26 +207,24 @@ export default function LandingPage() {
 
         {/* Pricing */}
         <div id="pricing" className="pt-32 pb-20 max-w-4xl mx-auto">
-          <h2 style={{ fontFamily: 'Arial, sans-serif' }} className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Gói Dịch Vụ</h2>
-          <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-500 mb-12 font-medium">Bắt đầu miễn phí — nâng cấp khi bạn phát triển.</p>
+          <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tight">Gói Dịch Vụ</h2>
+          <p className="text-slate-500 mb-12 font-medium">Bắt đầu miễn phí — nâng cấp khi bạn phát triển.</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             {/* Free */}
-            <div className="glass p-10 rounded-[3rem] text-left border border-slate-200">
+            <div className="bg-white p-10 rounded-[3rem] text-left border-2 border-slate-100 shadow-xl">
               <div className="flex items-center gap-2 mb-2">
                 <Gift size={22} className="text-green-500" />
-                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className="text-xl font-black uppercase text-slate-800">Gói Miễn Phí</h3>
+                <h3 className="text-xl font-black uppercase text-slate-800">Gói Miễn Phí</h3>
               </div>
-              <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-4xl font-black my-4 text-slate-900">0đ<span className="text-sm font-medium text-slate-500">/tháng</span></p>
+              <p className="text-4xl font-black my-4 text-slate-900">0đ<span className="text-sm font-medium text-slate-500">/tháng</span></p>
               <ul className="space-y-3 mb-8">
-                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <CheckCircle2 size={17} className="text-green-500 shrink-0" />
-                  50 tin nhắn AI mỗi ngày
-                </li>
-                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <CheckCircle2 size={17} className="text-green-500 shrink-0" />
-                  1 Chatbot cơ bản
-                </li>
+                {['50 tin nhắn AI mỗi ngày', '1 Chatbot cơ bản'].map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                    <CheckCircle2 size={17} className="text-green-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
               </ul>
               <Link href="/login" className="block w-full text-center py-3 bg-slate-100 text-slate-900 rounded-2xl font-bold hover:bg-slate-200 transition-colors">
                 Bắt đầu ngay
@@ -231,30 +232,24 @@ export default function LandingPage() {
             </div>
 
             {/* Pro */}
-            <div className="glass p-10 rounded-[3rem] text-left ring-4 ring-blue-500 shadow-2xl shadow-blue-100 relative">
-              <div style={{ fontFamily: 'Arial, sans-serif' }} className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-1.5 text-xs font-black uppercase rounded-full shadow-lg tracking-widest whitespace-nowrap">
+            <div className="bg-white p-10 rounded-[3rem] text-left border-4 border-blue-500 shadow-2xl relative">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-1.5 text-xs font-black uppercase rounded-full shadow-lg tracking-widest whitespace-nowrap">
                 ⭐ Khuyên Dùng
               </div>
               <div className="flex items-center gap-2 mb-2">
                 <Crown size={22} className="text-blue-500" />
-                <h3 style={{ fontFamily: 'Arial, sans-serif' }} className="text-xl font-black uppercase text-blue-700">Gói Pro</h3>
+                <h3 className="text-xl font-black uppercase text-blue-700">Gói Pro</h3>
               </div>
-              <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-4xl font-black my-4 text-blue-700">299k<span className="text-sm font-medium text-slate-500">/tháng</span></p>
+              <p className="text-4xl font-black my-4 text-blue-700">299k<span className="text-sm font-medium text-slate-500">/tháng</span></p>
               <ul className="space-y-3 mb-8">
-                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
-                  Tin nhắn AI không giới hạn
-                </li>
-                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
-                  Tích hợp Webhook
-                </li>
-                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-                  <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
-                  Hỗ trợ ưu tiên 24/7
-                </li>
+                {['Tin nhắn AI không giới hạn', 'Tích hợp Webhook', 'Hỗ trợ ưu tiên 24/7'].map((item, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                    <CheckCircle2 size={17} className="text-blue-500 shrink-0" />
+                    {item}
+                  </li>
+                ))}
               </ul>
-              <Link href="/login" className="block w-full text-center py-3 btn-gradient rounded-2xl font-bold shadow-lg shadow-blue-200">
+              <Link href="/login" className="block w-full text-center py-3 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700">
                 Nâng cấp liền 🚀
               </Link>
             </div>
@@ -266,11 +261,11 @@ export default function LandingPage() {
       <footer className="w-full border-t border-slate-100 py-12 flex flex-col items-center gap-2">
         <div className="flex items-center gap-2 text-blue-600">
           <Bot size={18} />
-          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-black text-sm">AI Chat Bán Hàng</span>
+          <span className="font-black text-sm">AI Chat Bán Hàng</span>
           <span className="text-slate-400 font-semibold">•</span>
-          <span style={{ fontFamily: 'Arial, sans-serif' }} className="font-bold text-sm text-slate-700">LH: 0905550738</span>
+          <span className="font-bold text-sm text-slate-700">LH: 0905550738</span>
         </div>
-        <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-slate-400 text-xs font-semibold uppercase tracking-widest">© 2026 • Premium SaaS Solution</p>
+        <p className="text-slate-400 text-xs font-semibold uppercase tracking-widest font-arial">© 2026 • Premium SaaS Solution</p>
       </footer>
     </div>
   );
