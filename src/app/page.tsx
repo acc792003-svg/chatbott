@@ -158,10 +158,13 @@ export default function LandingPage() {
 
         {/* Hero Title - Font Arial, FIX 2 DÒNG TUYỆT ĐỐI */}
         <div className="max-w-5xl mx-auto flex flex-col items-center">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase">
-            <span className="whitespace-nowrap">BIẾN KHÁCH TRUY CẬP THÀNH</span>
+          <h1 
+            style={{ fontFamily: 'Arial, sans-serif !important' }}
+            className="text-2xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase text-center"
+          >
+            <span className="inline-block whitespace-nowrap">BIẾN KHÁCH TRUY CẬP THÀNH</span>
             <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 whitespace-nowrap">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 inline-block whitespace-nowrap">
               ĐƠN HÀNG THỰC TẾ
             </span>
           </h1>
