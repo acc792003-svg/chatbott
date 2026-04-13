@@ -35,7 +35,14 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen selection:bg-blue-100 flex flex-col items-center">
+    <div className="min-h-screen selection:bg-blue-100 flex flex-col items-center" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+      
+      {/* ===== FORCE FONT ARIAL FOR ALL TITLES ===== */}
+      <style jsx global>{`
+        h1, h2, h3, h4, font-black {
+          font-family: Arial, Helvetica, sans-serif !important;
+        }
+      `}</style>
 
       {/* ===== DEMO MODAL ===== */}
       {showDemo && (
@@ -135,7 +142,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      <main className="w-full max-w-5xl px-8 pt-24 pb-32 text-center space-y-12">
+      <main className="w-full max-w-6xl px-8 pt-24 pb-32 text-center space-y-12">
 
         {/* Badge */}
         <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest animate-bounce">
@@ -143,17 +150,19 @@ export default function LandingPage() {
           AI Đã Sẵn Sàng Bán Hàng Cho Bạn
         </div>
 
-        {/* Hero Title - font Arial inline, 2 dòng */}
-        <h1
-          style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-          className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter leading-tight uppercase"
-        >
-          BIẾN KHÁCH TRUY CẬP THÀNH
-          <br />
-          <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-            ĐƠN HÀNG THỰC TẾ
-          </span>
-        </h1>
+        {/* Hero Title - Font Arial, 2 dòng */}
+        <div className="max-w-4xl mx-auto">
+          <h1
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight uppercase"
+          >
+            <span className="block sm:inline">BIẾN KHÁCH TRUY CẬP THÀNH</span>
+            <br className="hidden sm:block" />
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 block sm:inline">
+              ĐƠN HÀNG THỰC TẾ
+            </span>
+          </h1>
+        </div>
 
         <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium leading-relaxed">
           Nền tảng AI Chatbot thông minh giúp bạn tư vấn khách hàng 24/7, tự động chốt đơn và tăng doanh thu vượt trội cho doanh nghiệp vừa và nhỏ.
@@ -161,14 +170,12 @@ export default function LandingPage() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
-          {/* Nút 1: Dùng Thử → /login?mode=register (mở thẳng form đăng ký) */}
           <Link href="/login?mode=register" className="btn-gradient px-10 py-5 rounded-[2rem] text-lg flex items-center gap-2 group shadow-2xl shadow-blue-200">
             <Zap size={20} className="text-yellow-300" />
             Dùng Thử Miễn Phí
             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
           </Link>
 
-          {/* Nút 2: Xem Demo → mở modal */}
           <button
             onClick={() => setShowDemo(true)}
             className="bg-white border border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-bold hover:bg-slate-50 hover:border-blue-300 transition-all shadow-md flex items-center gap-2 group"
@@ -209,11 +216,11 @@ export default function LandingPage() {
               </div>
               <p style={{ fontFamily: 'Arial, sans-serif' }} className="text-4xl font-black my-4 text-slate-900">0đ<span className="text-sm font-medium text-slate-500">/tháng</span></p>
               <ul className="space-y-3 mb-8">
-                <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-green-500 shrink-0" />
                   50 tin nhắn AI mỗi ngày
                 </li>
-                <li className="flex items-center gap-2 text-sm font-semibold text-slate-600">
+                <li style={{ fontFamily: 'Arial, sans-serif' }} className="flex items-center gap-2 text-sm font-semibold text-slate-600">
                   <CheckCircle2 size={17} className="text-green-500 shrink-0" />
                   1 Chatbot cơ bản
                 </li>
