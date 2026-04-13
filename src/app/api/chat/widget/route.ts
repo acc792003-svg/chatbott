@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Tìm shop theo code
-    const { data: shop, error: shopError } = await supabase
+    const { data: shop, error: shopError } = await supabaseAdmin
       .from('shops')
       .select('id, name, expiry_date')
       .eq('code', code)
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     }
 
     // 3. Lấy toàn bộ cấu hình chatbot từ chatbot_configs
-    const { data: config, error: configError } = await supabase
+    const { data: config, error: configError } = await supabaseAdmin
       .from('chatbot_configs')
       .select('shop_name, product_info, faq')
       .eq('shop_id', shop.id)
