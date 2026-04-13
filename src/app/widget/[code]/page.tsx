@@ -20,7 +20,31 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [shopName, setShopName] = useState('Trợ lý Tự động');
+  const [viewportHeight, setViewportHeight] = useState('100dvh');
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Xử lý Visual Viewport cho thiết bị di động (để tránh bị bàn phím che)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.visualViewport) {
+      const handleResize = () => {
+        const height = window.visualViewport?.height;
+        if (height) {
+          setViewportHeight(`${height}px`);
+        }
+      };
+      
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      
+      // Khởi tạo giá trị ban đầu
+      handleResize();
+      
+      return () => {
+        window.visualViewport?.removeEventListener('resize', handleResize);
+        window.visualViewport?.removeEventListener('scroll', handleResize);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -67,10 +91,13 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
   };
 
   return (
-    <div className="flex flex-col h-screen bg-transparent p-2">
+    <div 
+      className="flex flex-col bg-transparent p-2 transition-[height] duration-200"
+      style={{ height: viewportHeight }}
+    >
        <div className="flex-1 flex flex-col bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100">
          {/* Header */}
-         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex items-center gap-3">
+         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex items-center gap-3 shrink-0">
            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-md">
              <Bot size={18} />
            </div>
@@ -109,12 +136,23 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
          </div>
 
          {/* Input */}
-         <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-100">
+         <form 
+           onSubmit={handleSend} 
+           className="p-3 bg-white border-t border-slate-100 shrink-0"
+         >
            <div className="relative flex items-center">
              <input 
                type="text" 
                value={input}
                onChange={e => setInput(e.target.value)}
+               onFocus={() => {
+                 // Đợi bàn phím bật lên rồi cuộn xuống tin nhắn cuối
+                 setTimeout(() => {
+                   if (scrollRef.current) {
+                     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                   }
+                 }, 300);
+               }}
                placeholder="Nhập câu hỏi..." 
                className="w-full bg-slate-50 border border-slate-200 rounded-full py-3 pl-4 pr-12 text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                disabled={loading}

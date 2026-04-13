@@ -6,6 +6,13 @@ export const metadata: Metadata = {
   description: "Nền tảng AI Chatbot thông minh giúp tư vấn khách hàng 24/7, tự động chốt đơn và tăng doanh thu.",
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  interactiveWidget: 'resizes-content',
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

@@ -1,18 +1,78 @@
-{/* CHATBOT WIDGET */}
-<div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999 }}>
-  
-  {/* Khung chat iframe */}
-  <iframe 
-    src="https://chatbott-blond.vercel.app/widget/ĐIỀN-MÃ-CỬA-HÀNG" 
-    style={{
-      width: '350px',
-      height: '500px',
-      border: 'none',
-      borderRadius: '16px',
-      boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-      display: 'block', /* Có thể dùng code State để ẩn/hiện iframe này khi bấm nút */
-      marginBottom: '15px'
-    }}
-  />
+  <!-- CHATBOT WIDGET -->
+<style>
+  #cb-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(102,126,234,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+  }
+  #cb-btn:hover { transform: scale(1.1); }
+  #cb-btn svg { width: 24px; height: 24px; }
 
-</div>
+  #cb-frame {
+    position: fixed;
+    bottom: 76px;
+    right: 20px;
+    z-index: 9998;
+    width: 340px;
+    height: 480px; /* Chiều cao cố định trên máy tính */
+    border: none;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    display: none;
+    transition: all 0.3s ease; /* Thêm hiệu ứng mượt mà */
+  }
+  /* Cấu hình RIÊNG cho điện thoại */
+  @media (max-width: 640px) {
+    #cb-frame {
+      width: 100%;
+      height: 100%;
+      bottom: 0;
+      right: 0;
+      border-radius: 0;
+    }
+  }
+</style>
+
+<iframe id='cb-frame' src='https://chatbott-blond.vercel.app/widget/68XCS'>
+</iframe>
+
+<button id='cb-btn' onclick='cbToggle()' title='Chat'>
+  <svg fill='white' id='cb-robot' viewBox='0 0 64 64' xmlns='http://www.w3.org/2000/svg'>
+    <rect height='22' rx='5' width='28' x='18' y='20'/>
+    <rect height='8' rx='2' width='6' x='24' y='42'/>
+    <rect height='8' rx='2' width='6' x='34' y='42'/>
+    <circle cx='26' cy='29' r='3'/>
+    <circle cx='38' cy='29' r='3'/>
+    <rect height='3' rx='1.5' width='12' x='26' y='35'/>
+    <rect height='8' rx='2' width='4' x='30' y='12'/>
+    <circle cx='32' cy='11' r='3'/>
+    <rect height='10' rx='2.5' width='5' x='10' y='24'/>
+    <rect height='10' rx='2.5' width='5' x='49' y='24'/>
+  </svg>
+  <svg fill='none' id='cb-close' stroke='white' stroke-linecap='round' stroke-width='2.5' style='display:none' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'>
+    <line x1='18' x2='6' y1='6' y2='18'/>
+    <line x1='6' x2='18' y1='6' y2='18'/>
+  </svg>
+</button>
+
+<script>
+  var cbOpen = false;
+  function cbToggle() {
+    cbOpen = !cbOpen;
+    document.getElementById(&#39;cb-frame&#39;).style.display  = cbOpen ? &#39;block&#39; : &#39;none&#39;;
+    document.getElementById(&#39;cb-robot&#39;).style.display  = cbOpen ? &#39;none&#39;  : &#39;block&#39;;
+    document.getElementById(&#39;cb-close&#39;).style.display  = cbOpen ? &#39;block&#39; : &#39;none&#39;;
+  }
+</script>
