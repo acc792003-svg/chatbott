@@ -6,7 +6,10 @@ import { supabase } from '@/lib/supabase';
 import { Bot, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
+export const dynamic = 'force-dynamic';
+
 function LoginFormContent() {
+  const [mounted, setMounted] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -15,16 +18,20 @@ function LoginFormContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Đọc query param an toàn
+  // Đảm bảo không có hydration mismatch
   useEffect(() => {
+    setMounted(true);
     const mode = searchParams.get('mode');
     if (mode === 'register') {
       setIsLogin(false);
     }
   }, [searchParams]);
+
+  if (!mounted) return null;
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +40,8 @@ function LoginFormContent() {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error: loginError } = await supabase.auth.signInWithPassword({ email, password });
+        if (loginError) throw loginError;
         router.push('/dashboard');
       } else {
         if (password !== confirmPassword) {
@@ -68,21 +75,24 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="w-full max-w-md bg-white/80 backdrop-blur-xl border border-white/20 p-8 rounded-[2.5rem] shadow-2xl">
-      <div className="flex flex-col items-center mb-8 text-center">
-        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg mb-4">
-          <Bot size={32} />
+    <div 
+      className="w-full max-w-md bg-white p-8 rounded-[2rem] shadow-2xl border border-slate-200"
+      style={{ fontFamily: 'Arial, sans-serif' }}
+    >
+      <div className="flex flex-col items-center mb-6 text-center">
+        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white mb-4">
+          <Bot size={28} />
         </div>
-        <h1 className="text-2xl font-black text-slate-900" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <h1 className="text-2xl font-bold text-slate-900">
           {isLogin ? 'Đăng Nhập' : 'Tạo Tài Khoản'}
         </h1>
-        <p className="text-slate-500 text-sm font-medium mt-2" style={{ fontFamily: 'Arial, sans-serif' }}>
-          {isLogin ? 'Đăng nhập để vào bảng điều khiển Chatbot' : 'Khởi tạo trợ lý AI bán hàng cho cửa hàng của bạn'}
+        <p className="text-slate-500 text-sm mt-2">
+          {isLogin ? 'Vào bảng điều khiển của bạn' : 'Đăng ký cửa hàng mới'}
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100 text-center">
+        <div className="mb-4 p-3 bg-red-50 text-red-600 text-xs font-bold rounded-lg border border-red-100 text-center">
           {error}
         </div>
       )}
@@ -90,30 +100,30 @@ function LoginFormContent() {
       <form onSubmit={handleAuth} className="space-y-4">
         {!isLogin && (
           <div>
-            <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Mã cửa hàng</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mã cửa hàng</label>
             <input 
               type="text" 
               value={shopCode}
               onChange={e => setShopCode(e.target.value)}
               required
-              placeholder="Mã do Admin cấp" 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Nhập mã" 
+              className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
             />
           </div>
         )}
         <div>
-          <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Email</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Email</label>
           <input 
             type="email" 
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            placeholder="admin@shop.com" 
-            className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+            placeholder="email@example.com" 
+            className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
           />
         </div>
         <div>
-          <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Mật khẩu</label>
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Mật khẩu</label>
           <div className="relative">
             <input 
               type={showPassword ? "text" : "password"} 
@@ -121,12 +131,12 @@ function LoginFormContent() {
               onChange={e => setPassword(e.target.value)}
               required
               placeholder="••••••••" 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 pr-10 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-slate-200 rounded-xl p-3 pr-10 text-sm focus:border-blue-500 outline-none"
             />
             <button 
               type="button" 
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
             >
               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
@@ -135,14 +145,14 @@ function LoginFormContent() {
         
         {!isLogin && (
           <div>
-            <label className="block text-xs font-black text-slate-500 uppercase px-1 mb-1" style={{ fontFamily: 'Arial, sans-serif' }}>Nhập lại Mật khẩu</label>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nhập lại Mật khẩu</label>
             <input 
               type={showPassword ? "text" : "password"} 
               value={confirmPassword}
               onChange={e => setConfirmPassword(e.target.value)}
               required
               placeholder="••••••••" 
-              className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full border border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 outline-none"
             />
           </div>
         )}
@@ -150,7 +160,7 @@ function LoginFormContent() {
         <button 
           type="submit" 
           disabled={loading}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-2 mt-4 text-sm tracking-widest uppercase shadow-lg hover:shadow-blue-200 transition-all disabled:opacity-50"
+          className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 mt-4 hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-lg shadow-blue-100"
         >
           {loading ? 'Đang xử lý...' : (isLogin ? 'ĐĂNG NHẬP' : 'ĐĂNG KÝ')}
           {!loading && <ArrowRight size={18} />}
@@ -160,15 +170,14 @@ function LoginFormContent() {
       <div className="mt-6 text-center">
         <button 
           onClick={() => { setIsLogin(!isLogin); setError(null); }}
-          className="text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors"
-          style={{ fontFamily: 'Arial, sans-serif' }}
+          className="text-sm font-bold text-blue-600 hover:underline"
         >
           {isLogin ? 'Chưa có tài khoản? Đăng ký ngay' : 'Đã có tài khoản? Đăng nhập'}
         </button>
       </div>
 
       <div className="mt-6 text-center">
-        <Link href="/" className="text-xs font-semibold text-slate-400 hover:text-slate-600 underline" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 underline">
           Quay lại trang chủ
         </Link>
       </div>
@@ -179,7 +188,7 @@ function LoginFormContent() {
 export default function LoginPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <Suspense fallback={<div className="text-slate-500 font-bold">Đang tải...</div>}>
+      <Suspense fallback={<div className="font-bold text-slate-400">Đang tải...</div>}>
         <LoginFormContent />
       </Suspense>
     </div>

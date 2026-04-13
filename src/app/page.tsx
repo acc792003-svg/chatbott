@@ -79,7 +79,7 @@ export default function LandingPage() {
                 </p>
                 <ul className="space-y-3">
                   {[
-                    { color: 'text-green-500', text: 'Trả lời tức thì bằng AI Gemini' },
+                    { color: 'text-green-500', text: 'Trả lời nhanh, chính xác' },
                     { color: 'text-blue-500',  text: 'Được huấn luyện theo thông tin shop' },
                     { color: 'text-purple-500', text: 'Tích hợp vào web chỉ 1 dòng code' },
                   ].map((item, i) => (
@@ -154,7 +154,7 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto">
           <h1
             style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight leading-tight uppercase"
+            className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight uppercase"
           >
             <span className="block sm:inline">BIẾN KHÁCH TRUY CẬP THÀNH</span>
             <br className="hidden sm:block" />
