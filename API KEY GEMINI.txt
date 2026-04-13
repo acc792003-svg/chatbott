@@ -11,7 +11,7 @@ Project number
 INSERT INTO public.users (id, email, role) 
 VALUES ('1102e0c5-3c29-4854-84b0-3a33b351d561', 'acc792003@gmail.com', 'super_admin');
 
-
+https://aistudio.google.com/app/apikey.
 API Key
 AIzaSyDCMAE2740RkAXrE3RFDpsM8glHA2KGnL4
 Name

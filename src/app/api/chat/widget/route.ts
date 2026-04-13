@@ -41,48 +41,32 @@ export async function POST(req: Request) {
     const productInfo = config?.product_info || '';
     const faq         = config?.faq || '';
 
-    const systemInstruction = `Bạn là trợ lý AI của shop ${shopName}. Trả lời ngắn gọn, thân thiện dựa trên thông tin: ${productInfo}. FAQ: ${faq}.`;
+    const systemInstruction = `Bạn là trợ lý AI shop ${shopName}. Trả lời ngắn gọn dựa trên: ${productInfo}. FAQ: ${faq}.`;
 
-    // 4. Danh sách các model để thử (từ mới đến cũ)
-    const MODELS_TO_TRY = [
-      'gemini-1.5-flash',
-      'gemini-1.5-flash-latest',
-      'gemini-pro',
-      'gemini-1.0-pro'
-    ];
-
+    // 4. Khởi tạo với API Version v1 (Chính thức) thay vì v1beta
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-    let responseText = '';
-    let lastError = '';
+    
+    // Ép kiểu để sử dụng model gemini-1.5-flash trên bản v1
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-1.5-flash',
+      systemInstruction 
+    });
 
-    // Vòng lặp thử từng model cho đến khi thành công
-    for (const modelName of MODELS_TO_TRY) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
-        const chat = model.startChat({
-          history: history.map((msg: any) => ({
-            role: msg.role === 'user' ? 'user' : 'model',
-            parts: [{ text: msg.content }],
-          })),
-        });
-        const result = await chat.sendMessage(message);
-        responseText = result.response.text();
-        if (responseText) break; // Thành công thì thoát vòng lặp
-      } catch (err: any) {
-        console.error(`Thử model ${modelName} thất bại:`, err.message);
-        lastError = err.message;
-        continue; // Thử model tiếp theo
-      }
-    }
+    const chat = model.startChat({
+      history: history.map((msg: any) => ({
+        role: msg.role === 'user' ? 'user' : 'model',
+        parts: [{ text: msg.content }],
+      })),
+    });
 
-    if (!responseText) {
-      throw new Error(`Tất cả model đều thất bại. Lỗi cuối cùng: ${lastError}`);
-    }
+    const result = await chat.sendMessage(message);
+    const responseText = result.response.text();
 
     return NextResponse.json({ response: responseText, shop_name: shopName });
 
   } catch (error: any) {
     console.error('[Widget] API Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Nếu vẫn lỗi 404, có thể do Model Name ở bản v1 khác
+    return NextResponse.json({ error: `Lỗi: ${error.message}` }, { status: 500 });
   }
 }

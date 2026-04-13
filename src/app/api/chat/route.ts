@@ -13,23 +13,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing shop configuration' }, { status: 400 });
     }
 
+    // Sử dụng phiên bản v1 chính thức
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
     const systemInstruction = `
-      Bạn là một nhân viên bán hàng chuyên nghiệp, thân thiện và thuyết phục.
-      Sử dụng thông tin cửa hàng sau để trả lời khách hàng:
-      Tên shop: ${shopConfig.shop_name}
-      Sản phẩm & Giá: ${shopConfig.product_info}
-      Chính sách & FAQ: ${shopConfig.faq}
-
-      Yêu cầu:
-      - Trả lời bằng tiếng Việt.
-      - Câu trả lời ngắn gọn, súc tích, đi thẳng vào vấn đề.
-      - Giọng văn nhiệt tình, hỗ trợ khách hết mình.
+      Bạn là nhân viên bán hàng của ${shopConfig.shop_name}.
+      Thông tin: ${shopConfig.product_info}. 
+      FAQ: ${shopConfig.faq}.
+      Trả lời ngắn gọn, nhiệt tình.
     `;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.0-pro',
+      model: 'gemini-1.5-flash',
       systemInstruction: systemInstruction
     });
 
