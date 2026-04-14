@@ -294,6 +294,24 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleDowngradeFree = async (shopId: string) => {
+    if (!confirm('Bạn có chắc muốn hạ cấp shop này xuống gói FREE?')) return;
+
+    try {
+      const res = await fetch('/api/admin/upgrade-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId, requesterId: currentUserId, action: 'downgrade' })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert('Đã hạ cấp xuống FREE thành công!');
+      fetchShops();
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    }
+  };
+
   // ==================== RENDER ====================
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
@@ -430,8 +448,10 @@ export default function SuperAdminPage() {
                       </td>
                       <td className="px-8 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          {shop.plan !== 'pro' && (
+                          {shop.plan !== 'pro' ? (
                             <button onClick={() => handleUpgradePro(shop.id)} className="p-2 text-amber-600 hover:bg-amber-50 transition-colors bg-white rounded-lg border border-amber-200 shadow-sm" title="Nâng cấp PRO"><Key size={16}/></button>
+                          ) : (
+                            <button onClick={() => handleDowngradeFree(shop.id)} className="p-2 text-slate-400 hover:bg-slate-50 transition-colors bg-white rounded-lg border border-slate-200 shadow-sm" title="Hủy PRO"><Key size={16} className="rotate-180 opacity-50"/></button>
                           )}
                           {editingShop === shop.id ? (
                             <>

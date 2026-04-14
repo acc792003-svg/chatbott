@@ -5,12 +5,24 @@ export async function POST(req: Request) {
   try {
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
     
-    const { shopId, days, requesterId } = await req.json();
+    const { shopId, days, requesterId, action } = await req.json();
 
     // Check Super Admin
     const { data: requester } = await supabaseAdmin.from('users').select('role').eq('id', requesterId).single();
     if (requester?.role !== 'super_admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    if (action === 'downgrade') {
+      const { error } = await supabaseAdmin
+        .from('shops')
+        .update({
+          plan: 'free',
+          plan_expiry_date: null
+        })
+        .eq('id', shopId);
+      if (error) throw error;
+      return NextResponse.json({ success: true });
     }
 
     const expiryDate = new Date();
