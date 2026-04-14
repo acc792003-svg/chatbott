@@ -160,25 +160,25 @@ export async function callGeminiWithFallback(
 
         // Nếu lỗi do Key (Sai key, Hết hạn, Vô hiệu hóa) → Báo Super Admin ngay
         if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400 || errorMsg.includes('API key not valid')) {
-           await logError(shopId, 'API_KEY_INVALID', `[${keyObj.name}] bị sai hoặc hư: ${errorMsg}`, 'gemini');
+           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] bị sai hoặc hư: ${errorMsg}`, 'gemini');
            break; // Chuyển sang key tiếp theo ngay lập tức
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
            // Nếu là Key Pro bị quá tải, ghi log để Super Admin biết gói pro đang bị nghẽn
            if (keyObj.name === 'Key PRO') {
-              await logError(shopId, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải (429/503). Hệ thống đang tự chuyển về Key Free cho khách.`, 'gemini');
+              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải (429/503). Hệ thống đang tự chuyển về Key Free cho khách.`, 'gemini');
            }
            break; // Chuyển sang key tiếp theo
         }
 
         // Các lỗi khác
-        await logError(shopId, 'AI_ERROR', `[${keyObj.name}] Gặp lỗi: ${errorMsg}`, 'gemini');
+        await logError(shopId || null, 'AI_ERROR', `[${keyObj.name}] Gặp lỗi: ${errorMsg}`, 'gemini');
         break; 
 
       } catch (e: any) {
         lastError = `${keyObj.name}: ${e.message}`;
-        await logError(shopId, 'FETCH_FAILED', `[${keyObj.name}] Lỗi kết nối: ${e.message}`, 'gemini');
+        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi kết nối: ${e.message}`, 'gemini');
         break;
       }
     }
