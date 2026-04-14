@@ -49,12 +49,12 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-slate-50">
-      {/* Background decoration or instruction */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none opacity-20">
-         <Bot size={120} className="text-slate-400" />
-         <h2 className="text-3xl font-black text-slate-400 mt-4 uppercase tracking-[0.2em]">{shop.name}</h2>
-         <p className="text-slate-400 font-medium">Bấm vào robot để bắt đầu trò chuyện</p>
+    <div className="relative w-screen h-screen overflow-hidden bg-[#fafafa]">
+      {/* Background - Very subtle text */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+         <p className="text-slate-300 font-bold text-sm tracking-widest uppercase opacity-40">
+           Chatbot xin nghe bạn trò chuyện
+         </p>
       </div>
 
       {/* DRAGGABLE ROBOT ICON */}
@@ -62,20 +62,31 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
         drag
         dragMomentum={false}
         initial={{ x: 20, y: 20 }}
-        style={{ position: 'fixed', zIndex: 9999, right: 20, bottom: 20 }}
-        className="cursor-move group"
+        style={{ position: 'fixed', zIndex: 9999, right: 30, bottom: 40 }}
+        className="cursor-move"
       >
         <div className="relative flex flex-col items-center">
-           {/* Small Badge text requested by user */}
-           <div className="absolute -top-6 bg-indigo-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg opacity-90 group-hover:scale-110 transition-transform whitespace-nowrap">
+           {/* Yellow X - Close button (Top) */}
+           {isOpen && (
+             <button 
+                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
+                className="absolute -top-12 bg-amber-400 text-amber-900 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white font-black z-[10000] hover:scale-110 active:scale-90 transition-transform"
+             >
+                <X size={14} strokeWidth={4} />
+             </button>
+           )}
+
+           {/* Small Badge text */}
+           <div className="absolute -top-5 bg-indigo-600/90 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md whitespace-nowrap backdrop-blur-sm z-[9999]">
               {shop.slug}
            </div>
 
+           {/* Robot Button */}
            <button 
              onClick={() => setIsOpen(!isOpen)}
-             className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-2xl flex items-center justify-center text-white border-2 border-white/20 active:scale-95 transition-transform"
+             className={`w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[1.2rem] shadow-2xl flex items-center justify-center text-white border-2 border-white/20 active:scale-95 transition-all duration-300 ${isOpen ? 'ring-4 ring-amber-400/50' : ''}`}
            >
-             {isOpen ? <X size={32} /> : <Bot size={32} />}
+             <Bot size={28} />
            </button>
         </div>
       </motion.div>
@@ -83,9 +94,9 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
       {/* CHAT WINDOW */}
       {isOpen && (
         <motion.div 
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          initial={{ opacity: 0, scale: 0.9, y: 30 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          className="fixed inset-0 sm:inset-auto sm:right-6 sm:bottom-24 sm:w-[400px] sm:h-[600px] z-[9998] shadow-2xl overflow-hidden sm:rounded-[2rem] border border-white/40 bg-white"
+          className="fixed inset-0 sm:inset-auto sm:right-6 sm:bottom-24 sm:w-[380px] sm:h-[600px] z-[9998] shadow-2xl overflow-hidden sm:rounded-[2.5rem] border border-white/40 bg-white"
         >
           <iframe 
             src={`/widget/${shop.code}`} 
@@ -95,9 +106,9 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
         </motion.div>
       )}
 
-      {/* Optional: Add a "How to install" hint for mobile users */}
-      <div className="absolute bottom-4 left-0 right-0 text-center text-[10px] text-slate-400 font-medium pointer-events-none">
-        Mẹo: Chọn "Thêm vào màn hình chính" để truy cập nhanh hơn
+      {/* Footer Hint */}
+      <div className="absolute bottom-6 left-0 right-0 text-center text-[9px] text-slate-300 font-bold tracking-tighter pointer-events-none opacity-50">
+        THEO DẠI DEEPLINK • {shop.slug?.toUpperCase()}
       </div>
     </div>
   );
