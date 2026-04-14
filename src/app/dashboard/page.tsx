@@ -73,8 +73,8 @@ export default function DashboardOverview() {
         const { data: messagesData, error } = await messagesQuery;
         
         if (messagesData) {
-          const sessions = new Set(messagesData.map(m => m.session_id));
-          const totalUses = messagesData.reduce((acc, m) => acc + (m.usage_tokens || 0), 0);
+          const sessions = new Set(messagesData.map((m: any) => m.session_id));
+          const totalUses = messagesData.reduce((acc: number, m: any) => acc + (m.usage_tokens || 0), 0);
           
           setStats({
             messagesToday: messagesData.length,
@@ -83,7 +83,7 @@ export default function DashboardOverview() {
           });
           
           const latestBySession = new Map<string, ChatMessage>();
-          messagesData.forEach(m => {
+          messagesData.forEach((m: any) => {
             const current = latestBySession.get(m.session_id);
             if (!current || new Date(m.created_at) > new Date(current.created_at)) {
               latestBySession.set(m.session_id, m as ChatMessage);
