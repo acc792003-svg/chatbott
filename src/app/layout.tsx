@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "AI Chatbot",
   },
+  icons: {
+    apple: "/icon.png",
+  },
 };
 
 export const viewport = {
