@@ -1,0 +1,12 @@
+Hệ thống phân quyền đã được mình cập nhật đầy đủ để bạn dễ dàng quản lý:
+
+1. Phân biệt quyền Admin và User:
+Admin (Chủ cửa hàng): Đây là tài khoản có toàn quyền đối với một Shop. Họ có thể thay đổi cấu hình Chatbot (Thông tin sản phẩm, FAQ), cấu hình Widget, xem lịch sử chat và quản lý nhân viên của shop đó.
+User (Nhân viên): Đây là tài khoản dành cho nhân viên hỗ trợ. Họ thường chỉ có quyền vào phần Chat Demo để hỗ trợ khách hoặc kiểm tra phản hồi của AI, nhưng bị hạn chế truy cập vào các phần cài đặt quan trọng của Shop.
+2. Chức năng nâng/hạ quyền (Dành cho Super Admin):
+Mình đã thêm bộ chọn quyền ngay trong trang quản trị của bạn:
+
+Bạn vào Super Admin -> Tại bảng danh sách Shop, nhấn nút Quản lý & Chat của một User bất kỳ.
+Một bảng hiện ra, bên cạnh phần "Cấp lại mật khẩu", mình đã thêm mục 🛡️ Quyền Hạn.
+Tại đây bạn có thể nhấn vào nút ADMIN hoặc USER để thay đổi cấp bậc của họ ngay lập tức.
+Việc demo@gmail.com hiển thị là Admin có thể do lúc tạo tài khoản này, hệ thống mặc định gán quyền chủ shop cho user đầu tiên. Bây giờ bạn có thể hạ cấp nó xuống User chỉ với 1 cú click chuột trong Super Admin rồi nhé! ✅_

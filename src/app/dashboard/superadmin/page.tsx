@@ -218,6 +218,31 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleChangeRole = async (newRole: string) => {
+    setUpdatingUser(true);
+    try {
+       const res = await fetch('/api/admin/update-role', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             userId: selectedUser.id,
+             role: newRole,
+             requesterId: currentUserId
+          })
+       });
+       const result = await res.json();
+       if (result.error) throw new Error(result.error);
+       
+       setSelectedUser({ ...selectedUser, role: newRole });
+       alert('Đã cập nhật quyền hạn thành công!');
+       fetchShops(); // Refresh list to show new role
+    } catch (e: any) {
+       alert('Lỗi cập nhật quyền: ' + e.message);
+    } finally {
+       setUpdatingUser(false);
+    }
+  };
+
   // ==================== API KEYS ====================
   const handleSaveApiKeys = async () => {
     setSavingKeys(true);
@@ -649,6 +674,28 @@ export default function SuperAdminPage() {
                         >
                            {updatingUser ? 'Đang đổi...' : 'ÁP DỤNG MẬT KHẨU'}
                         </button>
+                     </div>
+
+                     <div className="p-5 bg-slate-50 border border-slate-100 rounded-2xl">
+                        <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2">🛡️ Quyền Hạn</h3>
+                        <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
+                          <strong>Admin:</strong> Chủ cửa hàng, toàn quyền cài đặt.<br/>
+                          <strong>User:</strong> Nhân viên, chỉ xem và chat demo.
+                        </p>
+                        <div className="flex gap-2">
+                           <button 
+                              onClick={() => handleChangeRole('admin')}
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${selectedUser.role === 'admin' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border text-slate-400'}`}
+                           >
+                              ADMIN
+                           </button>
+                           <button 
+                              onClick={() => handleChangeRole('user')}
+                              className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${selectedUser.role === 'user' ? 'bg-indigo-600 text-white shadow-md' : 'bg-white border text-slate-400'}`}
+                           >
+                              USER
+                           </button>
+                        </div>
                      </div>
                   </div>
 
