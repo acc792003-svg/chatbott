@@ -430,6 +430,15 @@ export default function SuperAdminPage() {
                       </td>
                       <td className="px-8 py-4">
                         {editingShop === shop.id ? (
+                          <input type="text" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Nhập SĐT..." className="w-32 border-2 border-blue-400 rounded-lg p-1 text-sm font-bold outline-none" />
+                        ) : (
+                          <span className="text-sm font-bold text-slate-700">
+                            {shop.phone_number || <span className="text-slate-400 italic">Chưa nhập</span>}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-8 py-4">
+                        {editingShop === shop.id ? (
                           <div className="flex flex-col gap-1">
                             <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value)} placeholder="VD: qlady" className="w-32 border-2 border-indigo-400 rounded-lg p-1 text-sm font-bold outline-none" />
                             <span className="text-[10px] text-slate-400">Không dấu, không cách</span>
@@ -452,15 +461,6 @@ export default function SuperAdminPage() {
                               </button>
                             )}
                           </div>
-                        )}
-                      </td>
-                      <td className="px-8 py-4">
-                        {editingShop === shop.id ? (
-                          <input type="text" value={editPhone} onChange={e => setEditPhone(e.target.value)} placeholder="Nhập SĐT..." className="w-32 border-2 border-blue-400 rounded-lg p-1 text-sm font-bold outline-none" />
-                        ) : (
-                          <span className="text-sm font-bold text-slate-700">
-                            {shop.phone_number || <span className="text-slate-400 italic">Chưa nhập</span>}
-                          </span>
                         )}
                       </td>
                       <td className="px-8 py-4">
