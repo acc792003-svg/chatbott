@@ -38,15 +38,17 @@ export default function ConfigClient() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session?.user.id).single();
-      const { error } = await supabase.from('chatbot_configs').upsert({
+      const payload: any = {
         shop_id: userData?.shop_id,
         shop_name: shopName,
         product_info: productInfo,
         faq: faq,
-        fb_page_id: fbPageId,
-        fb_access_token: fbAccessToken,
-        is_active: true
-      }, { onConflict: 'shop_id' });
+        is_active: true,
+        fb_page_id: fbPageId ? fbPageId : null,
+        fb_access_token: fbAccessToken ? fbAccessToken : null,
+      };
+
+      const { error } = await supabase.from('chatbot_configs').upsert(payload, { onConflict: 'shop_id' });
       if (error) throw error;
       alert('Đã lưu cấu hình thành công!');
     } catch (err: any) {
@@ -76,10 +78,10 @@ export default function ConfigClient() {
             <textarea rows={4} value={faq} onChange={e => setFaq(e.target.value)} className="w-full bg-slate-50 border rounded-xl p-3" />
           </div>
           <div className="pt-6 border-t">
-            <label className="block text-blue-600 font-bold mb-4">Facebook Messenger Integration</label>
+            <label className="block text-blue-600 font-bold mb-4">Facebook Messenger Integration <span className="text-sm font-normal text-slate-400 ml-2">(Tuỳ chọn - Có thể bỏ trống)</span></label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} placeholder="Page ID" className="w-full bg-slate-50 border rounded-xl p-3" />
-              <input type="password" value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} placeholder="Access Token" className="w-full bg-slate-50 border rounded-xl p-3" />
+              <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} placeholder="Page ID (Không bắt buộc)" className="w-full bg-slate-50 border rounded-xl p-3" />
+              <input type="password" value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} placeholder="Access Token (Không bắt buộc)" className="w-full bg-slate-50 border rounded-xl p-3" />
             </div>
           </div>
         </div>
