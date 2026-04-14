@@ -35,7 +35,11 @@ export default function SuperAdminPage() {
   const [showErrors, setShowErrors] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'shops' | 'apikeys' | 'errors'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'apikeys' | 'errors' | 'config'>('shops');
+
+  // Trial Template Configuration
+  const [trialTemplateCode, setTrialTemplateCode] = useState('');
+  const [savingConfig, setSavingConfig] = useState(false);
 
   const router = useRouter();
 
@@ -92,6 +96,7 @@ export default function SuperAdminPage() {
       if (data.settings) {
         setApiKey1(data.settings.gemini_api_key_1 || '');
         setApiKey2(data.settings.gemini_api_key_2 || '');
+        setTrialTemplateCode(data.settings.trial_template_shop_code || '70WPN');
       }
     } catch (e) {}
   };
@@ -241,6 +246,24 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'trial_template_shop_code', value: trialTemplateCode, requesterId: currentUserId })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert('Đã cập nhập mã Shop mẫu dùng thử thành công!');
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
+    } finally {
+      setSavingConfig(false);
+    }
+  };
+
   // ==================== RENDER ====================
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
@@ -276,6 +299,9 @@ export default function SuperAdminPage() {
         </button>
         <button onClick={() => { setActiveTab('errors'); fetchErrorLogs(); }} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${activeTab === 'errors' ? 'bg-red-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
           ⚠️ Nhật ký Lỗi {errorLogs.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full">{errorLogs.length}</span>}
+        </button>
+        <button onClick={() => setActiveTab('config')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
+          ⚙️ Cấu hình
         </button>
       </div>
 
@@ -468,6 +494,45 @@ export default function SuperAdminPage() {
                 ✅ Chưa có lỗi nào được ghi nhận. Hệ thống hoạt động tốt!
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ==================== TAB: CONFIG ==================== */}
+      {activeTab === 'config' && (
+        <div className="glass rounded-[2.5rem] p-8 shadow-xl max-w-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 bg-indigo-100 rounded-2xl">⚙️</div>
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Cấu hình Hệ thống</h2>
+              <p className="text-sm text-slate-500 font-medium">Thiết lập các thông số vận hành mặc định.</p>
+            </div>
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <label className="block text-xs font-bold uppercase text-slate-500 mb-2">🏪 Mã Shop Mẫu (Dùng thử)</label>
+              <input 
+                type="text" 
+                value={trialTemplateCode} 
+                onChange={e => setTrialTemplateCode(e.target.value.toUpperCase())}
+                placeholder="VD: 70WPN"
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-bold text-sm focus:border-indigo-500 outline-none transition-all"
+              />
+            </div>
+
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-700 font-medium leading-relaxed">
+              <strong>💡 Giải thích:</strong> Đây là mã Shop mà hệ thống sẽ lấy dữ liệu "Cấu hình Chatbot" để nhân bản (copy) 
+              sang cho những người dùng mới bấm vào nút <strong>Dùng thử miễn phí</strong>.
+            </div>
+
+            <button 
+              onClick={handleSaveConfig}
+              disabled={savingConfig}
+              className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest"
+            >
+              {savingConfig ? 'Đang lưu...' : 'LƯU CẤU HÌNH'}
+            </button>
           </div>
         </div>
       )}

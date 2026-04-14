@@ -76,8 +76,17 @@ alter table public.system_settings enable row level security;
 alter table public.error_logs enable row level security;
 
 -- Simple policy: Users can see their own shop data
+create policy "Shops are viewable by everyone" on public.shops for select using (true);
+create policy "Shops can be created by anyone" on public.shops for insert with check (true);
+create policy "Shops can be updated by anyone" on public.shops for update using (true);
+
+create policy "Users can insert their own profile" on public.users for insert with check (true);
 create policy "Users see their own shop" on public.users for select using (true);
+create policy "Users can update their own profile" on public.users for update using (true);
+
 create policy "Users see their own chatbot_configs" on public.chatbot_configs for all using (true);
+create policy "Enable insert for configs" on public.chatbot_configs for insert with check (true);
 create policy "Users see their own messages" on public.messages for all using (true);
+create policy "Enable insert for messages" on public.messages for insert with check (true);
 create policy "System settings full access" on public.system_settings for all using (true);
 create policy "Error logs full access" on public.error_logs for all using (true);

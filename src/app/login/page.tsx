@@ -70,8 +70,12 @@ function LoginForm() {
           if (createShopErr) throw createShopErr;
           targetShopId = newShop.id;
 
-          // Nhân bản cấu hình từ 70WPN
-          const { data: sourceShop } = await supabase.from('shops').select('id').eq('code', '70WPN').single();
+          // Lấy mã shop mẫu từ cài đặt hệ thống (do Super Admin cấu hình)
+          const { data: setting } = await supabase.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
+          const templateCode = setting?.value || '70WPN';
+
+          // Nhân bản cấu hình từ Shop mẫu
+          const { data: sourceShop } = await supabase.from('shops').select('id').eq('code', templateCode).single();
           if (sourceShop) {
              const { data: sourceConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', sourceShop.id).single();
              if (sourceConfig) {
