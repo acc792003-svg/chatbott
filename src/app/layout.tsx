@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Chat Bán Hàng - Tự Động Chốt Đơn 24/7",
-  description: "Nền tảng AI Chatbot thông minh giúp tư vấn khách hàng 24/7, tự động chốt đơn và tăng doanh thu.",
+  title: "AI Chat Bán Hàng",
+  description: "Nền tảng AI Chatbot thông minh",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "AI Chatbot",
+  },
 };
 
 export const viewport = {

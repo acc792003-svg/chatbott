@@ -49,14 +49,7 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#fafafa]">
-      {/* Background - Very subtle text */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-         <p className="text-slate-300 font-bold text-sm tracking-widest uppercase opacity-40">
-           Chatbot xin nghe bạn trò chuyện
-         </p>
-      </div>
-
+    <div className="relative w-screen h-screen overflow-hidden bg-white">
       {/* DRAGGABLE ROBOT ICON */}
       <motion.div
         drag
@@ -66,15 +59,21 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
         className="cursor-move"
       >
         <div className="relative flex flex-col items-center">
-           {/* Yellow X - Close button (Top) */}
-           {isOpen && (
-             <button 
-                onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-                className="absolute -top-12 bg-amber-400 text-amber-900 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white font-black z-[10000] hover:scale-110 active:scale-90 transition-transform"
-             >
-                <X size={14} strokeWidth={4} />
-             </button>
-           )}
+           {/* Yellow X - Close button (Top) - Closes the website/app */}
+           <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setIsOpen(false);
+                // Try to close window, fallback to back or home
+                window.close();
+                setTimeout(() => {
+                  window.location.href = "about:blank"; // Fallback for browsers
+                }, 100);
+              }}
+              className="absolute -top-12 bg-amber-400 text-amber-900 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white font-black z-[10000] hover:scale-110 active:scale-90 transition-transform"
+           >
+              <X size={14} strokeWidth={4} />
+           </button>
 
            {/* Small Badge text */}
            <div className="absolute -top-5 bg-indigo-600/90 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md whitespace-nowrap backdrop-blur-sm z-[9999]">
@@ -105,11 +104,6 @@ export default function ShopSlugPage({ params }: { params: Promise<{ slug: strin
           />
         </motion.div>
       )}
-
-      {/* Footer Hint */}
-      <div className="absolute bottom-6 left-0 right-0 text-center text-[9px] text-slate-300 font-bold tracking-tighter pointer-events-none opacity-50">
-        THEO DẠI DEEPLINK • {shop.slug?.toUpperCase()}
-      </div>
     </div>
   );
 }
