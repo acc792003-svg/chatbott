@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { callGeminiWithFallback } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
@@ -15,7 +16,6 @@ export async function POST(req: Request) {
     const shopName = config?.shop_name || shop?.name || 'Shop';
     const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
 
-    // Cấu trúc Prompt mới: TÍNH CÁCH BẠN BÈ & THÔNG MINH
     const systemPrompt = `
 BẠN LÀ AI?
 - Bạn là một "Người bạn đồng hành thông minh" của shop "${shopName}".
@@ -38,43 +38,12 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
 "${message}"
 `;
 
-    const candidates = [
-      'models/gemini-2.5-flash',
-      'models/gemini-1.5-flash-8b',
-      'models/gemini-1.5-pro',
-      'models/gemini-1.0-pro',
-      'models/gemini-pro'
-    ];
+    const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }];
 
-    let finalResponse = null;
-    let lastError = '';
-
-    for (const fullModelName of candidates) {
-       for (const version of ['v1beta', 'v1']) {
-          try {
-            const apiURL = `https://generativelanguage.googleapis.com/${version}/${fullModelName}:generateContent?key=${apiKey}`;
-            const response = await fetch(apiURL, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                contents: [{ parts: [{ text: systemPrompt }] }],
-                generationConfig: { 
-                  temperature: 0.8,
-                  maxOutputTokens: 800
-                }
-              })
-            });
-            const data = await response.json();
-            if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-              finalResponse = data.candidates[0].content.parts[0].text;
-              break;
-            } else { lastError = data.error?.message || 'Unknown error'; }
-          } catch (e: any) { lastError = e.message; }
-       }
-       if (finalResponse) break;
-    }
-
-    if (!finalResponse) return NextResponse.json({ error: `Lỗi: ${lastError}` }, { status: 500 });
+    const finalResponse = await callGeminiWithFallback(apiKey, contents, {
+      temperature: 0.8,
+      maxOutputTokens: 800
+    });
 
     // Lưu tin nhắn vào database để Super Admin giám sát
     if (shop?.id) {
@@ -90,6 +59,6 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
     return NextResponse.json({ response: finalResponse, shop_name: shopName });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 503 });
   }
 }
