@@ -51,6 +51,11 @@ CÂU HỎI TỪ KHÁCH HÀNG:
         ai_response: finalResponse,
         usage_tokens: 0
       });
+
+      // Tự động xóa tin nhắn cũ hơn 5 ngày để nhẹ DB
+      const fiveDaysAgo = new Date();
+      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+      await supabaseAdmin.from('messages').delete().lt('created_at', fiveDaysAgo.toISOString());
     }
 
     return NextResponse.json({ response: finalResponse, shop_name: shopName });

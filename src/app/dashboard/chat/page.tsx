@@ -92,6 +92,11 @@ export default function ChatDemo() {
           ai_response: data.response,
           usage_tokens: 0
         });
+
+        // 5. Tự động xóa tin nhắn cũ hơn 5 ngày để nhẹ DB
+        const fiveDaysAgo = new Date();
+        fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
+        await supabase.from('messages').delete().lt('created_at', fiveDaysAgo.toISOString());
       }
 
     } catch (err: any) {

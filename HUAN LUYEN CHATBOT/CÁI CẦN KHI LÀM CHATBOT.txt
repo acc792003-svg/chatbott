@@ -3,3 +3,5 @@ bạn ơi hình như là super admin chưa xem lại được lịch sử giám 
 
 
 SUPER ADMIN CÓ 2 Ô NHẬP NHẬP API KEY GEMINI KHÔNG PHỤ THUỘC VÀO API KEY GEMINI CỐ ĐỊNH TRONG FILE ".ENV.LOCAL" VÀ KẾT NỐI API KEY NÀY CHO CHAT BOT DÙNG, NẾU LỖI THÌ THÔNG BÁO NHẸ NHÀNG CHO NGƯỜI DÙNG BIẾT ĐỂ ĐỢI MỘT ÚC CHAT LẠI ĐỒNG THỜI BÁO LỖI NÀY VỀ CHO SUPER ADMIN NÊN CẦN CÓ CƠ CHẾ SUPER ADMIN BIẾT LỖI NÀY
+
+Bảng Điều Khiển Super Admin: Quản lý cửa hàng (HOẶC USER), API Keys, và giám sát hệ thống.
