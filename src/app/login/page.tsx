@@ -44,12 +44,54 @@ function LoginForm() {
         if (password !== confirmPassword) throw new Error('Mật khẩu không khớp');
         const { data, error: err } = await supabase.auth.signUp({ email, password });
         if (err) throw err;
-        if (data.user && shopCode) {
+        
+        let targetShopId = null;
+        let generatedCode = '';
+        if (shopCode) {
           const { data: shop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
           if (!shop) throw new Error('Mã shop không tồn tại');
-          await supabase.from('users').insert([{ id: data.user.id, email, shop_id: shop.id, role: 'admin' }]);
+          targetShopId = shop.id;
+        } else {
+          // Tạo mã ngẫu nhiên 5 ký tự (2 số + 3 chữ)
+          const nums = '0123456789'; const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+          generatedCode = `${nums[Math.floor(Math.random() * nums.length)]}${nums[Math.floor(Math.random() * nums.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}`;
+          
+          const expiryDate = new Date();
+          expiryDate.setDate(expiryDate.getDate() + 1);
+
+          const { data: newShop, error: createShopErr } = await supabase.from('shops').insert([{
+            name: 'Shop Dùng Thử',
+            code: generatedCode,
+            subscription_days: 1,
+            expiry_date: expiryDate.toISOString()
+          }]).select().single();
+          
+          if (createShopErr) throw createShopErr;
+          targetShopId = newShop.id;
+
+          // Nhân bản cấu hình từ 70WPN
+          const { data: sourceShop } = await supabase.from('shops').select('id').eq('code', '70WPN').single();
+          if (sourceShop) {
+             const { data: sourceConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', sourceShop.id).single();
+             if (sourceConfig) {
+                const clonedConfig = { ...sourceConfig };
+                delete clonedConfig.id;
+                clonedConfig.shop_id = targetShopId;
+                clonedConfig.shop_name = 'Shop Dùng Thử';
+                await supabase.from('chatbot_configs').insert([clonedConfig]);
+             }
+          }
         }
-        alert('Đăng ký thành công!');
+        
+        if (data.user && targetShopId) {
+          await supabase.from('users').insert([{ id: data.user.id, email, shop_id: targetShopId, role: 'user' }]);
+        }
+        
+        if (generatedCode) {
+          alert(`Mã cửa hàng của bạn là: ${generatedCode}. Bạn cần nhớ để đăng nhập lần sau.`);
+        } else {
+          alert('Đăng ký thành công!');
+        }
         setIsLogin(true);
       }
     } catch (err: any) {
@@ -70,7 +112,7 @@ function LoginForm() {
       <form onSubmit={handleSubmit} className="space-y-4">
         {!isLogin && (
           <input 
-            type="text" placeholder="Mã cửa hàng" value={shopCode} onChange={e => setShopCode(e.target.value)} required
+            type="text" placeholder="Mã cửa hàng (để trống nếu đăng ký dùng thử)" value={shopCode} onChange={e => setShopCode(e.target.value)}
             className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
           />
         )}
@@ -92,13 +134,13 @@ function LoginForm() {
           disabled={loading}
           className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-700 transition-all uppercase tracking-widest"
         >
-          {loading ? 'Đang tải...' : (isLogin ? 'Vào hệ thống' : 'Tạo tài khoản')}
+          {loading ? 'Đang tải...' : (isLogin ? 'Vào hệ thống' : 'Tạo tài khoản / Dùng thử')}
         </button>
       </form>
 
       <div className="mt-8 text-center space-y-4">
         <button onClick={() => setIsLogin(!isLogin)} className="text-sm font-bold text-blue-600 hover:underline">
-          {isLogin ? 'Chưa có tài khoản? Đăng ký' : 'Đã có tài khoản? Đăng nhập'}
+          {isLogin ? 'Chưa có tài khoản? Đăng ký / Dùng thử miễn phí' : 'Đã có tài khoản? Đăng nhập'}
         </button>
         <div className="block pt-4 border-t border-slate-100">
           <Link href="/" className="text-xs font-bold text-slate-400 hover:text-slate-600">

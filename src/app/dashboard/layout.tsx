@@ -13,6 +13,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState('Admin Shop');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -20,6 +21,14 @@ export default function DashboardLayout({
       if (!session) {
         router.push('/login');
       } else {
+        const { data: userRecord } = await supabase
+          .from('users')
+          .select('full_name, email')
+          .eq('id', session.user.id)
+          .single();
+        if (userRecord) {
+          setUserName(userRecord.full_name || userRecord.email || 'Admin Shop');
+        }
         setLoading(false);
       }
     };
@@ -57,8 +66,8 @@ export default function DashboardLayout({
                 <User size={20} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-900 leading-none">Admin Shop</p>
-                <p className="text-[10px] text-slate-500 mt-1">Gói miễn phí</p>
+                <p className="text-xs font-bold text-slate-900 leading-none">Chào {userName}!</p>
+                <p className="text-[10px] text-slate-500 mt-1">Gói hoạt động</p>
               </div>
             </div>
           </div>

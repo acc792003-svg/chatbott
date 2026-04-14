@@ -29,14 +29,23 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
+  const [authorPhone, setAuthorPhone] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRole = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       
-      const { data } = await supabase.from('users').select('role').eq('id', session.user.id).single();
-      if (data) setRole(data.role);
+      const { data } = await supabase.from('users').select('role, shop_id').eq('id', session.user.id).single();
+      if (data) {
+        setRole(data.role);
+        if (data.shop_id) {
+          const { data: shopData } = await supabase.from('shops').select('phone_number').eq('id', data.shop_id).single();
+          if (shopData && shopData.phone_number) {
+            setAuthorPhone(shopData.phone_number);
+          }
+        }
+      }
     };
     fetchRole();
   }, []);
@@ -96,11 +105,16 @@ export default function Sidebar() {
       <div className="mt-auto border-t border-white/20 pt-4">
         <button 
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-semibold text-sm"
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 transition-all font-semibold text-sm mb-2"
         >
           <LogOut size={20} />
           <span>Đăng xuất</span>
         </button>
+        {authorPhone && (
+          <div className="text-[11px] text-center text-slate-500 font-medium">
+            SĐT liên hệ tác giả: {authorPhone}
+          </div>
+        )}
       </div>
     </aside>
   );
