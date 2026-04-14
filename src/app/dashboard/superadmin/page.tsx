@@ -17,6 +17,13 @@ export default function SuperAdminPage() {
   const [editingShop, setEditingShop] = useState<string | null>(null);
   const [editDays, setEditDays] = useState(0);
   const [editPhone, setEditPhone] = useState('');
+  
+  // User Manager Modal
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [userMessages, setUserMessages] = useState<any[]>([]);
+  const [updatingUser, setUpdatingUser] = useState(false);
 
   const router = useRouter();
 
@@ -132,6 +139,46 @@ export default function SuperAdminPage() {
     }
   };
 
+  const openUserModal = async (u: any, shopName: string) => {
+    setSelectedUser({ ...u, shopName });
+    setNewPassword('');
+    setUserModalOpen(true);
+    
+    // Thu thập lịch sử chat (do bảng messages lưu theo shop_id)
+    const { data } = await supabase.from('messages')
+      .select('*')
+      .eq('shop_id', u.shop_id)
+      .order('created_at', { ascending: false })
+      .limit(50); // Lấy 50 tin nhắn gần nhất
+      
+    setUserMessages(data || []);
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword) return alert('Vui lòng nhập mật khẩu mới!');
+    setUpdatingUser(true);
+    try {
+       const { data: { session } } = await supabase.auth.getSession();
+       const res = await fetch('/api/admin/update-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+             userId: selectedUser.id,
+             password: newPassword,
+             requesterId: session?.user?.id
+          })
+       });
+       const result = await res.json();
+       if (result.error) throw new Error(result.error);
+       alert('Đổi mật khẩu tài khoản thành công!');
+       setNewPassword('');
+    } catch (e: any) {
+       alert('Lỗi đổi mật khẩu: ' + e.message);
+    } finally {
+       setUpdatingUser(false);
+    }
+  };
+
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
   if (!isSuperAdmin) {
@@ -185,12 +232,15 @@ export default function SuperAdminPage() {
                       MÃ: {shop.code || 'CHƯA CÓ'}
                     </div>
                     {shopUsers[shop.id] && shopUsers[shop.id].length > 0 && (
-                      <div className="mt-2 text-[11px] text-slate-500 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
+                      <div className="mt-2 text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg border border-slate-100">
                         <span className="font-bold block mb-1">Tài khoản quản lý:</span>
                         {shopUsers[shop.id].map(u => (
-                          <div key={u.id} className="flex gap-2">
-                             <span>• {u.email || 'Ẩn danh'}</span>
-                             <span className="text-orange-500 font-bold uppercase">{u.role}</span>
+                          <div key={u.id} className="flex gap-2 items-center justify-between mb-1">
+                             <div className="flex items-center gap-1.5">
+                               <span>• {u.email || 'Ẩn danh'}</span>
+                               <span className="text-orange-500 font-bold uppercase text-[9px] px-1 bg-orange-100 rounded">{u.role}</span>
+                             </div>
+                             <button onClick={() => openUserModal(u, shop.name)} className="text-blue-600 font-bold bg-blue-100 hover:bg-blue-200 px-2 py-0.5 rounded transition-all">Quản lý User & Xem Chat</button>
                           </div>
                         ))}
                       </div>
@@ -268,6 +318,65 @@ export default function SuperAdminPage() {
           </table>
         </div>
       </div>
+
+      {/* Thông tin User Modal */}
+      {userModalOpen && selectedUser && (
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+               <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/50">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">Quản lý User: {selectedUser.email}</h2>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">Cửa hàng: <span className="text-blue-600 font-bold">{selectedUser.shopName}</span></p>
+                  </div>
+                  <button onClick={() => setUserModalOpen(false)} className="p-2 hover:bg-slate-200 text-slate-500 rounded-xl transition-all"><X size={20} /></button>
+               </div>
+               
+               <div className="flex-1 overflow-y-auto p-6 flex flex-col md:flex-row gap-8">
+                  {/* Cột trái: Đổi mật khẩu */}
+                  <div className="w-full md:w-1/3 space-y-4">
+                     <div className="p-5 bg-blue-50 border border-blue-100 rounded-2xl">
+                        <h3 className="font-bold text-slate-900 mb-3 flex items-center gap-2"><Edit size={16} className="text-blue-600"/> Cấp lại mật khẩu</h3>
+                        <p className="text-xs text-slate-500 mb-4">Bạn có thể thiết lập mật khẩu mới cho tài khoản khách hàng này.</p>
+                        <input 
+                           type="text" 
+                           placeholder="Nhập mật khẩu mới..."
+                           value={newPassword}
+                           onChange={e => setNewPassword(e.target.value)}
+                           className="w-full mb-3 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold focus:border-blue-500 outline-none"
+                        />
+                        <button 
+                           onClick={handleChangePassword}
+                           disabled={updatingUser || !newPassword}
+                           className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50"
+                        >
+                           {updatingUser ? 'Đang đổi...' : 'ÁP DỤNG MẬT KHẨU'}
+                        </button>
+                     </div>
+                  </div>
+
+                  {/* Cột phải: Lịch sử chat cửa hàng */}
+                  <div className="w-full md:w-2/3 border border-slate-100 rounded-2xl p-5 flex flex-col max-h-[60vh]">
+                     <h3 className="font-bold text-slate-900 mb-4 text-sm uppercase tracking-widest flex items-center gap-2">
+                        Lịch sử Chat gần nhất của User/Shop (Giám sát)
+                     </h3>
+                     <div className="flex-1 overflow-y-auto space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        {userMessages.length > 0 ? userMessages.map(msg => (
+                           <div key={msg.id} className="text-sm bg-white p-3 border border-slate-100 rounded-xl shadow-sm text-slate-600 animate-in fade-in slide-in-from-bottom-2">
+                              <p className="text-[10px] text-slate-400 font-bold mb-1">{new Date(msg.created_at).toLocaleString('vi-VN')}</p>
+                              <div className="flex flex-col gap-1.5">
+                                 <p><span className="font-black text-indigo-600">Khách:</span> <span className="font-medium text-slate-800">{msg.user_message}</span></p>
+                                 <p className="mt-1 pt-1 border-t border-slate-100"><span className="font-black text-emerald-600">AI:</span> {msg.bot_response}</p>
+                              </div>
+                           </div>
+                        )) : (
+                           <div className="text-center text-slate-400 py-10 font-bold text-sm">Chưa có dữ liệu chat nào ghi nhận được từ cửa hàng này.</div>
+                        )}
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+      )}
     </div>
   );
 }

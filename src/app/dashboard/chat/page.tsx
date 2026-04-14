@@ -167,7 +167,7 @@ export default function ChatDemo() {
         </form>
         <p className="text-center text-[10px] text-slate-400 mt-4 uppercase font-black tracking-widest flex items-center justify-center gap-2">
            <Zap size={10} className="text-amber-500" />
-           Sử dụng Gemini AI • {50 - messages.length}/50 lượt còn lại
+           Sử dụng Chatbot AI • {50 - messages.length}/50 lượt còn lại
         </p>
       </div>
     </div>
