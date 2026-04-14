@@ -41,9 +41,9 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
     const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
     const listData = await listResponse.json();
     let candidates = listData.models?.filter((m: any) => m.supportedGenerationMethods.includes('generateContent')).map((m: any) => m.name) || [];
-    if (candidates.length === 0) candidates = ['models/gemini-1.5-flash-latest', 'models/gemini-pro'];
+    if (candidates.length === 0) candidates = ['models/gemini-2.5-flash', 'models/gemini-pro'];
 
-    candidates.sort((a: string) => a.includes('flash') ? -1 : 1);
+    candidates.sort((a: string) => a.includes('2.5-flash') ? -1 : 1);
 
     let finalResponse = null;
     let lastError = '';
