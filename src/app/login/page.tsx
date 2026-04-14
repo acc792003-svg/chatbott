@@ -17,6 +17,7 @@ function LoginForm() {
   const [shopCode, setShopCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successCode, setSuccessCode] = useState<string | null>(null); // Hiện thông báo đăng ký thành công
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -88,11 +89,13 @@ function LoginForm() {
         }
         
         if (generatedCode) {
-          alert(`Mã cửa hàng của bạn là: ${generatedCode}. Bạn cần nhớ để đăng nhập lần sau.`);
+          // Đăng ký dùng thử → hiện thông báo đẹp thay vì alert
+          await supabase.auth.signOut();
+          setSuccessCode(generatedCode);
         } else {
-          alert('Đăng ký thành công!');
+          alert('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
+          setIsLogin(true);
         }
-        setIsLogin(true);
       }
     } catch (err: any) {
       setError(err.message);
@@ -100,6 +103,36 @@ function LoginForm() {
       setLoading(false);
     }
   };
+
+  // Nếu đăng ký thành công → hiện trang thông báo mã cửa hàng
+  if (successCode) {
+    return (
+      <div className="w-full max-w-md bg-white p-10 rounded-3xl shadow-2xl border border-slate-200 text-center" style={{ fontFamily: 'Arial, sans-serif' }}>
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span className="text-4xl">✅</span>
+        </div>
+        <h1 className="text-2xl font-black text-slate-900 mb-3">Đăng Ký Thành Công!</h1>
+        <p className="text-sm text-slate-500 font-medium mb-6">Hệ thống đã tạo cho bạn mã cửa hàng dùng thử <strong className="text-blue-600">1 ngày</strong>.</p>
+        
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 mb-6">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Mã cửa hàng của bạn</p>
+          <p className="text-4xl font-black text-blue-600 tracking-[0.3em]">{successCode}</p>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-left">
+          <p className="text-xs font-bold text-amber-700">⚠️ Quan trọng:</p>
+          <p className="text-xs text-amber-600 mt-1 font-medium">Bạn cần ghi nhớ mã <strong>{successCode}</strong> này để đăng nhập lần sau. Thời hạn dùng thử: <strong>1 ngày</strong>.</p>
+        </div>
+
+        <button 
+          onClick={() => { setSuccessCode(null); setIsLogin(true); }}
+          className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl shadow-xl hover:bg-blue-700 transition-all uppercase tracking-widest"
+        >
+          ĐÃ GHI NHỚ → ĐĂNG NHẬP
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md bg-white p-10 rounded-3xl shadow-2xl border border-slate-200" style={{ fontFamily: 'Arial, sans-serif' }}>
