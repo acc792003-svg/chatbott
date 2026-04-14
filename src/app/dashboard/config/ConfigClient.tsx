@@ -44,9 +44,10 @@ export default function ConfigClient() {
         product_info: productInfo,
         faq: faq,
         is_active: true,
-        fb_page_id: fbPageId ? fbPageId : null,
-        fb_access_token: fbAccessToken ? fbAccessToken : null,
       };
+
+      if (fbPageId) payload.fb_page_id = fbPageId;
+      if (fbAccessToken) payload.fb_access_token = fbAccessToken;
 
       const { error } = await supabase.from('chatbot_configs').upsert(payload, { onConflict: 'shop_id' });
       if (error) throw error;
