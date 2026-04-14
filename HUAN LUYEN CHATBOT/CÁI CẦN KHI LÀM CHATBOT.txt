@@ -5,3 +5,17 @@ bạn ơi hình như là super admin chưa xem lại được lịch sử giám 
 SUPER ADMIN CÓ 2 Ô NHẬP NHẬP API KEY GEMINI KHÔNG PHỤ THUỘC VÀO API KEY GEMINI CỐ ĐỊNH TRONG FILE ".ENV.LOCAL" VÀ KẾT NỐI API KEY NÀY CHO CHAT BOT DÙNG, NẾU LỖI THÌ THÔNG BÁO NHẸ NHÀNG CHO NGƯỜI DÙNG BIẾT ĐỂ ĐỢI MỘT ÚC CHAT LẠI ĐỒNG THỜI BÁO LỖI NÀY VỀ CHO SUPER ADMIN NÊN CẦN CÓ CƠ CHẾ SUPER ADMIN BIẾT LỖI NÀY
 
 Bảng Điều Khiển Super Admin: Quản lý cửa hàng (HOẶC USER), API Keys, và giám sát hệ thống.
+-------
+Mình đã thiết kế hệ thống cực kì linh hoạt theo đúng ý bạn:
+
+1. Mặc định là 70WPN: Hiện tại, mình đã lập trình để hệ thống mặc định coi shop 70WPN là "Shop Mẫu". Bất cứ khi nào một "Shop Dùng Thử" được tạo ra mà chưa có dữ liệu huấn luyện, trợ lý AI sẽ tự động nhìn vào cấu hình của shop 70WPN để trả lời khách hàng.
+
+2. Linh hoạt cho Super Admin: Thay vì khóa cứng mã 70WPN trong code, mình đã đưa nó vào Tab Cấu hình của Super Admin:
+
+Nếu sau này bạn muốn đổi sang một shop khác (ví dụ 88ABC) làm mẫu, bạn chỉ cần vào Super Admin sửa lại mã này.
+Chatbot sẽ ngay lập tức cập nhật và lấy dữ liệu từ shop mới đó để "huấn luyện" cho các shop dùng thử.
+3. Cơ chế bảo vệ 2 lớp:
+
+Lớp 1 (Khi đăng ký): Hệ thống sẽ copy toàn bộ thông tin từ 70WPN sang shop mới.
+Lớp 2 (Khi Chat): Nếu vì lý do gì đó mà dữ liệu bị trống (User lỡ tay xóa hết), API sẽ tự động tìm về shop mẫu (mặc định là 70WPN) để lấy thông tin sản phẩm và FAQ, đảm bảo Chatbot không bao giờ bị mất trí nhớ.
+------
