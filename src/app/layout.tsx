@@ -4,7 +4,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "AI Chat Bán Hàng",
   description: "Nền tảng AI Chatbot thông minh",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

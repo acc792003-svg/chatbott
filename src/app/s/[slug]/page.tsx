@@ -6,12 +6,20 @@ import { motion, useDragControls } from 'framer-motion';
 import { Bot, X, Maximize2, Minimize2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const resolvedParams = await params;
+  return {
+    title: `Chatbot ${resolvedParams.slug}`,
+    manifest: `/api/manifest/${resolvedParams.slug}`,
+  };
+}
+
 export default function ShopSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
   const slug = resolvedParams.slug;
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true); // Open by default
   const [isMinimized, setIsMinimized] = useState(false);
   const router = useRouter();
 
