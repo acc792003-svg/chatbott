@@ -365,7 +365,7 @@ export default function SuperAdminPage() {
                               <p className="text-[10px] text-slate-400 font-bold mb-1">{new Date(msg.created_at).toLocaleString('vi-VN')}</p>
                               <div className="flex flex-col gap-1.5">
                                  <p><span className="font-black text-indigo-600">Khách:</span> <span className="font-medium text-slate-800">{msg.user_message}</span></p>
-                                 <p className="mt-1 pt-1 border-t border-slate-100"><span className="font-black text-emerald-600">AI:</span> {msg.bot_response}</p>
+                                 <p className="mt-1 pt-1 border-t border-slate-100"><span className="font-black text-emerald-600">AI:</span> {msg.ai_response}</p>
                               </div>
                            </div>
                         )) : (

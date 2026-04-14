@@ -16,6 +16,8 @@ export default function ChatDemo() {
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [shopId, setShopId] = useState<string | null>(null);
+  const [sessionId] = useState(() => crypto.randomUUID()); // ID phiên chat duy nhất
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -30,7 +32,8 @@ export default function ChatDemo() {
 
     const userMsg = input;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    const updatedMessages: Message[] = [...messages, { role: 'user', content: userMsg }];
+    setMessages(updatedMessages);
     setLoading(true);
 
     try {
@@ -38,29 +41,36 @@ export default function ChatDemo() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Chưa đăng nhập");
 
-      // We need the shop_id from the user table
       const { data: userData } = await supabase.from('users').select('shop_id, role').eq('id', session.user.id).single();
       
       let shopConfig = null;
+      const currentShopId = userData?.shop_id || null;
+      if (!shopId && currentShopId) setShopId(currentShopId);
 
-      if (!userData?.shop_id) {
+      if (!currentShopId) {
          if (userData?.role === 'super_admin') {
             shopConfig = { shop_name: 'Super Admin Test', product_info: 'Cửa hàng đang bảo trì', faq: 'Đây là không gian dành cho Super Admin thử nghiệm tính năng AI.' };
          } else {
             throw new Error("Tài khoản của bạn chưa được liên kết với bất kỳ cửa hàng nào!");
          }
       } else {
-         // 2. Fetch the chatbot configuration
-         const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
+         const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', currentShopId).single();
          shopConfig = config;
       }
 
-      // 3. Call the Gemini API Route
+      // 2. Xây dựng lịch sử hội thoại để AI nhớ ngữ cảnh
+      const conversationHistory = updatedMessages.map(m => ({
+        role: m.role,
+        parts: [{ text: m.content }]
+      }));
+
+      // 3. Call the Chat API Route (kèm lịch sử)
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMsg,
+          history: conversationHistory,
           shopConfig: shopConfig || { shop_name: 'Cửa hàng', product_info: '', faq: '' }
         }),
       });
@@ -72,6 +82,17 @@ export default function ChatDemo() {
       }
 
       setMessages(prev => [...prev, { role: 'assistant', content: data.response }]);
+
+      // 4. LƯU TIN NHẮN VÀO DATABASE để Super Admin giám sát được
+      if (currentShopId) {
+        await supabase.from('messages').insert({
+          shop_id: currentShopId,
+          session_id: sessionId,
+          user_message: userMsg,
+          ai_response: data.response,
+          usage_tokens: 0
+        });
+      }
 
     } catch (err: any) {
       setMessages(prev => [...prev, { role: 'assistant', content: `[Lỗi hệ thống]: ${err.message}. Hãy kiểm tra kết nối API.` }]);

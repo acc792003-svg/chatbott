@@ -75,6 +75,18 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
     }
 
     if (!finalResponse) return NextResponse.json({ error: `Lỗi: ${lastError}` }, { status: 500 });
+
+    // Lưu tin nhắn vào database để Super Admin giám sát
+    if (shop?.id) {
+      await supabaseAdmin.from('messages').insert({
+        shop_id: shop.id,
+        session_id: `widget-${Date.now()}`,
+        user_message: message,
+        ai_response: finalResponse,
+        usage_tokens: 0
+      });
+    }
+
     return NextResponse.json({ response: finalResponse, shop_name: shopName });
 
   } catch (error: any) {

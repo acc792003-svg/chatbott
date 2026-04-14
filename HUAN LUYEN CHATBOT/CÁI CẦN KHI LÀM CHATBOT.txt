@@ -1,0 +1,2 @@
+
+bạn ơi hình như là super admin chưa xem lại được lịch sử giám sat chat , có phải là vì bên user chưa có lưu lịch sử chát phải không? và khi đang chat thì chatbot lại không nhớ được mình đã chat gì khi mình hỏi lại nó
