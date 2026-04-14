@@ -1,12 +1,59 @@
 // Hệ thống tự động phát hiện và gọi model Gemini khả dụng
-// Với cơ chế retry thông minh khi bị quá tải
+// Với cơ chế retry thông minh, API key từ DB, và ghi log lỗi
+
+import { supabaseAdmin } from '@/lib/supabase';
 
 const MODEL_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút
 let cachedModels: string[] = [];
 let cacheTimestamp = 0;
 
-export async function getAvailableModels(apiKey: string): Promise<string[]> {
-  // Trả về cache nếu còn hạn
+// Lấy API Keys từ database (Super Admin quản lý), fallback về .env.local
+export async function getApiKeys(): Promise<string[]> {
+  const keys: string[] = [];
+  
+  try {
+    if (supabaseAdmin) {
+      const { data } = await supabaseAdmin
+        .from('system_settings')
+        .select('key, value')
+        .in('key', ['gemini_api_key_1', 'gemini_api_key_2']);
+      
+      if (data) {
+        data.forEach((s: any) => {
+          if (s.value && s.value.trim()) keys.push(s.value.trim());
+        });
+      }
+    }
+  } catch (e) {
+    // Nếu bảng chưa tồn tại, bỏ qua
+  }
+
+  // Nếu không có key nào trong DB, fallback về .env.local
+  const envKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (keys.length === 0 && envKey) {
+    keys.push(envKey);
+  }
+  
+  return keys;
+}
+
+// Ghi log lỗi vào database
+async function logError(shopId: string | null, errorType: string, errorMessage: string, source: string) {
+  try {
+    if (supabaseAdmin) {
+      await supabaseAdmin.from('error_logs').insert({
+        shop_id: shopId,
+        error_type: errorType,
+        error_message: errorMessage,
+        source: source
+      });
+    }
+  } catch (e) {
+    // Ghi log thất bại thì bỏ qua, không block luồng chính
+  }
+}
+
+async function getAvailableModels(apiKey: string): Promise<string[]> {
   if (cachedModels.length > 0 && Date.now() - cacheTimestamp < MODEL_CACHE_TTL) {
     return cachedModels;
   }
@@ -19,7 +66,6 @@ export async function getAvailableModels(apiKey: string): Promise<string[]> {
       const models = data.models
         .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
         .map((m: any) => m.name as string)
-        // Ưu tiên flash > pro, và phiên bản mới nhất
         .sort((a: string, b: string) => {
           const score = (name: string) => {
             if (name.includes('2.5-flash')) return 100;
@@ -43,67 +89,81 @@ export async function getAvailableModels(apiKey: string): Promise<string[]> {
     // Nếu fetch list thất bại, dùng fallback
   }
 
-  // Fallback cứng nếu không lấy được danh sách
   return ['models/gemini-2.5-flash', 'models/gemini-2.0-flash'];
 }
 
-// Delay helper
 function delay(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export async function callGeminiWithFallback(
-  apiKey: string,
   contents: any[],
-  generationConfig?: any
+  generationConfig?: any,
+  shopId?: string | null
 ): Promise<string> {
-  const models = await getAvailableModels(apiKey);
+  const apiKeys = await getApiKeys();
   
-  let lastError = '';
+  if (apiKeys.length === 0) {
+    await logError(shopId || null, 'NO_API_KEY', 'Không có API Key nào được cấu hình. Hãy vào Super Admin để nhập API Key.', 'gemini');
+    throw new Error('Hệ thống đang bảo trì, vui lòng quay lại sau ít phút nhé! 🙏');
+  }
+
   const config = generationConfig || { temperature: 0.8, maxOutputTokens: 1000 };
+  let lastError = '';
 
-  for (const fullModelName of models) {
-    // Chỉ thử v1beta (v1 đã bị deprecated cho hầu hết model)
-    const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${apiKey}`;
-    
-    // Thử tối đa 2 lần cho mỗi model (retry khi bị overload)
-    for (let attempt = 0; attempt < 2; attempt++) {
-      try {
-        const response = await fetch(apiURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents, generationConfig: config })
-        });
+  // Thử lần lượt từng API Key
+  for (const apiKey of apiKeys) {
+    const models = await getAvailableModels(apiKey);
 
-        const data = await response.json();
+    for (const fullModelName of models) {
+      const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${apiKey}`;
+      
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const response = await fetch(apiURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents, generationConfig: config })
+          });
 
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return data.candidates[0].content.parts[0].text;
-        }
+          const data = await response.json();
 
-        const errorMsg = data.error?.message || 'Unknown error';
-        lastError = errorMsg;
-
-        // Nếu bị quá tải (429 hoặc 503), chờ 1 giây rồi thử lại
-        if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-          if (attempt === 0) {
-            await delay(1500);
-            continue; // Retry cùng model
+          if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            return data.candidates[0].content.parts[0].text;
           }
-        }
 
-        // Nếu model không tồn tại (404), bỏ qua ngay sang model khác
-        if (response.status === 404 || errorMsg.includes('not found')) {
-          break; // Sang model tiếp theo
-        }
+          const errorMsg = data.error?.message || 'Unknown error';
+          lastError = errorMsg;
 
-        break; // Lỗi khác, sang model tiếp theo
-      } catch (e: any) {
-        lastError = e.message;
-        break;
+          // Quá tải → retry sau 1.5s
+          if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
+            if (attempt === 0) {
+              await delay(1500);
+              continue;
+            }
+          }
+
+          // Model không tồn tại → bỏ qua
+          if (response.status === 404 || errorMsg.includes('not found')) {
+            break;
+          }
+
+          break; 
+        } catch (e: any) {
+          lastError = e.message;
+          break;
+        }
       }
     }
   }
 
-  throw new Error(lastError || 'Không thể kết nối với AI. Vui lòng thử lại sau.');
+  // Tất cả đều thất bại → ghi log lỗi cho Super Admin
+  await logError(
+    shopId || null,
+    'AI_CALL_FAILED',
+    `Tất cả API Key và model đều thất bại. Lỗi cuối: ${lastError}`,
+    'gemini'
+  );
+
+  throw new Error('Trợ lý AI đang bận, bạn vui lòng đợi 1-2 phút rồi thử lại nhé! 😊');
 }

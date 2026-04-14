@@ -54,7 +54,30 @@ alter table public.chatbot_configs enable row level security;
 alter table public.messages enable row level security;
 alter table public.usage_stats enable row level security;
 
+-- Cài đặt hệ thống (API Keys, v.v.)
+create table public.system_settings (
+  id uuid default gen_random_uuid() primary key,
+  key text unique not null,
+  value text,
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+-- Bảng ghi log lỗi để Super Admin giám sát
+create table public.error_logs (
+  id uuid default gen_random_uuid() primary key,
+  shop_id uuid references public.shops(id) on delete cascade,
+  error_type text,
+  error_message text,
+  source text,
+  created_at timestamp with time zone default timezone('utc'::text, now())
+);
+
+alter table public.system_settings enable row level security;
+alter table public.error_logs enable row level security;
+
 -- Simple policy: Users can see their own shop data
 create policy "Users see their own shop" on public.users for select using (true);
 create policy "Users see their own chatbot_configs" on public.chatbot_configs for all using (true);
 create policy "Users see their own messages" on public.messages for all using (true);
+create policy "System settings full access" on public.system_settings for all using (true);
+create policy "Error logs full access" on public.error_logs for all using (true);

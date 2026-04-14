@@ -1,0 +1,11 @@
+Tính năng:	Chi tiết
+
+🔑 2 ô API Keys:	Super Admin có tab riêng để nhập 2 API Key Gemini, lưu vào DB. Chatbot tự động dùng key này, nếu key 1 bị quá tải sẽ chuyển sang key 2
+
+💬 Fix lịch sử chat:	Chat history giờ được lấy qua API server-side (bypass RLS), đảm bảo Super Admin luôn xem được
+
+📝 Lưu chat vào DB:	Mỗi tin nhắn chat (cả Dashboard lẫn Widget) đều được lưu tự động
+
+⚠️ Nhật ký Lỗi	: Tab "Nhật ký Lỗi" hiện 50 lỗi gần nhất. Khi AI thất bại, lỗi tự ghi vào DB để Super Admin theo dõi
+
+😊 Thông báo nhẹ nhàng:	User thấy: "Trợ lý AI đang bận, bạn vui lòng đợi 1-2 phút rồi thử lại nhé! 😊" thay vì lỗi kỹ thuật

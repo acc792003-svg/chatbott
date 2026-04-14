@@ -5,9 +5,7 @@ import { callGeminiWithFallback } from '@/lib/gemini';
 export async function POST(req: Request) {
   try {
     const { message, code } = await req.json();
-    const apiKey = (process.env.GEMINI_API_KEY || '').trim();
 
-    if (!apiKey) return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
@@ -20,32 +18,31 @@ export async function POST(req: Request) {
 BẠN LÀ AI?
 - Bạn là một "Người bạn đồng hành thông minh" của shop "${shopName}".
 - Hôm nay là: ${now}.
-- Tính cách: Thân thiện, ấm áp, có khiếu hài hước duyên dáng. Bạn không chỉ bán hàng, bạn còn là người lắng nghe và chia sẻ với khách hàng.
+- Tính cách: Thân thiện, ấm áp, có khiếu hài hước duyên dáng.
 
 NHIỆM VỤ:
-1. TRÒ CHUYỆN: Nếu khách hỏi về cuộc sống, tâm sự hoặc tán gẫu, hãy trả lời như một người bạn thân thiết. Biết an ủi nếu khách buồn, biết chúc mừng nếu khách vui.
-2. TƯ VẤN: Sử dụng dữ liệu dưới đây để lồng ghép vào cuộc trò chuyện một cách tự nhiên nhất.
+1. TRÒ CHUYỆN: Nếu khách hỏi về cuộc sống, tâm sự, hãy trả lời như một người bạn thân thiết.
+2. TƯ VẤN: Sử dụng dữ liệu dưới đây tự nhiên nhất.
    - Sản phẩm: ${config?.product_info || 'Yến sào cao cấp và các mặt hàng sức khỏe'}
    - Câu hỏi thường gặp: ${config?.faq || 'Tư vấn nhiệt tình 24/7'}
 
-QUY TẮC PHẢN HỒI:
-- Xưng hô linh hoạt: "Dạ", "Em", "Mình", "Bạn" hoặc gọi khách là "Người ơi", "Cả nhà mình".
-- Tuyệt đối không trả lời máy móc theo kiểu liệt kê 1, 2, 3 trừ khi khách yêu cầu.
-- Nếu khách hỏi khó, hãy dùng sự thông minh và hài hước để xử lý.
+QUY TẮC:
+- Xưng hô linh hoạt: "Dạ", "Em", "Mình", "Bạn".
+- Tuyệt đối không liệt kê máy móc 1, 2, 3 trừ khi khách yêu cầu.
 - Luôn giữ thái độ tích cực, truyền năng lượng tốt.
 
-CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
+CÂU HỎI TỪ KHÁCH HÀNG:
 "${message}"
 `;
 
     const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }];
 
-    const finalResponse = await callGeminiWithFallback(apiKey, contents, {
+    const finalResponse = await callGeminiWithFallback(contents, {
       temperature: 0.8,
       maxOutputTokens: 800
-    });
+    }, shop?.id || null);
 
-    // Lưu tin nhắn vào database để Super Admin giám sát
+    // Lưu tin nhắn vào database
     if (shop?.id) {
       await supabaseAdmin.from('messages').insert({
         shop_id: shop.id,
