@@ -127,7 +127,7 @@ export default function SuperAdminPage() {
 
   const handleCreateShop = async () => {
     const newCode = generateShopCode();
-    const shopName = `Cửa hàng Mới - ${newCode}`;
+    const shopName = `ChatBot - ${newCode}`;
     const defaultDays = 30;
     
     const expiryDate = new Date();

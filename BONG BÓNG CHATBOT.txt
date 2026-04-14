@@ -45,7 +45,7 @@
   }
 </style>
 
-<iframe id='cb-frame' src='https://chatbott-blond.vercel.app/widget/68XCS'>
+<iframe id='cb-frame' src='https://chatbott-blond.vercel.app/widget/70WPN'>
 </iframe>
 
 <button id='cb-btn' onclick='cbToggle()' title='Chat'>

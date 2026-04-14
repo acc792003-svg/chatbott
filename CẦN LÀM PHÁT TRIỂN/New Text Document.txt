@@ -1,0 +1,9 @@
+Cấu hình App Động (Dynamic Manifest): Bây giờ, mỗi cửa hàng sẽ có một bản cài đặt App riêng biệt. Khi bạn cài đặt từ link /s/qlady, App đó sẽ được lập trình để luôn luôn mở đúng trang /s/qlady thay vì quay về trang chủ.
+Tự động mở Khung Chat: Mình đã chỉnh sửa mã nguồn để khi khách hàng mở "App" lên, khung chat sẽ tự động hiện ra ngay lập tức (isOpen: true mặc định), khách hàng không cần phải bấm vào icon Robot một lần nữa.
+Xử lý Ghi đè: Đã xóa bỏ các cấu hình tĩnh gây xung đột để đảm bảo trải nghiệm "App" là duy nhất cho từng cửa hàng.
+Cách thực hiện lại để thấy kết quả:
+
+Xóa bản cài đặt cũ trên màn hình điện thoại.
+Dùng Chrome vào lại link: https://app.dichvupro.net/s/qlady
+Đợi 1-2 giây rồi bấm Cài đặt ứng dụng (Install).
+Bây giờ, khi bạn mở App từ màn hình chính, nó sẽ hiện ngay khung chat của qlady trên nền trắng tinh tế, đúng như bạn mong muốn.

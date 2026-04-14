@@ -109,7 +109,7 @@ export default function LandingPage() {
               {/* Right: Chatbot iframe */}
               <div className="flex-1 md:w-3/5 bg-slate-100 flex flex-col h-full overflow-hidden">
                 <iframe
-                  src="/widget/68XCS"
+                  src="/widget/70WPN"
                   className="w-full h-full min-h-[400px]"
                   style={{
                     border: 'none',
