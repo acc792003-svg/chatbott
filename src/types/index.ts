@@ -5,6 +5,8 @@ export type Shop = {
   phone_number?: string;
   subscription_days: number;
   expiry_date: string;
+  plan?: string;
+  plan_expiry_date?: string;
   created_at: string;
 };
 

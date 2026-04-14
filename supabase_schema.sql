@@ -1,7 +1,12 @@
--- Shops (Multi-tenant)
 create table public.shops (
   id uuid default gen_random_uuid() primary key,
   name text not null,
+  code text unique,
+  phone_number text,
+  subscription_days integer default 0,
+  expiry_date timestamp with time zone,
+  plan text default 'free', -- 'free' or 'pro'
+  plan_expiry_date timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 

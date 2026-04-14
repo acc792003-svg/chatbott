@@ -8,24 +8,33 @@ let cachedModels: string[] = [];
 let cacheTimestamp = 0;
 
 // Lấy API Keys từ database (Super Admin quản lý), fallback về .env.local
-export async function getApiKeys(): Promise<string[]> {
+// isPro: Nếu true, chỉ lấy API Key Pro (trả phí)
+export async function getApiKeys(isPro: boolean = false): Promise<string[]> {
   const keys: string[] = [];
   
   try {
     if (supabaseAdmin) {
+      const searchKeys = isPro ? ['gemini_api_key_pro'] : ['gemini_api_key_1', 'gemini_api_key_2'];
       const { data } = await supabaseAdmin
         .from('system_settings')
         .select('key, value')
-        .in('key', ['gemini_api_key_1', 'gemini_api_key_2']);
+        .in('key', searchKeys);
       
       if (data) {
         data.forEach((s: any) => {
-          if (s.value && s.value.trim()) keys.push(s.value.trim());
+          if (s.value && s.value.trim()) {
+            keys.push(s.value.trim());
+          }
         });
       }
     }
   } catch (e) {
     // Nếu bảng chưa tồn tại, bỏ qua
+  }
+
+  // Nếu là gói Pro mà không có key Pro riêng, dùng key thường làm fallback
+  if (keys.length === 0 && isPro) {
+    return getApiKeys(false); // Gọi lại để lấy key thường
   }
 
   // Nếu không có key nào trong DB, fallback về .env.local
@@ -89,7 +98,7 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
     // Nếu fetch list thất bại, dùng fallback
   }
 
-  return ['models/gemini-2.5-flash', 'models/gemini-2.0-flash'];
+  return ['models/gemini-2.1-flash', 'models/gemini-2.0-flash'];
 }
 
 function delay(ms: number) {
@@ -101,10 +110,30 @@ export async function callGeminiWithFallback(
   generationConfig?: any,
   shopId?: string | null
 ): Promise<string> {
-  const apiKeys = await getApiKeys();
+  // Kiểm tra shop có đang dùng gói Pro không
+  let isPro = false;
+  if (shopId && supabaseAdmin) {
+    const { data: shop } = await supabaseAdmin
+      .from('shops')
+      .select('plan, plan_expiry_date')
+      .eq('id', shopId)
+      .single();
+    
+    if (shop?.plan === 'pro') {
+      const expiry = shop.plan_expiry_date ? new Date(shop.plan_expiry_date) : null;
+      if (!expiry || expiry > new Date()) {
+        isPro = true;
+      } else {
+        // Hết hạn Pro → Tự động chuyển về Free
+        await supabaseAdmin.from('shops').update({ plan: 'free' }).eq('id', shopId);
+      }
+    }
+  }
+
+  const apiKeys = await getApiKeys(isPro);
   
   if (apiKeys.length === 0) {
-    await logError(shopId || null, 'NO_API_KEY', 'Không có API Key nào được cấu hình. Hãy vào Super Admin để nhập API Key.', 'gemini');
+    await logError(shopId || null, 'NO_API_KEY', 'Không có API Key nào được cấu hình.', 'gemini');
     throw new Error('Hệ thống đang bảo trì, vui lòng quay lại sau ít phút nhé! 🙏');
   }
 
@@ -118,7 +147,7 @@ export async function callGeminiWithFallback(
     for (const fullModelName of models) {
       const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${apiKey}`;
       
-      for (let attempt = 0; attempt < 2; attempt++) {
+      for (let attempt = 0; attempt < 1; attempt++) {
         try {
           const response = await fetch(apiURL, {
             method: 'POST',
@@ -135,19 +164,20 @@ export async function callGeminiWithFallback(
           const errorMsg = data.error?.message || 'Unknown error';
           lastError = errorMsg;
 
-          // Quá tải → retry sau 1.5s
+          // Quá tải → gợi ý user pro hoặc chờ
           if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-            if (attempt === 0) {
-              await delay(1500);
-              continue;
-            }
+             // Không retry lâu cho user thường để họ thấy app lag → kích thích lên pro
+             if (!isPro && attempt === 0) {
+                 await delay(800);
+                 continue;
+             }
+             if (isPro && attempt === 0) {
+                 await delay(1500);
+                 continue;
+             }
           }
 
-          // Model không tồn tại → bỏ qua
-          if (response.status === 404 || errorMsg.includes('not found')) {
-            break;
-          }
-
+          if (response.status === 404 || errorMsg.includes('not found')) break;
           break; 
         } catch (e: any) {
           lastError = e.message;
@@ -157,13 +187,6 @@ export async function callGeminiWithFallback(
     }
   }
 
-  // Tất cả đều thất bại → ghi log lỗi cho Super Admin
-  await logError(
-    shopId || null,
-    'AI_CALL_FAILED',
-    `Tất cả API Key và model đều thất bại. Lỗi cuối: ${lastError}`,
-    'gemini'
-  );
-
+  await logError(shopId || null, 'AI_CALL_FAILED', `Lỗi cuối: ${lastError} (isPro: ${isPro})`, 'gemini');
   throw new Error('Trợ lý AI đang bận, bạn vui lòng đợi 1-2 phút rồi thử lại nhé! 😊');
 }

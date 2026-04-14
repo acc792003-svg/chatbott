@@ -19,3 +19,23 @@ Chatbot sẽ ngay lập tức cập nhật và lấy dữ liệu từ shop mới
 Lớp 1 (Khi đăng ký): Hệ thống sẽ copy toàn bộ thông tin từ 70WPN sang shop mới.
 Lớp 2 (Khi Chat): Nếu vì lý do gì đó mà dữ liệu bị trống (User lỡ tay xóa hết), API sẽ tự động tìm về shop mẫu (mặc định là 70WPN) để lấy thông tin sản phẩm và FAQ, đảm bảo Chatbot không bao giờ bị mất trí nhớ.
 ------
+
+ở super admin quản lý apt key thì mình cần có thêm ô "API Key trả phí " là API xịn để người dùng mua gói "Gói Pro" thì super admin có phần báo cho super admin biết user đó nâng gói và super admin có nút nhấn qua pro thì mặc định khi người dùng gói pro này sẽ chuyển qua xài "API Key trả phí , đồng thời khi hết thời gian pro  thìhệ thống tự chuyển qua gói free với API key thường như cũ . Khi user là dùng gói pro thì user có icon pro cho chuyên nghiệp. 
+
+####  Các thay đổi quan trọng bạn cần biết:
+1. Quản lý API Key Pro (Siêu Admin):
+
+Trong tab 🔑 API Keys của Super Admin, mình đã thêm ô: 🌟 API Key Trả Phí.
+Bạn hãy nhập API Key "xịn" (đã nạp tiền) vào đây. Chỉ những người dùng đã nâng cấp lên PRO mới được dùng Key này.
+2. Nâng cấp PRO cho Shop:
+
+Tại danh sách cửa hàng, mình đã thêm cột Gói Dịch Vụ. Cửa hàng bình thường sẽ hiện chữ FREE.
+Có một biểu tượng chìa khóa vàng kế bên mỗi cửa hàng. Khi bạn nhấn vào đó, hệ thống sẽ hỏi số ngày muốn nâng cấp (VD: 30 ngày).
+Sau khi bấm OK, cửa hàng đó sẽ lập tức biến thành 🌟 PRO. Hệ thống sẽ tự động gán ngày hết hạn.
+3. Tự động hóa & Thông minh:
+
+Ưu tiên API: Khi một User thuộc shop PRO gửi tin nhắn, hệ thống sẽ ưu tiên dùng API Key Trả Phí của bạn để trả lời nhanh và ổn định nhất.
+Tự động xuống hạng: Khi hết thời gian PRO, hệ thống sẽ tự động chuyển shop đó về gói FREE và dùng lại API Key thường mà không cần bạn phải thao tác tay.
+Icon Pro Chuyên nghiệp: Trên Dashboard của User, nếu họ là PRO, sẽ hiện một "Huy hiệu 🌟 PRO" nhấp nháy màu vàng cực kì sang trọng, giúp họ cảm nhận được giá trị khi bỏ tiền nâng cấp.  #####
+
+--------

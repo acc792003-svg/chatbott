@@ -17,6 +17,7 @@ export default function ChatDemo() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
+  const [shopPlan, setShopPlan] = useState<'free' | 'pro'>('free'); // Thêm state cho gói
   const [sessionId] = useState(() => crypto.randomUUID()); // ID phiên chat duy nhất
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -24,7 +25,18 @@ export default function ChatDemo() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+    fetchShopStatus(); // Lấy thông gói cước
   }, [messages]);
+
+  const fetchShopStatus = async () => {
+     const { data: { session } } = await supabase.auth.getSession();
+     if (!session) return;
+     const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+     if (userData?.shop_id) {
+        const { data: shop } = await supabase.from('shops').select('plan').eq('id', userData.shop_id).single();
+        if (shop) setShopPlan(shop.plan as any);
+     }
+  };
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +126,12 @@ export default function ChatDemo() {
             <Bot size={24} />
           </div>
           <div>
-            <h3 className="font-black text-slate-900 text-sm tracking-tight">AI Chat Demo</h3>
+            <div className="flex items-center gap-2">
+               <h3 className="font-black text-slate-900 text-sm tracking-tight">AI Chat Demo</h3>
+               {shopPlan === 'pro' && (
+                  <span className="bg-amber-100 text-amber-600 text-[9px] font-black px-1.5 py-0.5 rounded border border-amber-200 shadow-sm animate-pulse">🌟 PRO</span>
+               )}
+            </div>
             <p className="text-[10px] text-green-500 font-bold flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span>
               Đang hoạt động

@@ -28,6 +28,7 @@ export default function SuperAdminPage() {
   // API Key Management
   const [apiKey1, setApiKey1] = useState('');
   const [apiKey2, setApiKey2] = useState('');
+  const [apiKeyPro, setApiKeyPro] = useState('');
   const [savingKeys, setSavingKeys] = useState(false);
 
   // Error Logs
@@ -96,6 +97,7 @@ export default function SuperAdminPage() {
       if (data.settings) {
         setApiKey1(data.settings.gemini_api_key_1 || '');
         setApiKey2(data.settings.gemini_api_key_2 || '');
+        setApiKeyPro(data.settings.gemini_api_key_pro || '');
         setTrialTemplateCode(data.settings.trial_template_shop_code || '70WPN');
       }
     } catch (e) {}
@@ -238,7 +240,16 @@ export default function SuperAdminPage() {
       const r2 = await res2.json();
       if (r2.error) throw new Error(r2.error);
 
-      alert('Đã lưu API Keys thành công! Chatbot sẽ sử dụng key này ngay lập tức.');
+      // Lưu key Pro
+      const resPro = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'gemini_api_key_pro', value: apiKeyPro, requesterId: currentUserId })
+      });
+      const rPro = await resPro.json();
+      if (rPro.error) throw new Error(rPro.error);
+
+      alert('Đã lưu tất cả API Keys thành công!');
     } catch (e: any) {
       alert('Lỗi lưu: ' + e.message);
     } finally {
@@ -261,6 +272,25 @@ export default function SuperAdminPage() {
       alert('Lỗi: ' + e.message);
     } finally {
       setSavingConfig(false);
+    }
+  };
+
+  const handleUpgradePro = async (shopId: string) => {
+    const days = prompt('Nhập số ngày muốn nâng cấp Pro:', '30');
+    if (!days) return;
+
+    try {
+      const res = await fetch('/api/admin/upgrade-shop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId, days, requesterId: currentUserId })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert('Nâng cấp PRO thành công!');
+      fetchShops();
+    } catch (e: any) {
+      alert('Lỗi: ' + e.message);
     }
   };
 
@@ -322,8 +352,9 @@ export default function SuperAdminPage() {
                     <th className="px-8 py-5">Cửa Hàng / Mã (Code)</th>
                     <th className="px-8 py-5">Số Điện Thoại</th>
                     <th className="px-8 py-5">Ngày Tạo</th>
+                    <th className="px-8 py-5">Gói Dịch Vụ</th>
                     <th className="px-8 py-5 text-center">Thời Hạn (Ngày)</th>
-                    <th className="px-8 py-5">Ngày Hết Hạn</th>
+                    <th className="px-8 py-5">Hết Hạn</th>
                     <th className="px-8 py-5 text-right">Quản lý</th>
                   </tr>
                 </thead>
@@ -364,6 +395,18 @@ export default function SuperAdminPage() {
                           {new Date(shop.created_at).toLocaleDateString('vi-VN')}
                         </span>
                       </td>
+                      <td className="px-8 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className={`text-[10px] font-black px-2 py-0.5 rounded-md w-fit uppercase ${shop.plan === 'pro' ? 'bg-amber-100 text-amber-600 border border-amber-200' : 'bg-slate-100 text-slate-500'}`}>
+                            {shop.plan === 'pro' ? '🌟 PRO' : 'FREE'}
+                          </span>
+                          {shop.plan === 'pro' && shop.plan_expiry_date && (
+                             <span className="text-[9px] text-amber-600 font-bold">
+                               Hết hạn: {new Date(shop.plan_expiry_date).toLocaleDateString('vi-VN')}
+                             </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-8 py-4 text-center">
                         {editingShop === shop.id ? (
                           <input type="number" value={editDays} onChange={e => setEditDays(Number(e.target.value))} className="w-20 text-center border-2 border-blue-400 rounded-lg p-1 text-sm font-bold outline-none" />
@@ -386,17 +429,22 @@ export default function SuperAdminPage() {
                         )}
                       </td>
                       <td className="px-8 py-4 text-right">
-                        {editingShop === shop.id ? (
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => handleSaveEdit(shop)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"><Save size={16} /></button>
-                            <button onClick={() => setEditingShop(null)} className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"><X size={16} /></button>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end gap-2">
-                            <button onClick={() => handleStartEdit(shop)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors bg-white rounded-lg border shadow-sm"><Edit size={16} /></button>
-                            <button onClick={() => handleDeleteShop(shop.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors bg-white rounded-lg border shadow-sm"><Trash2 size={16} /></button>
-                          </div>
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {shop.plan !== 'pro' && (
+                            <button onClick={() => handleUpgradePro(shop.id)} className="p-2 text-amber-600 hover:bg-amber-50 transition-colors bg-white rounded-lg border border-amber-200 shadow-sm" title="Nâng cấp PRO"><Key size={16}/></button>
+                          )}
+                          {editingShop === shop.id ? (
+                            <>
+                              <button onClick={() => handleSaveEdit(shop)} className="p-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200"><Save size={16} /></button>
+                              <button onClick={() => setEditingShop(null)} className="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200"><X size={16} /></button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => handleStartEdit(shop)} className="p-2 text-slate-400 hover:text-blue-600 transition-colors bg-white rounded-lg border shadow-sm"><Edit size={16} /></button>
+                              <button onClick={() => handleDeleteShop(shop.id)} className="p-2 text-slate-400 hover:text-red-600 transition-colors bg-white rounded-lg border shadow-sm"><Trash2 size={16} /></button>
+                            </>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -444,6 +492,18 @@ export default function SuperAdminPage() {
                 onChange={e => setApiKey2(e.target.value)}
                 placeholder="AIzaSy... (không bắt buộc)"
                 className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-sm focus:border-blue-500 outline-none transition-all"
+              />
+            </div>
+            <div className="border-t pt-5 mt-5">
+              <label className="block text-xs font-bold uppercase text-amber-600 mb-2 font-black flex items-center gap-2">
+                🌟 API Key Trả Phí (Dành cho gói Pro)
+              </label>
+              <input 
+                type="text" 
+                value={apiKeyPro} 
+                onChange={e => setApiKeyPro(e.target.value)}
+                placeholder="Nhập khóa xịn cho khách trả phí..."
+                className="w-full bg-amber-50/50 border-2 border-amber-200 rounded-xl p-4 font-mono text-sm focus:border-amber-500 outline-none transition-all shadow-sm"
               />
             </div>
 
