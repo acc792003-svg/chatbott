@@ -470,12 +470,12 @@ export default function SuperAdminPage() {
                       <td className="px-8 py-4 text-center">
                         {editingShop === shop.id ? (
                           <div className="flex gap-2 justify-center">
-                            <button onClick={() => setEditGender('male')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'male' ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`} title="Nam">🤖♂️</button>
-                            <button onClick={() => setEditGender('female')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'female' ? 'border-pink-500 bg-pink-50' : 'border-transparent'}`} title="Nữ">🤖♀️</button>
+                            <button onClick={() => setEditGender('male')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'male' ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`} title="Nam">👦</button>
+                            <button onClick={() => setEditGender('female')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'female' ? 'border-pink-500 bg-pink-50' : 'border-transparent'}`} title="Nữ">👧</button>
                           </div>
                         ) : (
                           <span className="text-xl">
-                            {shop.bot_gender === 'female' ? '🤖♀️' : '🤖♂️'}
+                            {shop.bot_gender === 'female' ? '👧' : '👦'}
                           </span>
                         )}
                       </td>
