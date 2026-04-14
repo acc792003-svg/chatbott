@@ -38,18 +38,19 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
 "${message}"
 `;
 
-    const listResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const listData = await listResponse.json();
-    let candidates = listData.models?.filter((m: any) => m.supportedGenerationMethods.includes('generateContent')).map((m: any) => m.name) || [];
-    if (candidates.length === 0) candidates = ['models/gemini-2.5-flash', 'models/gemini-pro'];
-
-    candidates.sort((a: string) => a.includes('2.5-flash') ? -1 : 1);
+    const candidates = [
+      'models/gemini-2.5-flash',
+      'models/gemini-1.5-flash-8b',
+      'models/gemini-1.5-pro',
+      'models/gemini-1.0-pro',
+      'models/gemini-pro'
+    ];
 
     let finalResponse = null;
     let lastError = '';
 
     for (const fullModelName of candidates) {
-       for (const version of ['v1', 'v1beta']) {
+       for (const version of ['v1beta', 'v1']) {
           try {
             const apiURL = `https://generativelanguage.googleapis.com/${version}/${fullModelName}:generateContent?key=${apiKey}`;
             const response = await fetch(apiURL, {
@@ -58,7 +59,7 @@ CÂU HỎI TỪ NGƯỜI BẠN (KHÁCH HÀNG):
               body: JSON.stringify({ 
                 contents: [{ parts: [{ text: systemPrompt }] }],
                 generationConfig: { 
-                  temperature: 0.8, // Tăng nhẹ để AI có ngôn ngữ tự nhiên, linh hoạt hơn như con người
+                  temperature: 0.8,
                   maxOutputTokens: 800
                 }
               })
