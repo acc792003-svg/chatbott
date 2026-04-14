@@ -29,7 +29,20 @@ export default function RootLayout({
       lang="vi"
       className="h-full antialiased scroll-smooth"
     >
-      <body style={{ fontFamily: 'Arial, Helvetica, sans-serif' }} className="min-h-full flex flex-col">{children}</body>
+      <body style={{ fontFamily: 'Arial, Helvetica, sans-serif' }} className="min-h-full flex flex-col">
+        {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
+      </body>
     </html>
   );
 }
