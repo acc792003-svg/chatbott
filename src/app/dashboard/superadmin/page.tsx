@@ -42,6 +42,8 @@ export default function SuperAdminPage() {
 
   // Trial Template Configuration
   const [trialTemplateCode, setTrialTemplateCode] = useState('');
+  const [fbVerifyToken, setFbVerifyToken] = useState('');
+  const [saveLoading, setSaveLoading] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
 
   const router = useRouter();
@@ -101,8 +103,9 @@ export default function SuperAdminPage() {
         setApiKey2(data.settings.gemini_api_key_2 || '');
         setApiKeyPro(data.settings.gemini_api_key_pro || '');
         setTrialTemplateCode(data.settings.trial_template_shop_code || '70WPN');
+        setFbVerifyToken(data.settings.fb_verify_token || 'my_secret_token_123');
       }
-    } catch (e) {}
+    } catch (err) {}
   };
 
   const fetchErrorLogs = async () => {
@@ -269,16 +272,21 @@ export default function SuperAdminPage() {
         body: JSON.stringify({ key: 'gemini_api_key_2', value: apiKey2, requesterId: currentUserId })
       });
       const r2 = await res2.json();
-      if (r2.error) throw new Error(r2.error);
-
-      // Lưu key Pro
-      const resPro = await fetch('/api/admin/settings', {
+      const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'gemini_api_key_pro', value: apiKeyPro, requesterId: currentUserId })
+        body: JSON.stringify({
+          keys: [
+            { key: 'gemini_api_key_1', value: apiKey1 },
+            { key: 'gemini_api_key_2', value: apiKey2 },
+            { key: 'gemini_api_key_pro', value: apiKeyPro },
+            { key: 'fb_verify_token', value: fbVerifyToken }
+          ],
+          requesterId: currentUserId
+        })
       });
-      const rPro = await resPro.json();
-      if (rPro.error) throw new Error(rPro.error);
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
       alert('Đã lưu tất cả API Keys thành công!');
     } catch (e: any) {
@@ -594,8 +602,21 @@ export default function SuperAdminPage() {
                 value={apiKeyPro} 
                 onChange={e => setApiKeyPro(e.target.value)}
                 placeholder="Nhập khóa xịn cho khách trả phí..."
-                className="w-full bg-amber-50/50 border-2 border-amber-200 rounded-xl p-4 font-mono text-sm focus:border-amber-500 outline-none transition-all shadow-sm"
               />
+            </div>
+
+            <div className="border-t pt-5 mt-5">
+              <label className="block text-xs font-bold uppercase text-blue-600 mb-2 font-black flex items-center gap-2">
+                🔗 Facebook Webhook Verify Token
+              </label>
+              <input 
+                type="text" 
+                value={fbVerifyToken} 
+                onChange={e => setFbVerifyToken(e.target.value)}
+                placeholder="Nhập mã xác thực (Ví dụ: my_secret_token_123)"
+                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-sm focus:border-blue-500 outline-none transition-all"
+              />
+              <p className="text-[10px] text-slate-400 mt-1 italic">Dùng khi cấu hình Webhook trên Meta for Developers.</p>
             </div>
 
             <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-700 font-medium leading-relaxed">

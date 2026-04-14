@@ -6,7 +6,15 @@ export async function GET(req: Request) {
   const mode = searchParams.get('hub.mode');
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
-  const VERIFY_TOKEN = 'my_secret_token_123';
+
+  // Lấy Verify Token từ database (bảng system_settings)
+  const { data: st } = await supabaseAdmin
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'fb_verify_token')
+    .single();
+    
+  const VERIFY_TOKEN = st?.value || 'my_secret_token_123';
 
   if (mode === 'subscribe' && token === VERIFY_TOKEN) {
     return new Response(challenge, { status: 200 });

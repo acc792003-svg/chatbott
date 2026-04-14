@@ -4,7 +4,7 @@ import { callGeminiWithFallback } from '@/lib/gemini';
 
 export async function POST(req: Request) {
   try {
-    const { message, code } = await req.json();
+    const { message, code, history } = await req.json();
 
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
@@ -47,12 +47,20 @@ QUY TẮC:
 - Xưng hô linh hoạt: "Dạ", "Em", "Mình", "Bạn".
 - Tuyệt đối không liệt kê máy móc 1, 2, 3 trừ khi khách yêu cầu.
 - Luôn giữ thái độ tích cực, truyền năng lượng tốt.
-
-CÂU HỎI TỪ KHÁCH HÀNG:
-"${message}"
 `;
 
-    const contents = [{ role: 'user', parts: [{ text: systemPrompt }] }];
+    // Chuyển đổi lịch sử chat từ frontend sang định dạng của Gemini
+    const historyContents = (history || []).map((msg: any) => ({
+      role: msg.role === 'user' ? 'user' : 'model',
+      parts: [{ text: msg.content }]
+    }));
+
+    // Tạo danh sách tin nhắn gửi cho AI (System Prompt + History + Current Message)
+    const contents = [
+      { role: 'user', parts: [{ text: systemPrompt }] },
+      ...historyContents,
+      { role: 'user', parts: [{ text: message }] }
+    ];
 
     const finalResponse = await callGeminiWithFallback(contents, {
       temperature: 0.8,
@@ -69,10 +77,10 @@ CÂU HỎI TỪ KHÁCH HÀNG:
         usage_tokens: 0
       });
 
-      // Tự động xóa tin nhắn cũ hơn 5 ngày để nhẹ DB
-      const fiveDaysAgo = new Date();
-      fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-      await supabaseAdmin.from('messages').delete().lt('created_at', fiveDaysAgo.toISOString());
+      // Tự động xóa tin nhắn cũ hơn 10 ngày để nhẹ DB
+      const tenDaysAgo = new Date();
+      tenDaysAgo.setDate(tenDaysAgo.getDate() - 10);
+      await supabaseAdmin.from('messages').delete().lt('created_at', tenDaysAgo.toISOString());
     }
 
     return NextResponse.json({ response: finalResponse, shop_name: shopName });

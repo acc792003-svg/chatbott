@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   try {
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
     
-    const { key, value, requesterId } = await req.json();
+    const { key, value, keys, requesterId } = await req.json();
 
     // Kiểm tra quyền Super Admin
     const { data: requester } = await supabaseAdmin.from('users').select('role').eq('id', requesterId).single();
@@ -29,13 +29,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Upsert: Tạo mới hoặc cập nhật nếu key đã tồn tại
-    const { error } = await supabaseAdmin.from('system_settings').upsert(
-      { key, value, updated_at: new Date().toISOString() },
-      { onConflict: 'key' }
-    );
+    if (keys && Array.isArray(keys)) {
+      // Cập nhật hàng loạt
+      const updates = keys.map((k: any) => ({
+        key: k.key,
+        value: k.value,
+        updated_at: new Date().toISOString()
+      }));
+      
+      const { error } = await supabaseAdmin.from('system_settings').upsert(updates, { onConflict: 'key' });
+      if (error) throw error;
+    } else if (key) {
+      // Cập nhật một key đơn lẻ
+      const { error } = await supabaseAdmin.from('system_settings').upsert(
+        { key, value, updated_at: new Date().toISOString() },
+        { onConflict: 'key' }
+      );
+      if (error) throw error;
+    }
 
-    if (error) throw error;
     return NextResponse.json({ success: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
