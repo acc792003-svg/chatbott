@@ -2,6 +2,7 @@ export type Shop = {
   id: string;
   name: string;
   code: string;
+  slug?: string;
   phone_number?: string;
   subscription_days: number;
   expiry_date: string;

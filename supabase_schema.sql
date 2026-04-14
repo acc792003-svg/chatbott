@@ -2,6 +2,7 @@ create table public.shops (
   id uuid default gen_random_uuid() primary key,
   name text not null,
   code text unique,
+  slug text unique, -- For custom deeplinks (e.g., qlady)
   phone_number text,
   subscription_days integer default 0,
   expiry_date timestamp with time zone,

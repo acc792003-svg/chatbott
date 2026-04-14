@@ -17,6 +17,7 @@ export default function SuperAdminPage() {
   const [editingShop, setEditingShop] = useState<string | null>(null);
   const [editDays, setEditDays] = useState(0);
   const [editPhone, setEditPhone] = useState('');
+  const [editSlug, setEditSlug] = useState('');
   
   // User Manager Modal
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -157,6 +158,7 @@ export default function SuperAdminPage() {
     setEditingShop(shop.id);
     setEditDays(shop.subscription_days || 0);
     setEditPhone(shop.phone_number || '');
+    setEditSlug(shop.slug || '');
   };
 
   const handleSaveEdit = async (shop: Shop) => {
@@ -166,6 +168,7 @@ export default function SuperAdminPage() {
     const { error } = await supabase.from('shops').update({
       subscription_days: editDays,
       phone_number: editPhone,
+      slug: editSlug.toLowerCase().trim() || null,
       expiry_date: newExpiry.toISOString()
     }).eq('id', shop.id);
 
@@ -394,6 +397,7 @@ export default function SuperAdminPage() {
                   <tr className="bg-slate-50/50 text-xs font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
                     <th className="px-8 py-5">Cửa Hàng / Mã (Code)</th>
                     <th className="px-8 py-5">Số Điện Thoại</th>
+                    <th className="px-8 py-5">Deeplink (Slug)</th>
                     <th className="px-8 py-5">Ngày Tạo</th>
                     <th className="px-8 py-5">Gói Dịch Vụ</th>
                     <th className="px-8 py-5 text-center">Thời Hạn (Ngày)</th>
@@ -421,6 +425,32 @@ export default function SuperAdminPage() {
                                  <button onClick={() => openUserModal(u, shop.name)} className="text-blue-600 font-bold bg-blue-100 hover:bg-blue-200 px-2 py-0.5 rounded transition-all">Quản lý & Chat</button>
                               </div>
                             ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-8 py-4">
+                        {editingShop === shop.id ? (
+                          <div className="flex flex-col gap-1">
+                            <input type="text" value={editSlug} onChange={e => setEditSlug(e.target.value)} placeholder="VD: qlady" className="w-32 border-2 border-indigo-400 rounded-lg p-1 text-sm font-bold outline-none" />
+                            <span className="text-[10px] text-slate-400">Không dấu, không cách</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-1">
+                            <span className="text-sm font-black text-indigo-600">
+                              {shop.slug ? `/${shop.slug}` : <span className="text-slate-300 font-normal italic">Chưa thiết lập</span>}
+                            </span>
+                            {shop.slug && (
+                              <button 
+                                onClick={() => {
+                                  const url = `${window.location.origin}/s/${shop.slug}`;
+                                  navigator.clipboard.writeText(url);
+                                  alert('Đã copy: ' + url);
+                                }}
+                                className="text-[10px] bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded border border-indigo-100 w-fit hover:bg-indigo-100"
+                              >
+                                Copy Link
+                              </button>
+                            )}
                           </div>
                         )}
                       </td>
