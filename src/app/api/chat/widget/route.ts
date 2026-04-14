@@ -9,7 +9,24 @@ export async function POST(req: Request) {
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
-    const { data: config } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+    const { data: configData } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+    
+    let config = configData;
+
+    // Nếu shop không có cấu hình (ví dụ shop dùng thử mới tạo), lấy mặc định từ shop mẫu
+    if (!config || (!config.product_info && !config.faq)) {
+      // Lấy mã shop mẫu từ cài đặt (mặc định 70WPN)
+      const { data: st } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
+      const templateCode = st?.value || '70WPN';
+
+      const { data: sourceShop } = await supabaseAdmin.from('shops').select('id').eq('code', templateCode).single();
+      if (sourceShop) {
+        const { data: sourceConfig } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', sourceShop.id).single();
+        if (sourceConfig) {
+          config = sourceConfig;
+        }
+      }
+    }
     
     const shopName = config?.shop_name || shop?.name || 'Shop';
     const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
