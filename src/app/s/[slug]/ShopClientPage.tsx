@@ -81,9 +81,13 @@ export default function ShopClientPage({ params }: { params: Promise<{ slug: str
            {/* Robot Button */}
            <button 
              onClick={() => setIsOpen(!isOpen)}
-             className={`w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-[1.2rem] shadow-2xl flex items-center justify-center text-white border-2 border-white/20 active:scale-95 transition-all duration-300 ${isOpen ? 'ring-4 ring-amber-400/50' : ''}`}
+             className={`w-14 h-14 bg-white rounded-[1.2rem] shadow-2xl flex items-center justify-center overflow-hidden border-2 border-slate-100 active:scale-95 transition-all duration-300 ${isOpen ? 'ring-4 ring-amber-400/50' : ''}`}
            >
-             <Bot size={28} />
+             <img 
+               src={shop?.bot_gender === 'female' ? '/robot_female.png' : '/robot_male.png'} 
+               alt="Robot"
+               className="w-full h-full object-cover p-1"
+             />
            </button>
         </div>
       </motion.div>

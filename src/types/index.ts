@@ -3,6 +3,7 @@ export type Shop = {
   name: string;
   code: string;
   slug?: string;
+  bot_gender?: 'male' | 'female';
   phone_number?: string;
   subscription_days: number;
   expiry_date: string;

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { supabase } from '@/lib/supabase';
 
 export async function GET(
   request: Request,
@@ -6,6 +7,15 @@ export async function GET(
 ) {
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
+
+  // Lấy giới tính robot từ database
+  const { data: shop } = await supabase
+    .from('shops')
+    .select('bot_gender')
+    .eq('slug', slug)
+    .single();
+
+  const iconSrc = shop?.bot_gender === 'female' ? '/robot_female.png' : '/robot_male.png';
 
   const manifest = {
     name: `Chatbot ${slug}`,
@@ -17,12 +27,12 @@ export async function GET(
     theme_color: "#6366f1",
     icons: [
       {
-        "src": "/icon.png",
+        "src": iconSrc,
         "sizes": "512x512",
         "type": "image/png"
       },
       {
-        "src": "/icon.png",
+        "src": iconSrc,
         "sizes": "192x192",
         "type": "image/png"
       }

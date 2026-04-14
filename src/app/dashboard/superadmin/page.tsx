@@ -18,6 +18,7 @@ export default function SuperAdminPage() {
   const [editDays, setEditDays] = useState(0);
   const [editPhone, setEditPhone] = useState('');
   const [editSlug, setEditSlug] = useState('');
+  const [editGender, setEditGender] = useState<'male' | 'female'>('male');
   
   // User Manager Modal
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -159,6 +160,7 @@ export default function SuperAdminPage() {
     setEditDays(shop.subscription_days || 0);
     setEditPhone(shop.phone_number || '');
     setEditSlug(shop.slug || '');
+    setEditGender(shop.bot_gender || 'male');
   };
 
   const handleSaveEdit = async (shop: Shop) => {
@@ -169,6 +171,7 @@ export default function SuperAdminPage() {
       subscription_days: editDays,
       phone_number: editPhone,
       slug: editSlug.toLowerCase().trim() || null,
+      bot_gender: editGender,
       expiry_date: newExpiry.toISOString()
     }).eq('id', shop.id);
 
@@ -398,6 +401,7 @@ export default function SuperAdminPage() {
                     <th className="px-8 py-5">Cửa Hàng / Mã (Code)</th>
                     <th className="px-8 py-5">Số Điện Thoại</th>
                     <th className="px-8 py-5">Deeplink (Slug)</th>
+                    <th className="px-8 py-5 text-center">Icon Gái/Trai</th>
                     <th className="px-8 py-5">Ngày Tạo</th>
                     <th className="px-8 py-5">Gói Dịch Vụ</th>
                     <th className="px-8 py-5 text-center">Thời Hạn (Ngày)</th>
@@ -461,6 +465,18 @@ export default function SuperAdminPage() {
                               </button>
                             )}
                           </div>
+                        )}
+                      </td>
+                      <td className="px-8 py-4 text-center">
+                        {editingShop === shop.id ? (
+                          <div className="flex gap-2 justify-center">
+                            <button onClick={() => setEditGender('male')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'male' ? 'border-blue-500 bg-blue-50' : 'border-transparent'}`} title="Nam">🤖♂️</button>
+                            <button onClick={() => setEditGender('female')} className={`p-1 rounded-md border-2 transition-all ${editGender === 'female' ? 'border-pink-500 bg-pink-50' : 'border-transparent'}`} title="Nữ">🤖♀️</button>
+                          </div>
+                        ) : (
+                          <span className="text-xl">
+                            {shop.bot_gender === 'female' ? '🤖♀️' : '🤖♂️'}
+                          </span>
                         )}
                       </td>
                       <td className="px-8 py-4">
