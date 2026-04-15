@@ -72,24 +72,33 @@ export default function SuperAdminPage() {
   useEffect(() => { 
     checkUser();
     
-    // THIẾT LẬP REALTIME CHO NHẬT KÝ LỖI
+    // THIẾT LẬP REALTIME CHO NHẬT KÝ LỖI (Radar 24/7)
     const channel = supabase
-      .channel('schema-db-changes')
+      .channel('admin-radar')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'error_logs' },
         async (payload: any) => {
-          fetchErrorLogs();
+          console.log('Phát hiện lỗi mới:', payload.new);
           
+          // 1. Cập nhật bảng nhật ký ngay lập tức
+          fetchErrorLogs();
+
+          // 2. Phân loại để hiện thông báo Toast phù hợp
           if (payload.new.source === 'API_CHAT_WIDGET') {
-            // Lấy thêm thông tin shop từ ID để hiện lên Toast
             const { data: shop } = await supabase.from('shops').select('name, code').eq('id', payload.new.shop_id).single();
-            const shopIdentify = shop ? `${shop.name} (#${shop.code})` : 'Một cửa hàng';
-            addToast(`🚨 LỖI CHATBOT: ${shopIdentify}`, 'error');
+            const shopName = shop ? `${shop.name} (#${shop.code})` : 'Không xác định';
+            addToast(`🚨 LỖI CHATBOT: ${shopName}`, 'error');
+          } else if (payload.new.source === 'API_KNOWLEDGE_PROCESS') {
+            addToast(`⚠️ LỖI XƯỞNG AI: Kiểm tra ngay nhật ký!`, 'error');
+          } else {
+            addToast(`❗ HỆ THỐNG PHÁT SINH LỖI MỚI`, 'error');
           }
         }
       )
-      .subscribe();
+      .subscribe((status: any) => {
+        console.log('Trạng thái kết nối Radar:', status);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
@@ -492,6 +501,12 @@ export default function SuperAdminPage() {
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {/* CHAT MONITOR (NEW) */}
+                                                <div className="col-span-1 md:col-span-3 border-t border-white/5 pt-8 mt-4">
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><Layers size={12}/> Giám sát hội thoại (50 tin gần nhất)</p>
+                                                    <ChatHistoryMonitor shopId={shop.id} />
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -635,6 +650,47 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                     </div>
                 ))}
             </div>
+        </div>
+    );
+}
+
+function ChatHistoryMonitor({ shopId }: { shopId: string }) {
+    const [messages, setMessages] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchHistory = async () => {
+            const { data } = await supabase
+                .from('messages')
+                .select('*')
+                .eq('shop_id', shopId)
+                .order('created_at', { ascending: false })
+                .limit(50);
+            if (data) setMessages(data);
+            setLoading(false);
+        };
+        fetchHistory();
+    }, [shopId]);
+
+    if (loading) return <div className="text-[10px] font-bold text-slate-500 animate-pulse">ĐANG TRUY XUẤT DỮ LIỆU...</div>;
+    if (messages.length === 0) return <div className="text-[10px] font-bold text-slate-600 italic">Chưa phát sinh hội thoại nào.</div>;
+
+    return (
+        <div className="grid grid-cols-1 gap-2 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
+            {messages.map((m) => (
+                <div key={m.id} className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all group">
+                    <div className="flex justify-between items-start mb-2 border-b border-white/5 pb-2">
+                        <span className="text-[9px] font-black text-slate-500 uppercase flex items-center gap-1"><User size={10}/> Khách hàng</span>
+                        <span className="text-[9px] font-bold text-slate-600">{new Date(m.created_at).toLocaleString('vi-VN')}</span>
+                    </div>
+                    <p className="text-xs font-medium text-white mb-4 leading-relaxed italic">"{m.user_message}"</p>
+                    
+                    <div className="flex justify-between items-start mb-2 border-b border-white/5 pb-2">
+                        <span className="text-[9px] font-black text-indigo-400 uppercase flex items-center gap-1"><Bot size={10}/> Phản hồi từ AI</span>
+                    </div>
+                    <p className="text-xs font-bold text-indigo-100 leading-relaxed">{m.ai_response}</p>
+                </div>
+            ))}
         </div>
     );
 }
