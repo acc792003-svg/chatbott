@@ -100,10 +100,10 @@ export default function SuperAdminPage() {
   const fetchApiKeys = async () => {
     const { data } = await supabase.from('system_settings').select('*');
     if (data) {
-      setApiKey1(data.find(d => d.key === 'gemini_api_key_1')?.value || '');
-      setApiKey2(data.find(d => d.key === 'gemini_api_key_2')?.value || '');
-      setApiKeyPro(data.find(d => d.key === 'gemini_api_key_pro')?.value || '');
-      setFbVerifyToken(data.find(d => d.key === 'fb_verify_token')?.value || '');
+      setApiKey1(data.find((d: any) => d.key === 'gemini_api_key_1')?.value || '');
+      setApiKey2(data.find((d: any) => d.key === 'gemini_api_key_2')?.value || '');
+      setApiKeyPro(data.find((d: any) => d.key === 'gemini_api_key_pro')?.value || '');
+      setFbVerifyToken(data.find((d: any) => d.key === 'fb_verify_token')?.value || '');
     }
   };
 
