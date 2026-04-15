@@ -170,11 +170,22 @@ export async function callGeminiWithFallback(
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-           // Nếu là Key Pro bị quá tải, ghi log để Super Admin biết gói pro đang bị nghẽn
-           if (keyObj.name === 'Key PRO') {
-              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải (429/503). Hệ thống đang tự chuyển về Key Free cho khách.`, 'gemini');
+           // THỬ LẠI SAU 2 GIÂY TRƯỚC KHI ĐỔI KEY
+           await delay(2000);
+           const retryResponse = await fetch(apiURL, {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({ contents, generationConfig: config })
+           });
+           const retryData = await retryResponse.json();
+           if (retryResponse.ok && retryData.candidates?.[0]?.content?.parts?.[0]?.text) {
+             return retryData.candidates[0].content.parts[0].text;
            }
-           break; // Chuyển sang key tiếp theo
+
+           if (keyObj.name === 'Key PRO') {
+              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải (429/503).`, 'gemini');
+           }
+           break; 
         }
 
         // Các lỗi khác (404, 400, ...) → Log lại và thử model tiếp theo trong cùng key
@@ -189,5 +200,5 @@ export async function callGeminiWithFallback(
     }
   }
 
-  throw new Error('Trợ lý AI đang bận xử lý, bạn vui lòng đợi 1-2 phút rồi thử lại nhé! 😊');
+  throw new Error(`AI đang bận (Quá tải). Vui lòng thử lại sau 1 phút hoặc nạp thêm API Key mới vào hệ thống bạn nhé! (Lỗi: ${lastError})`);
 }

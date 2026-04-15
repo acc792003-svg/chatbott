@@ -107,7 +107,8 @@ export default function SuperAdminPage() {
   };
 
   const fetchErrorLogs = async () => {
-    const { data } = await supabase.from('error_logs').select('*').order('created_at', { ascending: false }).limit(20);
+    // Tăng giới hạn và bỏ qua các bộ lọc phức tạp để Admin thấy hết lỗi
+    const { data } = await supabase.from('error_logs').select('*').order('created_at', { ascending: false }).limit(50);
     if (data) setErrorLogs(data);
   };
 
@@ -325,12 +326,20 @@ export default function SuperAdminPage() {
                         <tr className="bg-slate-50/50 border-b border-slate-100">
                             <th className="p-4 text-[10px] font-black text-slate-400 uppercase pl-6">Thông tin Shop & Tài khoản</th>
                             <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-center w-28">Gói Dùng</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-36">Ngày hết hạn</th>
+                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-36">Thời hạn dùng</th>
+                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-32">Trạng thái</th>
                             <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-right w-24 pr-8">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                        {filteredShops.map((shop) => (
+                        {filteredShops.map((shop) => {
+                            const expiryDate = shop.plan_expiry_date ? new Date(shop.plan_expiry_date) : null;
+                            const today = new Date();
+                            const diffTime = expiryDate ? expiryDate.getTime() - today.getTime() : 0;
+                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                            const isExpired = expiryDate && diffDays <= 0;
+
+                            return (
                             <Fragment key={shop.id}>
                                 <tr className="hover:bg-slate-50/50 transition-all border-b border-transparent">
                                     <td className="p-4 pl-6">
@@ -357,6 +366,17 @@ export default function SuperAdminPage() {
                                     </td>
                                     <td className="p-4">
                                         <input type="date" className="bg-slate-50 border border-slate-100 rounded-lg p-1.5 text-[10px] font-black text-slate-600 outline-none focus:border-indigo-500" value={shop.plan_expiry_date?.split('T')[0] || ''} onChange={e => handleUpdateExpiry(shop.id, e.target.value)} />
+                                    </td>
+                                    <td className="p-4">
+                                        {!expiryDate ? (
+                                            <span className="text-[10px] font-bold text-slate-300">Vô thời hạn</span>
+                                        ) : isExpired ? (
+                                            <span className="text-[10px] font-black text-red-500 uppercase">Đã hết hạn 🛑</span>
+                                        ) : (
+                                            <span className={cn("text-[10px] font-black uppercase", diffDays <= 7 ? "text-amber-500" : "text-emerald-500")}>
+                                                Còn {diffDays} ngày {diffDays <= 7 && '⚠️'}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-4 text-right pr-8">
                                         <button onClick={() => handleDeleteShop(shop.id, shop.name)} className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-md transition-all">
