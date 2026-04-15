@@ -265,6 +265,18 @@ export default function SuperAdminPage() {
     } catch (e: any) { alert(e.message); }
   };
 
+  const handleSaveConfig = async () => {
+    setSavingConfig(true);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'trial_template_shop_code', value: trialTemplateCode, requesterId: currentUserId })
+      });
+      alert('Đã lưu cấu hình Trial thành công!');
+    } catch (e: any) { alert('Lỗi: ' + e.message); } finally { setSavingConfig(false); }
+  };
+
   const handleProcessKnowledge = async () => {
     if (!rawContent.trim()) return alert('Vui lòng nhập nội dung thô!');
     setIsProcessing(true);
@@ -488,7 +500,7 @@ export default function SuperAdminPage() {
                     <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><BrainCircuit size={40}/></div>
                     <div>
                         <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Xưởng Tri Thức AI</h2>
-                        <p className="text-sm font-bold text-slate-400">Chọn ngành hàng -> Luyện AI -> Xuất xưởng.</p>
+                        <p className="text-sm font-bold text-slate-400">Chọn ngành hàng {"->"} Luyện AI {"->"} Xuất xưởng.</p>
                     </div>
                 </div>
 
