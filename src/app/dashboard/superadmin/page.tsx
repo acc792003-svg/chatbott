@@ -78,7 +78,7 @@ export default function SuperAdminPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'error_logs' },
-        (payload) => {
+        (payload: any) => {
           // Khi có lỗi mới, tự động tải lại danh sách logs
           fetchErrorLogs();
           // Đồng thời hiện thông báo "Toast" nếu đó là lỗi từ Widget
