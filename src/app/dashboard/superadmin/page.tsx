@@ -20,7 +20,12 @@ import {
   LogIn,
   Edit2,
   Calendar,
-  Layers
+  Layers,
+  Eye,
+  EyeOff,
+  User,
+  Lock,
+  Image as ImageIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +36,7 @@ type Shop = {
   plan: 'free' | 'pro';
   plan_expiry_date: string | null;
   created_at: string;
+  user_id?: string; // Cần dùng để đổi mật khẩu
 };
 
 type ErrorLog = {
@@ -65,11 +71,14 @@ export default function SuperAdminPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'shops' | 'apikeys' | 'errors' | 'config' | 'knowledge'>('shops');
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [showKey1, setShowKey1] = useState(false);
+  const [showKey2, setShowKey2] = useState(false);
+  const [showKeyPro, setShowKeyPro] = useState(false);
 
   // Shop Management States
   const [newShopName, setNewShopName] = useState('');
   const [addingShop, setAddingShop] = useState(false);
-  const [editingShop, setEditingShop] = useState<Shop | null>(null);
+  const [selectedShopAction, setSelectedShopAction] = useState<Shop | null>(null);
 
   // Knowledge Workshop States
   const [rawContent, setRawContent] = useState('');
@@ -189,23 +198,34 @@ export default function SuperAdminPage() {
     }
   };
 
-  const handleUpdateShopName = async () => {
-    if (!editingShop || !newShopName.trim()) return;
+  const handleUpdateExpiry = async (shopId: string, newDate: string) => {
     try {
-      await supabase.from('shops').update({ name: newShopName }).eq('id', editingShop.id);
-      setEditingShop(null);
-      setNewShopName('');
+      await supabase.from('shops').update({ plan_expiry_date: newDate || null }).eq('id', shopId);
       fetchShops();
     } catch (e) {}
   };
 
-  const handleDeleteShop = async (id: string, name: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa shop "${name}"? Thao tác này sẽ xóa toàn bộ tin nhắn và cấu hình.`)) return;
+  const handleUpdateIcon = async (shopId: string, iconUrl: string) => {
     try {
-      const { error } = await supabase.from('shops').delete().eq('id', id);
-      if (error) throw error;
-      fetchShops();
-    } catch (e: any) { alert('Lỗi khi xóa: ' + e.message); }
+      // Cập nhật cấu hình chatbot (icon_url)
+      await supabase.from('chatbot_configs').update({ head_icon: iconUrl }).eq('shop_id', shopId);
+      alert('Đã cập nhật Icon thành công!');
+    } catch (e) {}
+  };
+
+  const handleResetPassword = async (shopId: string) => {
+    const newPass = prompt('Nhập mật khẩu mới cho Shop này:');
+    if (!newPass) return;
+    try {
+      const res = await fetch('/api/admin/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shopId, newPassword: newPass, requesterId: currentUserId })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert('Đã đổi mật khẩu thành công!');
+    } catch (e: any) { alert(e.message); }
   };
 
   const togglePlan = async (id: string, currentPlan: string) => {
@@ -221,7 +241,15 @@ export default function SuperAdminPage() {
     window.open(`/dashboard?code=${code}`, '_blank');
   };
 
-  // ==================== SETTINGS & KNOWLEDGE ====================
+  const handleDeleteShop = async (id: string, name: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa shop "${name}"?`)) return;
+    try {
+      await supabase.from('shops').delete().eq('id', id);
+      fetchShops();
+    } catch (e: any) { alert(e.message); }
+  };
+
+  // ==================== KNOWLEDGE & SETTINGS ====================
   const handleSaveApiKeys = async () => {
     try {
       const updates = [
@@ -231,26 +259,10 @@ export default function SuperAdminPage() {
         { key: 'fb_verify_token', value: fbVerifyToken }
       ];
       for (const item of updates) {
-        await fetch('/api/admin/settings', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ key: item.key, value: item.value, requesterId: currentUserId })
-        });
+        await fetch('/api/admin/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key: item.key, value: item.value, requesterId: currentUserId }) });
       }
-      alert('Đã lưu các cài đặt thành công!');
-    } catch (e: any) { alert('Lỗi: ' + e.message); }
-  };
-
-  const handleSaveConfig = async () => {
-    setSavingConfig(true);
-    try {
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'trial_template_shop_code', value: trialTemplateCode, requesterId: currentUserId })
-      });
-      alert('Đã lưu cấu hình Trial thành công!');
-    } catch (e: any) { alert('Lỗi: ' + e.message); } finally { setSavingConfig(false); }
+      alert('Đã lưu thành công!');
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleProcessKnowledge = async () => {
@@ -258,328 +270,235 @@ export default function SuperAdminPage() {
     setIsProcessing(true);
     setProcessedResult(null);
     try {
-      const res = await fetch('/api/admin/knowledge/process', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: rawContent, voice: selectedVoice, requesterId: currentUserId })
-      });
+      const res = await fetch('/api/admin/knowledge/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: rawContent, voice: selectedVoice, requesterId: currentUserId }) });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
       setProcessedResult(data.result);
-    } catch (e: any) { alert('Lỗi xứ lý AI: ' + e.message); } finally { setIsProcessing(false); }
+    } catch (e: any) { alert(e.message); } finally { setIsProcessing(false); }
   };
 
   const handlePushKnowledge = async () => {
     const codeList = targetCodes.trim().split(/\s+/).filter(c => c.length > 0);
-    if (!processedResult || codeList.length === 0) return alert('Thiếu thông tin kết quả hoặc mã shop!');
+    if (!processedResult || codeList.length === 0) return alert('Thiếu thông tin!');
     setPushingKnowledge(true);
     try {
-      const res = await fetch('/api/admin/knowledge/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codes: codeList, data: processedResult, voice: selectedVoice, requesterId: currentUserId })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
-      alert(`🚀 Thành công! Đã cập nhật tri thức cho ${data.count} shops.`);
+      const res = await fetch('/api/admin/knowledge/push', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codes: codeList, data: processedResult, voice: selectedVoice, requesterId: currentUserId }) });
+      alert('🚀 Xuất xưởng thành công!');
       setProcessedResult(null); setRawContent(''); setTargetCodes(''); setSelectedTemplate(null);
-    } catch (e: any) { alert('Lỗi xuất xưởng: ' + e.message); } finally { setPushingKnowledge(false); }
+    } catch (e: any) { alert(e.message); } finally { setPushingKnowledge(false); }
   };
 
   const handleSaveAsTemplate = async () => {
     if (!processedResult) return;
-    const name = prompt('Nhập tên ngành hàng để lưu mẫu:', selectedTemplate?.industry_name || '');
+    const name = prompt('Tên ngành mẫu:', selectedTemplate?.industry_name || '');
     if (!name) return;
     setSavingTemplate(true);
     try {
-        const { error } = await supabase.from('knowledge_templates').upsert({
-            id: selectedTemplate?.id,
-            industry_name: name,
-            product_info: processedResult.product_info,
-            faq: processedResult.faq,
-            insights: processedResult.insights,
-            example_content: rawContent
-        });
-        if (error) throw error;
-        alert('Đã lưu mẫu ngành thành công!');
+        await supabase.from('knowledge_templates').upsert({ id: selectedTemplate?.id, industry_name: name, product_info: processedResult.product_info, faq: processedResult.faq, insights: processedResult.insights, example_content: rawContent });
+        alert('Đã lưu mẫu!');
         fetchTemplates();
-    } catch (e: any) { alert('Lỗi khi lưu mẫu: ' + e.message); } finally { setSavingTemplate(false); }
+    } catch (e: any) { alert(e.message); } finally { setSavingTemplate(false); }
   };
 
-  // Filtered Shops
-  const filteredShops = shops.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    s.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // List Filters
+  const filteredShops = shops.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Stats
-  const proShops = shops.filter(s => s.plan === 'pro').length;
-
-  if (loading) return <div className="p-8 font-bold text-slate-500 animate-pulse">ĐANG TẢI DỮ LIỆU SUPER ADMIN...</div>;
-  if (!isSuperAdmin) return <div className="p-8 text-red-600 font-bold bg-red-50 h-screen flex items-center justify-center">BẠN KHÔNG CÓ QUYỀN TRUY CẬP TRANG NÀY!</div>;
+  if (loading) return <div className="p-8 font-black text-slate-300 animate-pulse text-4xl">SECURE ACCESS...</div>;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-[#F0F4F8] p-4 md:p-8 selection:bg-indigo-600 selection:text-white">
       <div className="max-w-7xl mx-auto">
         
-        {/* UPPER HEADER */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-                <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest shadow-lg shadow-indigo-200">System Root</span>
-                <span className="text-slate-300">|</span>
-                <span className="text-xs font-bold text-slate-400">v4.2.0 Stable</span>
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
+          <div className="flex items-center gap-6">
+            <div className="w-20 h-20 bg-indigo-600 rounded-[2rem] shadow-2xl flex items-center justify-center text-white rotate-3 hover:rotate-0 transition-transform">
+                <Settings size={40} className="animate-[spin_10s_linear_infinite]" />
             </div>
-            <h1 className="text-5xl font-black text-slate-900 tracking-tighter flex items-center gap-4">
-              <Layers className="text-indigo-600" size={48} />
-              SUPER CONTROLLER
-            </h1>
+            <div>
+              <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none mb-2">SUPER-CORE</h1>
+              <p className="text-slate-500 font-bold uppercase tracking-[0.3em] text-[10px] ml-1">Universal Control Panel</p>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100">
-            <div className="flex flex-col items-end">
-                <p className="text-sm font-black text-slate-900">Administrator</p>
-                <p className="text-[10px] font-bold text-emerald-500 flex items-center gap-1">
-                    <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                    HỆ THỐNG TRỰC TUYẾN
-                </p>
+          <div className="flex gap-6">
+            <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex items-center gap-4">
+                <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Live Nodes</p>
+                    <p className="text-2xl font-black text-slate-900 leading-none">{shops.length}</p>
+                </div>
+                <Users size={32} className="text-indigo-200" />
             </div>
-            <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-xl">SA</div>
-          </div>
-        </div>
-
-        {/* STATS ROW */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-indigo-200 transition-all cursor-default">
-            <div className="flex justify-between items-start">
-                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl group-hover:bg-indigo-600 group-hover:text-white transition-colors"><Users size={24}/></div>
-                <div className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg flex items-center gap-1"><TrendingUp size={12}/> +12%</div>
-            </div>
-            <div className="mt-4">
-                <p className="text-3xl font-black text-slate-900">{shops.length}</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Tổng số Cửa hàng</p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-amber-200 transition-all cursor-default">
-            <div className="flex justify-between items-start">
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl group-hover:bg-amber-600 group-hover:text-white transition-colors"><Key size={24}/></div>
-                <div className="text-[10px] font-black text-amber-500 bg-amber-50 px-2 py-1 rounded-lg uppercase tracking-tighter">Pro Plan Only</div>
-            </div>
-            <div className="mt-4">
-                <p className="text-3xl font-black text-slate-900">{proShops}</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Thuê bao Cao cấp</p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-emerald-200 transition-all cursor-default">
-            <div className="flex justify-between items-start">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white transition-colors"><BrainCircuit size={24}/></div>
-                <div className="text-[10px] font-black text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg uppercase tracking-tighter">Knowledge</div>
-            </div>
-            <div className="mt-4">
-                <p className="text-3xl font-black text-slate-900">{knowledgeTemplates.length}</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Mẫu Xưởng Tri Thức</p>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex flex-col justify-between group hover:border-red-200 transition-all cursor-default">
-            <div className="flex justify-between items-start">
-                <div className="p-3 bg-red-50 text-red-600 rounded-2xl group-hover:bg-red-600 group-hover:text-white transition-colors"><AlertTriangle size={24}/></div>
-                <div className="text-[10px] font-black text-red-500 bg-red-50 px-2 py-1 rounded-lg uppercase tracking-tighter">Critical Logs</div>
-            </div>
-            <div className="mt-4">
-                <p className="text-3xl font-black text-slate-900">{errorLogs.length}</p>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sự cố ghi nhận</p>
+            <div className="bg-indigo-600 p-1 pr-5 rounded-full flex items-center gap-3 text-white">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center font-black">SA</div>
+                <span className="text-sm font-black uppercase tracking-widest text-[10px]">Active</span>
             </div>
           </div>
         </div>
 
-        {/* TAB BAR */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-slate-200/50 p-1.5 rounded-2xl w-fit">
+        {/* MÀN HÌNH CHÍNH (TABS) */}
+        <div className="flex flex-wrap gap-2 mb-10 bg-white/50 p-2 rounded-3xl w-fit backdrop-blur-sm border border-white">
           {[
             { id: 'shops', label: 'Cửa hàng', icon: <Users size={16}/> },
             { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={16}/> },
             { id: 'apikeys', label: 'Hệ thống Keys', icon: <Key size={16}/> },
             { id: 'errors', label: 'Báo cáo lỗi', icon: <AlertTriangle size={16}/> },
-            { id: 'config', label: 'Cấu hình chung', icon: <Settings size={16}/> },
+            { id: 'config', label: 'Cấu hình', icon: <Settings size={16}/> },
           ].map((tab) => (
             <button 
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={cn(
-                "px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2",
-                activeTab === tab.id 
-                    ? "bg-white text-indigo-600 shadow-sm" 
-                    : "text-slate-500 hover:text-slate-800"
-              )}
+              key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+              className={cn("px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2", activeTab === tab.id ? "bg-indigo-600 text-white shadow-xl scale-105" : "text-slate-500 hover:bg-white")}
             >
               {tab.icon} {tab.label}
             </button>
           ))}
         </div>
 
-        {/* =================================================================================== */}
-        {/* CONTENT TABS */}
-        {/* =================================================================================== */}
-        
-        {/* TAB: SHOPS - THE HEART OF ADMIN */}
+        {/* ==================== TAB: SHOPS ==================== */}
         {activeTab === 'shops' && (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6">
             
-            {/* Action Bar */}
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                    <input 
-                        type="text" 
-                        placeholder="Tìm tên shop hoặc mã code..." 
-                        className="w-full bg-white border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 text-sm font-bold focus:border-indigo-500 outline-none transition-all shadow-sm"
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                    />
+            {/* Search & Add */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 relative">
+                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-400" size={24} />
+                    <input type="text" placeholder="Tìm kiếm theo Tên hoặc Mã Code..." className="w-full bg-white rounded-[2rem] py-6 pl-16 pr-6 text-lg font-black text-slate-900 border-none shadow-xl focus:ring-4 focus:ring-indigo-100 transition-all placeholder:text-slate-300" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
-                    <input 
-                        type="text" 
-                        placeholder="Tên shop mới..." 
-                        className="flex-1 md:w-64 bg-white border-2 border-slate-100 rounded-xl px-4 text-sm font-bold focus:border-indigo-500 outline-none"
-                        value={newShopName}
-                        onChange={e => setNewShopName(e.target.value)}
-                    />
-                    <button 
-                        onClick={handleCreateShop}
-                        disabled={addingShop || !newShopName.trim()}
-                        className="bg-indigo-600 text-white px-6 py-3 rounded-xl text-xs font-black shadow-lg hover:bg-indigo-700 transition-all uppercase whitespace-nowrap disabled:opacity-50"
-                    >
-                        + Tạo Shop
-                    </button>
+                <div className="bg-indigo-900 rounded-[2rem] p-3 flex gap-2">
+                    <input type="text" placeholder="Tên shop mới..." className="flex-1 bg-transparent border-none text-white text-sm font-bold pl-4 focus:ring-0 placeholder:text-indigo-400" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                    <button onClick={handleCreateShop} disabled={addingShop || !newShopName.trim()} className="bg-white text-indigo-900 px-6 py-3 rounded-2xl text-xs font-black hover:bg-indigo-50 transition-all">+ TẠO</button>
                 </div>
             </div>
 
-            {/* Shop Table */}
-            <div className="bg-white rounded-[3rem] shadow-xl border border-slate-100 overflow-hidden overflow-x-auto">
+            {/* Shop List */}
+            <div className="bg-white rounded-[3.5rem] shadow-2xl overflow-hidden border border-slate-100 overflow-x-auto">
                 <table className="w-full text-left">
                     <thead>
-                        <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-16">#</th>
-                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest pl-0">Bản sắc Shop</th>
-                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Gói dịch vụ</th>
-                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Hết hạn</th>
-                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Điều khiển</th>
+                        <tr className="bg-slate-50/50">
+                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest pl-12">Nhận diện Shop</th>
+                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Plan</th>
+                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest">Hạn sử dụng</th>
+                            <th className="p-8 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right pr-12">Bảng điều khiển</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                        {filteredShops.map((shop, idx) => (
-                            <tr key={shop.id} className="hover:bg-slate-50/50 transition-colors group">
-                                <td className="p-8 text-center text-xs font-black text-slate-300">{(idx + 1).toString().padStart(2, '0')}</td>
-                                <td className="p-8 pl-0">
+                        {filteredShops.map((shop) => (
+                            <tr key={shop.id} className="hover:bg-slate-50 transition-all group">
+                                <td className="p-8 pl-12">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 font-black text-lg group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                            {shop.name.charAt(0)}
-                                        </div>
+                                        <div className="w-16 h-16 bg-slate-900 rounded-3xl flex items-center justify-center text-white text-2xl font-black shadow-lg group-hover:bg-indigo-600 transition-all">{shop.name.charAt(0)}</div>
                                         <div>
-                                            {editingShop?.id === shop.id ? (
-                                                <div className="flex items-center gap-2">
-                                                    <input 
-                                                        type="text" 
-                                                        autoFocus
-                                                        className="bg-slate-50 border-b-2 border-indigo-500 outline-none font-black text-slate-900 px-1"
-                                                        value={newShopName}
-                                                        onChange={e => setNewShopName(e.target.value)}
-                                                        onKeyDown={e => e.key === 'Enter' && handleUpdateShopName()}
-                                                    />
-                                                    <button onClick={handleUpdateShopName} className="text-emerald-500 p-1"><CheckCircle size={14}/></button>
-                                                </div>
-                                            ) : (
-                                                <p className="font-black text-slate-900 text-base flex items-center gap-2">
-                                                    {shop.name}
-                                                    <button onClick={() => { setEditingShop(shop); setNewShopName(shop.name); }} className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-300 hover:text-indigo-600"><Edit2 size={12}/></button>
-                                                </p>
-                                            )}
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
-                                                <Key size={10} className="text-indigo-400"/> {shop.code}
-                                            </p>
+                                            <p className="text-xl font-black text-slate-900 leading-tight">{shop.name}</p>
+                                            <p className="text-[11px] font-black text-indigo-500 uppercase flex items-center gap-1 mt-1 tracking-widest"><Key size={10}/> {shop.code}</p>
                                         </div>
                                     </div>
                                 </td>
-                                <td className="p-8 text-center text-xs">
-                                    <button 
-                                        onClick={() => togglePlan(shop.id, shop.plan)}
-                                        className={cn(
-                                            "inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full font-black uppercase text-[9px] transition-all border-2",
-                                            shop.plan === 'pro' 
-                                                ? "bg-amber-100 border-amber-200 text-amber-700 shadow-sm" 
-                                                : "bg-slate-50 border-slate-100 text-slate-400 hover:border-amber-200 hover:text-amber-700"
-                                        )}
-                                    >
-                                        {shop.plan === 'pro' && <Bot size={10}/>}
+                                <td className="p-8 text-center">
+                                    <button onClick={() => togglePlan(shop.id, shop.plan)} className={cn("px-6 py-2 rounded-2xl text-[10px] font-black uppercase transition-all shadow-sm border-2", shop.plan === 'pro' ? "bg-amber-100 border-amber-300 text-amber-900" : "bg-white border-slate-100 text-slate-300 hover:border-amber-300 hover:text-amber-900")}>
                                         {shop.plan}
                                     </button>
                                 </td>
                                 <td className="p-8">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-black text-slate-800">
-                                            {shop.plan_expiry_date ? new Date(shop.plan_expiry_date).toLocaleDateString('vi-VN') : '∞ Vĩnh viễn'}
-                                        </span>
-                                        <span className="text-[10px] font-bold text-slate-300 uppercase">Hạn dùng</span>
-                                    </div>
+                                    <input 
+                                        type="date" 
+                                        className="bg-slate-50 border-none rounded-xl p-2 text-xs font-black text-slate-900 focus:ring-2 focus:ring-indigo-200"
+                                        value={shop.plan_expiry_date ? shop.plan_expiry_date.split('T')[0] : ''}
+                                        onChange={(e) => handleUpdateExpiry(shop.id, e.target.value)}
+                                    />
                                 </td>
-                                <td className="p-8">
-                                    <div className="flex items-center justify-end gap-3">
-                                        <button 
-                                            onClick={() => handleLoginAsShop(shop.code)}
-                                            className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
-                                            title="Đăng nhập Dashboard Shop"
-                                        >
-                                            <LogIn size={18}/>
-                                        </button>
-                                        <button 
-                                            onClick={() => handleDeleteShop(shop.id, shop.name)}
-                                            className="p-2.5 bg-red-50 text-red-300 rounded-xl hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                                            title="Xóa Shop"
-                                        >
-                                            <Trash2 size={18}/>
-                                        </button>
+                                <td className="p-8 pr-12">
+                                    <div className="flex items-center justify-end gap-2">
+                                        <button onClick={() => handleLoginAsShop(shop.code)} className="p-4 bg-indigo-50 text-indigo-600 rounded-2xl hover:bg-indigo-600 hover:text-white transition-all" title="Truy cập Dashboard"><LogIn size={20}/></button>
+                                        <button onClick={() => setSelectedShopAction(selectedShopAction?.id === shop.id ? null : shop)} className="p-4 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-900 hover:text-white transition-all"><Settings size={20}/></button>
+                                        <button onClick={() => handleDeleteShop(shop.id, shop.name)} className="p-4 bg-red-50 text-red-100 rounded-2xl hover:bg-red-500 hover:text-white transition-all"><Trash2 size={20}/></button>
                                     </div>
                                 </td>
                             </tr>
                         ))}
+                        {/* HIỆN BẢNG CẤU HÌNH CHI TIẾT KHI CHỌN SHOP */}
+                        {selectedShopAction && (
+                            <tr>
+                                <td colSpan={4} className="p-0">
+                                    <div className="m-8 mt-0 p-10 bg-slate-900 rounded-[3rem] text-white animate-in zoom-in-95 duration-200">
+                                        <div className="flex justify-between items-start mb-10">
+                                            <div>
+                                                <h3 className="text-3xl font-black mb-1">Cấu hình: {selectedShopAction.name}</h3>
+                                                <p className="text-slate-500 font-bold uppercase text-xs">Phân vùng chuyên sâu</p>
+                                            </div>
+                                            <button onClick={() => setSelectedShopAction(null)} className="text-slate-500 hover:text-white">✕</button>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                                            {/* Đổi Icon */}
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2"><ImageIcon size={14}/> ICON CHATBOT (ẢNH ĐẠI DIỆN)</label>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <button onClick={() => handleUpdateIcon(selectedShopAction.id, '/icons/bot-male.png')} className="bg-white/5 border border-white/10 p-4 rounded-3xl hover:bg-indigo-600 transition-all flex flex-col items-center gap-2">
+                                                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-3xl">👨</div>
+                                                        <span className="text-[10px] font-black">CHATBOT NAM</span>
+                                                    </button>
+                                                    <button onClick={() => handleUpdateIcon(selectedShopAction.id, '/icons/bot-female.png')} className="bg-white/5 border border-white/10 p-4 rounded-3xl hover:bg-pink-600 transition-all flex flex-col items-center gap-2">
+                                                        <div className="w-12 h-12 bg-pink-100 rounded-full flex items-center justify-center text-3xl">👩</div>
+                                                        <span className="text-[10px] font-black">CHATBOT NỮ</span>
+                                                    </button>
+                                                </div>
+                                                <button onClick={() => {
+                                                  const url = prompt('Dán link ảnh Icon tùy chỉnh vào đây:');
+                                                  if(url) handleUpdateIcon(selectedShopAction.id, url);
+                                                }} className="w-full bg-white/10 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-white/20 transition-all">SỬ DỤNG LINK ẢNH KHÁC</button>
+                                            </div>
+
+                                            {/* An Ninh */}
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2"><Lock size={14}/> QUẢN TRỊ VIÊN & MẬT KHẨU</label>
+                                                <button onClick={() => handleResetPassword(selectedShopAction.id)} className="w-full bg-amber-500 text-slate-900 font-black py-6 rounded-3xl hover:bg-amber-400 transition-all flex items-center justify-center gap-3">
+                                                    <Key size={20}/> ĐỔI MẬT KHẨU SHOP
+                                                </button>
+                                                <p className="text-[10px] text-slate-500 italic text-center">Mật khẩu mới sẽ có hiệu lực ngay lập tức.</p>
+                                            </div>
+
+                                            {/* Gói Cước */}
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2"><Calendar size={14}/> THỜI GIAN SỬ DỤNG</label>
+                                                <div className="bg-white/5 p-6 rounded-3xl border border-white/10">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Trạng thái hiện tại</p>
+                                                    <p className="text-2xl font-black mb-4">{selectedShopAction.plan.toUpperCase()}</p>
+                                                    <div className="flex gap-2">
+                                                        <button onClick={() => handleUpdateExpiry(selectedShopAction.id, new Date(Date.now() + 30*24*60*60*1000).toISOString())} className="flex-1 bg-white text-slate-900 py-2 rounded-xl text-[10px] font-black">+30 NGÀY</button>
+                                                        <button onClick={() => handleUpdateExpiry(selectedShopAction.id, new Date(Date.now() + 365*24*60*60*1000).toISOString())} className="flex-1 bg-white text-slate-900 py-2 rounded-xl text-[10px] font-black">+1 NĂM</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
                     </tbody>
                 </table>
             </div>
           </div>
         )}
 
-        {/* TAB: KNOWLEDGE WORKSHOP - THE FACTORY */}
+        {/* ==================== TAB: KNOWLEDGE WORKSHOP ==================== */}
         {activeTab === 'knowledge' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
-            <div className="space-y-6">
-              <div className="bg-white rounded-[3rem] p-10 shadow-xl border border-slate-100">
-                <div className="flex items-center gap-4 mb-8">
-                    <div className="p-4 bg-emerald-100 text-emerald-600 rounded-[1.5rem]"><BrainCircuit size={32}/></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 animate-in fade-in slide-in-from-right-10 duration-500 pb-20">
+            <div className="bg-white rounded-[4rem] p-12 shadow-2xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-10">
+                    <div className="p-5 bg-emerald-100 text-emerald-600 rounded-[2rem]"><BrainCircuit size={40}/></div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900">Xưởng Tri Thức AI</h2>
-                        <p className="text-sm font-bold text-slate-400">Luyện "cơ bắp" cho Chatbot theo từng ngành.</p>
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Xưởng Tri Thức AI</h2>
+                        <p className="text-sm font-bold text-slate-400">Chọn ngành hàng -> Luyện AI -> Xuất xưởng.</p>
                     </div>
                 </div>
 
-                {/* Preset List */}
                 <div className="mb-10">
-                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest pl-1">Nguyên liệu mẫu sẵn có:</label>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-[0.2em] pl-1">Danh mục Xưởng:</label>
                     <div className="flex flex-wrap gap-2">
                         {knowledgeTemplates.map(t => (
                             <button 
-                                key={t.id}
-                                onClick={() => {
-                                    setSelectedTemplate(t);
-                                    setRawContent(t.example_content || '');
-                                    if (t.product_info) setProcessedResult({ product_info: t.product_info, faq: t.faq || '', insights: t.insights || '' });
-                                    else setProcessedResult(null);
-                                }}
-                                className={cn(
-                                    "px-5 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all border-2",
-                                    selectedTemplate?.id === t.id 
-                                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg scale-105" 
-                                        : "bg-slate-50 text-slate-500 border-slate-100 hover:border-emerald-200"
-                                )}
+                                key={t.id} onClick={() => { setSelectedTemplate(t); setRawContent(t.example_content || ''); if(t.product_info) setProcessedResult({ product_info: t.product_info, faq: t.faq || '', insights: t.insights || '' }); }}
+                                className={cn("px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2", selectedTemplate?.id === t.id ? "bg-emerald-600 text-white border-emerald-600 shadow-xl scale-110" : "bg-slate-50 text-slate-500 border-slate-100 hover:border-emerald-200")}
                             >
                                 {t.industry_name}
                             </button>
@@ -587,110 +506,110 @@ export default function SuperAdminPage() {
                     </div>
                 </div>
 
-                <div className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black uppercase text-slate-400 ml-1">📦 Cấp cho Shop Code</label>
-                        <input 
-                            type="text" 
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-sm font-black focus:border-emerald-500 outline-none uppercase shadow-inner"
-                            placeholder="VD: 70WPN 88ABC..."
-                            value={targetCodes}
-                            onChange={(e) => setTargetCodes(e.target.value)}
-                        />
-                    </div>
-                    
-                    <div className="space-y-2">
-                        <label className="block text-[10px] font-black uppercase text-slate-400 ml-1">📄 Văn bản nguyên liệu</label>
-                        <textarea 
-                            rows={8}
-                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 text-sm font-medium focus:border-emerald-500 outline-none transition-all shadow-inner"
-                            placeholder="Dán nội dung bất kỳ vào đây để AI phân tích..."
-                            value={rawContent}
-                            onChange={(e) => setRawContent(e.target.value)}
-                        ></textarea>
+                <div className="space-y-8">
+                     <div className="bg-slate-900 p-8 rounded-[2.5rem] shadow-xl">
+                        <label className="block text-[10px] font-black uppercase text-emerald-400 mb-3 tracking-widest">🚀 Mã Shop cần nạp (Shop Code)</label>
+                        <input type="text" className="w-full bg-white/10 border-none rounded-2xl p-4 text-xl font-black text-white focus:ring-2 focus:ring-emerald-500 outline-none uppercase" placeholder="70WPN 88ABC..." value={targetCodes} onChange={(e) => setTargetCodes(e.target.value)} />
                     </div>
 
-                    <button 
-                        onClick={handleProcessKnowledge}
-                        disabled={isProcessing || !rawContent.trim()}
-                        className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-3"
-                    >
-                        {isProcessing ? 'ĐANG PHÂN TÍCH...' : '🔥 BẮT ĐẦU LUYỆN TRI THỨC'}
+                    <div className="space-y-3">
+                        <label className="block text-[10px] font-black uppercase text-slate-400 ml-1">📦 Nguyên liệu thô</label>
+                        <textarea rows={10} className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] p-8 text-sm font-medium focus:border-emerald-500 outline-none transition-all shadow-inner" placeholder="Dán văn bản bất kỳ để huấn luyện AI..." value={rawContent} onChange={(e) => setRawContent(e.target.value)}></textarea>
+                    </div>
+
+                    <button onClick={handleProcessKnowledge} disabled={isProcessing || !rawContent.trim()} className="w-full bg-slate-900 text-white font-black py-6 rounded-[2.5rem] shadow-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-4 text-lg">
+                        {isProcessing ? 'AI ĐANG XỬ LÝ...' : '🔥 LUYỆN TRI THỨC'}
                     </button>
                 </div>
-              </div>
             </div>
 
-            <div className="space-y-6">
-              <div className="bg-white rounded-[3rem] p-10 shadow-xl border border-slate-100 min-h-[600px] flex flex-col">
-                <div className="flex items-center justify-between mb-8 border-b border-slate-50 pb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><Layers size={21}/></div>
-                        <h2 className="text-xl font-black text-slate-900">Thành phẩm AI</h2>
+            <div className="bg-white rounded-[4rem] p-12 shadow-2xl border border-slate-100 min-h-[700px] flex flex-col relative">
+                <div className="flex items-center justify-between mb-10 pb-6 border-b border-slate-50">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-indigo-50 text-indigo-600 rounded-[1.5rem]"><CheckCircle size={30}/></div>
+                        <h2 className="text-2xl font-black text-slate-900">Thành Phẩm</h2>
                     </div>
-                    {processedResult && (
-                        <div className="flex gap-2">
-                            <button onClick={handlePushKnowledge} disabled={pushingKnowledge} className="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-indigo-700">🚀 Xuất xưởng</button>
-                            <button onClick={handleSaveAsTemplate} disabled={savingTemplate} className="bg-white border-2 border-slate-100 text-slate-500 px-5 py-2.5 rounded-xl font-black text-[10px] uppercase hover:border-emerald-500 hover:text-emerald-600">💾 Lưu kho</button>
-                        </div>
-                    )}
                 </div>
 
                 {processedResult ? (
-                    <div className="space-y-8 flex-1 overflow-y-auto pr-4 custom-scrollbar">
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest pl-1">Mô tả sản phẩm</label>
-                            <textarea value={processedResult.product_info} onChange={e => setProcessedResult({...processedResult, product_info: e.target.value})} className="w-full bg-slate-50/50 rounded-2xl p-4 text-xs font-bold leading-relaxed outline-none border-none" rows={6}></textarea>
+                    <div className="space-y-10 flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-indigo-500 uppercase tracking-widest pl-1">1. Mô tả sản phẩm Chế tác bởi AI</label>
+                            <textarea value={processedResult.product_info} onChange={e => setProcessedResult({...processedResult, product_info: e.target.value})} className="w-full bg-slate-50/50 rounded-3xl p-6 text-sm font-bold leading-relaxed outline-none border-none shadow-inner" rows={8}></textarea>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-emerald-400 uppercase tracking-widest pl-1">Hỏi & Đáp thường gặp</label>
-                            <textarea value={processedResult.faq} onChange={e => setProcessedResult({...processedResult, faq: e.target.value})} className="w-full bg-slate-50/50 rounded-2xl p-4 text-xs font-bold leading-relaxed outline-none border-none" rows={8}></textarea>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-emerald-500 uppercase tracking-widest pl-1">2. Bộ câu hỏi FAQ chuẩn gu</label>
+                            <textarea value={processedResult.faq} onChange={e => setProcessedResult({...processedResult, faq: e.target.value})} className="w-full bg-slate-50/50 rounded-3xl p-6 text-sm font-bold leading-relaxed outline-none border-none shadow-inner" rows={10}></textarea>
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest pl-1">Insights Níu kéo khách</label>
-                            <textarea value={processedResult.insights} onChange={e => setProcessedResult({...processedResult, insights: e.target.value})} className="w-full bg-amber-50/30 rounded-2xl p-4 text-xs font-bold italic text-slate-600 outline-none border-none" rows={4}></textarea>
+                        <div className="space-y-3">
+                            <label className="text-[10px] font-black text-amber-500 uppercase tracking-widest pl-1">3. Insight & Chiến thuật níu khách</label>
+                            <textarea value={processedResult.insights} onChange={e => setProcessedResult({...processedResult, insights: e.target.value})} className="w-full bg-amber-50/20 rounded-3xl p-6 text-sm font-bold italic text-slate-600 outline-none border-none shadow-inner" rows={4}></textarea>
+                        </div>
+
+                        {/* NÚT XUẤT XƯỞNG TO VÀ NỔI BẬT NHẤT Ở CUỐI KẾT QUẢ */}
+                        <div className="flex gap-4 pt-10 sticky bottom-0 bg-white pb-6 mt-10 shadow-[0_-20px_20px_-10px_rgba(255,255,255,1)]">
+                             <button onClick={handlePushKnowledge} disabled={pushingKnowledge} className="flex-1 bg-indigo-600 text-white font-black py-6 rounded-3xl shadow-2xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 text-xl ring-8 ring-indigo-50">
+                                🚀 {pushingKnowledge ? 'ĐANG ĐẨY...' : 'XUẤT XƯỞNG NGAY'}
+                             </button>
+                             <button onClick={handleSaveAsTemplate} disabled={savingTemplate} className="bg-slate-900 text-white px-8 py-6 rounded-3xl font-black text-xs hover:bg-black transition-all flex flex-col items-center justify-center">
+                                <Database size={18} className="mb-1" />
+                                <span>LƯU MẪU</span>
+                             </button>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center opacity-20">
-                        <Database size={64} className="mb-4" />
-                        <p className="font-black text-xl uppercase tracking-tighter">Đang chờ lệnh...</p>
+                    <div className="flex-1 flex flex-col items-center justify-center opacity-10">
+                        <Bot size={120} />
+                        <p className="font-black text-3xl uppercase tracking-tighter mt-4">Chưa có "Phôi"</p>
                     </div>
                 )}
-              </div>
             </div>
           </div>
         )}
 
-        {/* TAB: API KEYS & SYSTEM */}
+        {/* TAB: API KEYS */}
         {activeTab === 'apikeys' && (
-          <div className="max-w-3xl animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="bg-slate-900 rounded-[3rem] p-12 text-white shadow-2xl">
-                <div className="flex items-center gap-4 mb-10">
-                    <div className="p-4 bg-white/10 rounded-3xl"><Key size={32}/></div>
+          <div className="max-w-3xl animate-in fade-in slide-in-from-right-10 duration-500 pb-20">
+            <div className="bg-white rounded-[4rem] p-16 shadow-2xl border border-slate-100">
+                <div className="flex items-center gap-4 mb-12">
+                    <div className="p-5 bg-amber-100 text-amber-600 rounded-[2rem]"><Key size={40}/></div>
                     <div>
-                        <h2 className="text-2xl font-black">Hệ thống API Keys</h2>
-                        <p className="text-sm text-slate-400 font-medium">Quản lý các chìa khóa lõi của AI.</p>
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Hệ thống Keys</h2>
+                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Authentication Center</p>
                     </div>
                 </div>
 
-                <div className="space-y-8">
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-[0.2em] ml-1">Gemini Model Free (Dual Key)</label>
-                        <input type="password" value={apiKey1} onChange={e => setApiKey1(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-mono text-sm focus:bg-white/10 outline-none transition-all" placeholder="API Key 01..."/>
-                        <input type="password" value={apiKey2} onChange={e => setApiKey2(e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 font-mono text-sm focus:bg-white/10 outline-none transition-all" placeholder="API Key 02..."/>
+                <div className="space-y-10">
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Gemini API Key 01 (Free)</label>
+                            <button onClick={() => setShowKey1(!showKey1)} className="text-indigo-600 font-bold text-[10px] uppercase flex items-center gap-1">
+                                {showKey1 ? <><EyeOff size={12}/> Ẩn khóa</> : <><Eye size={12}/> Hiện khóa</>}
+                            </button>
+                        </div>
+                        <input type={showKey1 ? "text" : "password"} value={apiKey1} onChange={e => setApiKey1(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-5 font-mono text-sm focus:border-amber-500 outline-none transition-all shadow-inner" placeholder="Key 1..."/>
                     </div>
-                    <div className="space-y-3">
-                        <label className="text-[10px] font-black uppercase text-amber-400 tracking-[0.2em] ml-1 flex items-center gap-2">⭐ Gemini Pro Dedicated Key</label>
-                        <input type="password" value={apiKeyPro} onChange={e => setApiKeyPro(e.target.value)} className="w-full bg-amber-400/5 border border-amber-400/20 rounded-2xl p-4 font-mono text-sm focus:bg-amber-400/10 outline-none transition-all text-amber-100" placeholder="API Key Pro Exclusive..."/>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Gemini API Key 02 (Dự phòng)</label>
+                            <button onClick={() => setShowKey2(!showKey2)} className="text-indigo-600 font-bold text-[10px] uppercase flex items-center gap-1">
+                                {showKey2 ? <><EyeOff size={12}/> Ẩn khóa</> : <><Eye size={12}/> Hiện khóa</>}
+                            </button>
+                        </div>
+                        <input type={showKey2 ? "text" : "password"} value={apiKey2} onChange={e => setApiKey2(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-5 font-mono text-sm focus:border-indigo-500 outline-none transition-all shadow-inner" placeholder="Key 2..."/>
                     </div>
-                    <div className="space-y-3 pt-6 border-t border-white/5">
-                        <label className="text-[10px] font-black uppercase text-blue-400 tracking-[0.2em] ml-1">🌐 Webhook Verify Token</label>
-                        <input type="text" value={fbVerifyToken} onChange={e => setFbVerifyToken(e.target.value)} className="w-full bg-blue-400/5 border border-blue-400/20 rounded-2xl p-4 font-mono text-sm focus:bg-blue-400/10 outline-none transition-all text-blue-100" placeholder="my_secret_verify_token..."/>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center px-1">
+                            <label className="text-[10px] font-black uppercase text-amber-500 tracking-widest flex items-center gap-2">🌟 Gemini PRO Dedicated Key</label>
+                            <button onClick={() => setShowKeyPro(!showKeyPro)} className="text-amber-600 font-bold text-[10px] uppercase flex items-center gap-1">
+                                {showKeyPro ? <><EyeOff size={12}/> Ẩn khóa</> : <><Eye size={12}/> Hiện khóa</>}
+                            </button>
+                        </div>
+                        <input type={showKeyPro ? "text" : "password"} value={apiKeyPro} onChange={e => setApiKeyPro(e.target.value)} className="w-full bg-amber-50 border-2 border-amber-200 rounded-3xl p-5 font-mono text-sm focus:border-amber-600 outline-none transition-all shadow-inner text-amber-900" placeholder="API Key Pro..."/>
                     </div>
 
-                    <button onClick={handleSaveApiKeys} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-5 rounded-3xl shadow-xl shadow-indigo-500/20 transition-all uppercase tracking-widest mt-4">
-                        🔐 LƯU CẤU HÌNH HỆ THỐNG
+                    <button onClick={handleSaveApiKeys} className="w-full bg-slate-900 text-white font-black py-8 rounded-[3rem] shadow-2xl hover:bg-black transition-all uppercase tracking-[0.3em] text-sm mt-6">
+                        🔒 KHÓA CẤU HÌNH HỆ THỐNG
                     </button>
                 </div>
             </div>
@@ -699,55 +618,59 @@ export default function SuperAdminPage() {
 
         {/* TAB: ERROR LOGS */}
         {activeTab === 'errors' && (
-          <div className="bg-white rounded-[3rem] p-10 shadow-xl border border-slate-100 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-4">
-                    <div className="p-4 bg-red-50 text-red-600 rounded-[1.5rem]"><AlertTriangle size={32}/></div>
+          <div className="bg-white rounded-[4rem] p-16 shadow-2xl border border-slate-100 animate-in fade-in slide-in-from-right-10 duration-500 pb-20">
+            <div className="flex items-center justify-between mb-12">
+                <div className="flex items-center gap-6">
+                    <div className="p-5 bg-red-50 text-red-600 rounded-[2rem]"><AlertTriangle size={40}/></div>
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900">Báo cáo Sự cố</h2>
-                        <p className="text-sm font-bold text-slate-400 font-medium">Tất cả lỗi được hệ thống ghi lại.</p>
+                        <h2 className="text-4xl font-black text-slate-900 leading-none">Nhật ký Lỗi</h2>
+                        <p className="text-sm font-bold text-slate-400 mt-2">Hệ thống giám sát trạm Chatbot.</p>
                     </div>
                 </div>
-                <button onClick={fetchErrorLogs} className="text-xs font-black text-indigo-600 px-4 py-2 border-2 border-indigo-100 rounded-xl hover:bg-indigo-50">LÀM MỚI LOGS</button>
+                <button onClick={fetchErrorLogs} className="bg-slate-50 text-slate-900 px-8 py-4 rounded-2xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all border border-slate-200">Làm mới dữ liệu</button>
             </div>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-4 custom-scrollbar">
+            <div className="space-y-6">
                 {errorLogs.map(log => (
-                    <div key={log.id} className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 flex flex-col md:flex-row md:items-start justify-between gap-4 group hover:bg-white hover:shadow-md transition-all">
-                        <div className="space-y-2">
-                           <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-black text-red-600 bg-red-100 px-2 py-0.5 rounded uppercase">{log.error_type}</span>
-                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">CODE: {log.source}</span>
+                    <div key={log.id} className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6 group hover:bg-white hover:shadow-2xl transition-all">
+                        <div className="space-y-3">
+                           <div className="flex items-center gap-3">
+                             <span className="text-[10px] font-black text-white bg-red-600 px-3 py-1 rounded-full uppercase tracking-widest">{log.error_type}</span>
+                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">SOURCE: {log.source}</span>
                            </div>
-                           <p className="text-sm font-bold text-slate-900">{log.error_message}</p>
+                           <p className="text-lg font-bold text-slate-900 leading-tight">{log.error_message}</p>
                         </div>
-                        <span className="text-[10px] font-black text-slate-300 uppercase shrink-0">{new Date(log.created_at).toLocaleString('vi-VN')}</span>
+                        <div className="flex flex-col items-end shrink-0">
+                            <p className="text-[10px] font-black text-slate-300 uppercase">{new Date(log.created_at).toLocaleDateString('vi-VN')}</p>
+                            <p className="text-xs font-black text-slate-900 tracking-tighter">{new Date(log.created_at).toLocaleTimeString('vi-VN')}</p>
+                        </div>
                     </div>
                 ))}
+                {errorLogs.length === 0 && <div className="text-center py-20 text-slate-300 font-black text-3xl opacity-20 uppercase tracking-tighter italic">No Issues Recorded</div>}
             </div>
           </div>
         )}
 
-        {/* TAB: CONFIG */}
+        {/* TAB: CONFIGURATIONS */}
         {activeTab === 'config' && (
-          <div className="max-w-2xl bg-white rounded-[3rem] p-12 shadow-xl border border-slate-100 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="flex items-center gap-4 mb-10">
-                <div className="p-4 bg-slate-100 text-slate-800 rounded-[1.5rem]"><Settings size={32}/></div>
+          <div className="max-w-2xl bg-white rounded-[4rem] p-16 shadow-2xl border border-slate-100 animate-in fade-in slide-in-from-right-10 duration-500 pb-20">
+            <div className="flex items-center gap-6 mb-12">
+                <div className="p-5 bg-indigo-100 text-indigo-600 rounded-[2rem]"><Settings size={40}/></div>
                 <div>
-                   <h2 className="text-2xl font-black mb-1">Cấu hình chung</h2>
-                   <p className="text-sm text-slate-400 font-medium tracking-tight">Cài đặt hành vi hệ thống toàn cục.</p>
+                   <h2 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-2">Cấu hình</h2>
+                   <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Global Engine Controls</p>
                 </div>
             </div>
 
-            <div className="space-y-8">
-               <div className="space-y-3">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Mã Shop dùng thử mặc định (Trial)</label>
-                  <input type="text" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value.toUpperCase())} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 font-black text-sm focus:border-indigo-500 outline-none" placeholder="VD: 70WPN"/>
-                  <p className="text-[10px] text-slate-400 italic">Chatbot mới tạo sẽ tự bốc tri thức của shop này.</p>
+            <div className="space-y-10">
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Mã Shop Mẫu (Mặc định cho khách mới/Trial)</label>
+                  <input type="text" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value.toUpperCase())} className="w-full bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] p-8 font-black text-2xl focus:border-indigo-500 outline-none shadow-inner" placeholder="VD: 70WPN"/>
+                  <p className="text-[11px] text-slate-500 font-medium italic pl-1 leading-relaxed">Dùng mã của shop có tri thức hoàn chỉnh nhất để làm khuôn mẫu tự động cho khách đăng ký dùng thử.</p>
                </div>
 
-               <button onClick={handleSaveConfig} disabled={savingConfig} className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl shadow-slate-200 hover:bg-black transition-all uppercase tracking-widest">
-                  {savingConfig ? 'Đang lưu...' : 'CẬP NHẬT CẤU HÌNH'}
+               <button onClick={handleSaveConfig} disabled={savingConfig} className="w-full bg-slate-900 text-white font-black py-8 rounded-[3rem] shadow-2xl hover:bg-black transition-all uppercase tracking-[0.4em] text-xs">
+                  {savingConfig ? 'EXECUTING...' : 'CẬP NHẬT TRẠM CẤU HÌNH'}
                </button>
             </div>
           </div>
@@ -755,12 +678,13 @@ export default function SuperAdminPage() {
 
       </div>
       
-      {/* CSS For Scrollbar */}
+      {/* GLOBAL STYLES */}
       <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
+        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </div>
   );
