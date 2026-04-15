@@ -437,12 +437,6 @@ export default function SuperAdminPage() {
                         <textarea rows={10} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs font-medium focus:border-emerald-500 outline-none shadow-inner" placeholder="Dán văn bản bất kỳ để huấn luyện AI..." value={rawContent} onChange={e => setRawContent(e.target.value)}></textarea>
                     </div>
                     <button onClick={handleProcessKnowledge} disabled={isProcessing || !rawContent.trim()} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3">{isProcessing ? 'AI Đang huấn luyện...' : 'BẮT ĐẦU LUYỆN'}</button>
-                    {processedResult && (
-                        <div className="mt-4 p-5 bg-emerald-600 text-white rounded-2xl flex items-center justify-between animate-in zoom-in-95 duration-200 shadow-xl shadow-emerald-100">
-                            <div><p className="text-[10px] font-black uppercase opacity-70">Thành phẩm sẵn sàng!</p><p className="text-xs font-bold leading-none">AI đã xử lý tri thức sạch.</p></div>
-                            <button onClick={handleSavePackage} className="bg-white text-emerald-600 px-6 py-2 rounded-xl text-xs font-black uppercase shadow-sm">LƯU VÀO KHO</button>
-                        </div>
-                    )}
                 </div>
               </div>
             </div>
