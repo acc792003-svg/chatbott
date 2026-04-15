@@ -109,7 +109,9 @@ QUY TẮC:
       try {
         // Lấy thông tin shop để ghim vào tin nhắn lỗi cho dễ tìm
         const { data: shop } = await supabaseAdmin.from('shops').select('name, code').eq('id', shopId).single();
-        const shopPrefix = shop ? `[SHOP: ${shop.name} - #${shop.code}] ` : '[KHÔNG RÕ SHOP] ';
+        const shopPrefix = shop 
+          ? `[SHOP: ${shop.name} - #${shop.code}] ` 
+          : `[LỖI MÃ: #${shopCode || 'Trống'}] `;
         
         await supabaseAdmin.from('error_logs').insert({
           shop_id: shopId,
