@@ -177,15 +177,33 @@ export default function SuperAdminPage() {
   };
 
   // ==================== KNOWLEDGE WORKSHOP ACTIONS ====================
+  const [processStatus, setProcessStatus] = useState('');
+
   const handleProcessKnowledge = async () => {
-    if (!rawContent.trim() || !industryName.trim() || !packageName.trim()) return alert('Thiếu thông tin nạp liệu!');
+    if (!rawContent.trim() || !industryName.trim() || !packageName.trim()) {
+        setProcessStatus('❌ Thiếu thông tin nạp liệu!');
+        return;
+    }
+    
     setIsProcessing(true);
+    setProcessStatus('🤖 Hệ thống đang gửi dữ liệu tới Gemini AI...');
+    
     try {
-      const res = await fetch('/api/admin/knowledge/process', { method: 'POST', body: JSON.stringify({ content: rawContent, voice: 'nhẹ nhàng', requesterId: currentUserId }) });
+      const res = await fetch('/api/admin/knowledge/process', { 
+        method: 'POST', 
+        body: JSON.stringify({ content: rawContent, voice: 'nhẹ nhàng', requesterId: currentUserId }) 
+      });
+      
       const data = await res.json();
       
+      if (data.error) {
+        setProcessStatus(`❌ Lỗi AI: ${data.error}`);
+        return;
+      }
+      
       if (data.result) {
-        // TỰ ĐỘNG LƯU VÀO KHO SAU KHI AI XỬ LÝ XONG
+        setProcessStatus('📦 AI đã phân tích xong. Đang đóng gói dữ liệu...');
+        
         const { error } = await supabase.from('knowledge_templates').insert({
             industry_name: industryName,
             package_name: packageName,
@@ -195,13 +213,21 @@ export default function SuperAdminPage() {
             example_content: rawContent
         });
         
-        if (error) throw error;
+        if (error) {
+            setProcessStatus(`❌ Lỗi lưu DB: ${error.message}`);
+            return;
+        }
         
-        alert(`✅ Đã luyện và đóng gói thành công: ${packageName}`);
-        setRawContent(''); setPackageName('');
-        fetchKnowledgePackages(); // Cập nhật lại kho ngay lập tức
+        setProcessStatus('✅ HOÀN THÀNH! Đã lưu vào kho.');
+        setRawContent(''); 
+        setPackageName('');
+        fetchKnowledgePackages(); 
       }
-    } catch (e: any) { alert('Lỗi xử lý AI: ' + e.message); } finally { setIsProcessing(false); }
+    } catch (e: any) { 
+        setProcessStatus(`❌ Lỗi hệ thống: ${e.message}`);
+    } finally { 
+        setIsProcessing(false); 
+    }
   };
 
   const handleUpdatePackage = async () => {
@@ -437,6 +463,11 @@ export default function SuperAdminPage() {
                         <textarea rows={10} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs font-medium focus:border-emerald-500 outline-none shadow-inner" placeholder="Dán văn bản bất kỳ để huấn luyện AI..." value={rawContent} onChange={e => setRawContent(e.target.value)}></textarea>
                     </div>
                     <button onClick={handleProcessKnowledge} disabled={isProcessing || !rawContent.trim()} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl hover:bg-emerald-700 transition-all flex items-center justify-center gap-3">{isProcessing ? 'AI Đang huấn luyện...' : 'BẮT ĐẦU LUYỆN'}</button>
+                    {processStatus && (
+                        <div className={cn("mt-3 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-2 duration-300", processStatus.includes('❌') ? "bg-red-50 text-red-600 border border-red-100" : processStatus.includes('✅') ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-inner")}>
+                            {processStatus}
+                        </div>
+                    )}
                 </div>
               </div>
             </div>
