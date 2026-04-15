@@ -412,6 +412,32 @@ export default function SuperAdminPage() {
     }
   };
 
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const handleSaveAsTemplate = async () => {
+    if (!processedResult) return;
+    const name = prompt('Nhập tên ngành hàng để lưu mẫu (ví dụ: Mỹ Phẩm Cao Cấp):', selectedTemplate?.industry_name || '');
+    if (!name) return;
+
+    setSavingTemplate(true);
+    try {
+        const { error } = await supabase.from('knowledge_templates').upsert({
+            id: selectedTemplate?.id,
+            industry_name: name,
+            product_info: processedResult.product_info,
+            faq: processedResult.faq,
+            insights: processedResult.insights,
+            example_content: rawContent
+        });
+        if (error) throw error;
+        alert('Đã lưu mẫu ngành thành công!');
+        fetchTemplates();
+    } catch (e: any) {
+        alert('Lỗi khi lưu mẫu: ' + e.message);
+    } finally {
+        setSavingTemplate(false);
+    }
+  };
+
   // ==================== RENDER ====================
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
@@ -744,7 +770,34 @@ export default function SuperAdminPage() {
                 <div className="p-3 bg-emerald-100 rounded-2xl">📥</div>
                 <div>
                   <h2 className="text-xl font-black text-slate-900">Trạm Nạp Nguyên Liệu Thô</h2>
-                  <p className="text-sm text-slate-500 font-medium">Dán văn bản bất kỳ để AI chắt lọc tri thức.</p>
+                  <p className="text-sm text-slate-500 font-medium">Dán văn bản bất kỳ hoặc chọn Mẫu ngành đã có.</p>
+                </div>
+              </div>
+
+              {/* Presets - Mẫu Ngành */}
+              <div className="mb-6">
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-3">📦 Mẫu ngành hiện có:</label>
+                <div className="flex flex-wrap gap-2">
+                    {knowledgeTemplates.map(t => (
+                        <button 
+                            key={t.id}
+                            onClick={() => {
+                                setSelectedTemplate(t);
+                                setRawContent(t.example_content || '');
+                                if (t.product_info) {
+                                    setProcessedResult({
+                                        product_info: t.product_info,
+                                        faq: t.faq || '',
+                                        insights: t.insights || ''
+                                    });
+                                }
+                            }}
+                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${selectedTemplate?.id === t.id ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-slate-100 bg-slate-50 text-slate-600 hover:border-slate-200'}`}
+                        >
+                            {t.industry_name}
+                        </button>
+                    ))}
+                    {knowledgeTemplates.length === 0 && <span className="text-xs text-slate-400 italic">Chưa có mẫu nào được lưu.</span>}
                 </div>
               </div>
 
@@ -816,13 +869,23 @@ export default function SuperAdminPage() {
                     </div>
                 </div>
                 {processedResult && (
+                  <div className="flex gap-2">
                     <button 
                         onClick={handlePushKnowledge}
                         disabled={pushingKnowledge}
                         className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-sm hover:bg-blue-700 shadow-md transition-all flex items-center gap-2"
                     >
-                        {pushingKnowledge ? 'ĐANG ĐẨY...' : '🚀 XUẤT XƯỞNG NGAY'}
+                        {pushingKnowledge ? '...' : '🚀 XUẤT XƯỞNG'}
                     </button>
+                    <button 
+                        onClick={handleSaveAsTemplate}
+                        disabled={savingTemplate}
+                        className="bg-emerald-100 text-emerald-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-200 transition-all flex items-center gap-2 shadow-sm"
+                        title="Lưu kết quả này thành Mẫu ngành để dùng cho các Shop PRO khác"
+                    >
+                        {savingTemplate ? '...' : '💾 LƯU MẪU'}
+                    </button>
+                  </div>
                 )}
               </div>
 
