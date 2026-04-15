@@ -664,7 +664,9 @@ function LogsView({errorLogs}: any) {
                             )}
 
                             {/* Nội dung lỗi */}
-                            <span className="text-xs font-bold text-slate-700 truncate">{l.error_message}</span>
+                            <span className="text-xs font-bold text-slate-700 leading-relaxed py-1 block">
+                                {l.error_message}
+                            </span>
                         </div>
                         
                         <div className="text-[10px] font-black text-slate-300 uppercase whitespace-nowrap">
