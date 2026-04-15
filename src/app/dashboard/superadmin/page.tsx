@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { 
@@ -135,10 +137,10 @@ export default function SuperAdminPage() {
   const fetchApiKeys = async () => {
     const { data } = await supabase.from('system_settings').select('*');
     if (data) {
-      const k1 = data.find(d => d.key === 'gemini_api_key_1')?.value || '';
-      const k2 = data.find(d => d.key === 'gemini_api_key_2')?.value || '';
-      const kp = data.find(d => d.key === 'gemini_api_key_pro')?.value || '';
-      const fb = data.find(d => d.key === 'fb_verify_token')?.value || '';
+      const k1 = data.find((d: any) => d.key === 'gemini_api_key_1')?.value || '';
+      const k2 = data.find((d: any) => d.key === 'gemini_api_key_2')?.value || '';
+      const kp = data.find((d: any) => d.key === 'gemini_api_key_pro')?.value || '';
+      const fb = data.find((d: any) => d.key === 'fb_verify_token')?.value || '';
       setApiKey1(k1);
       setApiKey2(k2);
       setApiKeyPro(kp);
