@@ -47,13 +47,11 @@ export async function POST(req: Request) {
         throw new Error('Không tìm thấy JSON');
       }
       return NextResponse.json({ result });
-    } catch (e) {
+    } catch (e: any) {
       console.error('Lỗi parse JSON từ AI:', aiResponse);
-      const isSafetyError = aiResponse.includes('Candidate was blocked') || aiResponse.length < 5;
+      const errorDetail = aiResponse ? aiResponse.substring(0, 100) : 'AI không phản hồi';
       return NextResponse.json({ 
-        error: isSafetyError 
-          ? 'AI từ chối xử lý nội dung này vì lý do an toàn hoặc từ ngữ nhạy cảm. Bạn hãy thử chỉnh lại nội dung thô nhé!' 
-          : 'AI trả về định dạng lạ. Bạn hãy thử nhấn nút lại lần nữa nhé!',
+        error: `AI trả về định dạng lạ: "${errorDetail}..."`,
         raw: aiResponse 
       }, { status: 500 });
     }
