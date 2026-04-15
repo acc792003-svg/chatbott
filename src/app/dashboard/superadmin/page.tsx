@@ -648,18 +648,18 @@ function LogsView({errorLogs}: any) {
                 {errorLogs.map((l: any) => (
                     <div key={l.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4 flex-1">
-                            {/* Nguồn lỗi label */}
+                            {/* Nhãn nguồn lỗi / Mã Shop */}
                             <span className={cn(
                                 "px-2 py-1 rounded-md text-[9px] font-black uppercase whitespace-nowrap",
-                                l.source === 'API_CHAT_WIDGET' ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
+                                l.source === 'API_CHAT_WIDGET' ? "bg-amber-100 text-amber-600 border border-amber-200" : "bg-indigo-100 text-indigo-600 border border-indigo-200"
                             )}>
-                                {l.source === 'API_CHAT_WIDGET' ? 'Shop Widget' : 'Xưởng AI'}
+                                {l.source === 'API_CHAT_WIDGET' ? (l.shops?.code ? `#${l.shops.code}` : 'Shop Widget') : 'Xưởng AI'}
                             </span>
                             
-                            {/* Thông tin Shop */}
+                            {/* Tên Shop (nếu có) */}
                             {l.shops && (
-                                <span className="text-[10px] font-black text-slate-900 bg-white px-2 py-1 rounded shadow-sm">
-                                    {l.shops.name} <span className="text-indigo-500">#{l.shops.code}</span>
+                                <span className="text-[10px] font-black text-slate-400">
+                                    {l.shops.name}
                                 </span>
                             )}
 
