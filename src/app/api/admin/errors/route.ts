@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
+    const { supabase, supabaseAdmin } = await import('@/lib/supabase');
+    const client = supabaseAdmin || supabase;
+    if (!client) return NextResponse.json({ error: 'DB Connection Error' }, { status: 500 });
     
-    const { data } = await supabaseAdmin
+    const { data } = await client
       .from('error_logs')
       .select('*')
       .order('created_at', { ascending: false })

@@ -38,7 +38,21 @@ export default function SuperAdminPage() {
   const [showErrors, setShowErrors] = useState(false);
 
   // Active tab
-  const [activeTab, setActiveTab] = useState<'shops' | 'apikeys' | 'errors' | 'config'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'apikeys' | 'errors' | 'config' | 'knowledge'>('shops');
+
+  // Knowledge Workshop States
+  const [rawContent, setRawContent] = useState('');
+  const [targetCodes, setTargetCodes] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState('nhẹ nhàng');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processedResult, setProcessedResult] = useState<{
+    product_info: string;
+    faq: string;
+    insights: string;
+  } | null>(null);
+  const [pushingKnowledge, setPushingKnowledge] = useState(false);
+  const [knowledgeTemplates, setKnowledgeTemplates] = useState<any[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
 
   // Trial Template Configuration
   const [trialTemplateCode, setTrialTemplateCode] = useState('');
@@ -69,6 +83,7 @@ export default function SuperAdminPage() {
       fetchShops();
       fetchApiKeys();
       fetchErrorLogs();
+      fetchTemplates();
     } else {
       setLoading(false);
     }
@@ -113,6 +128,14 @@ export default function SuperAdminPage() {
       const res = await fetch('/api/admin/errors');
       const data = await res.json();
       if (data.errors) setErrorLogs(data.errors);
+    } catch (e) {}
+  };
+
+  const fetchTemplates = async () => {
+    try {
+      const res = await fetch('/api/admin/knowledge-templates');
+      const data = await res.json();
+      if (data.templates) setKnowledgeTemplates(data.templates);
     } catch (e) {}
   };
 
@@ -256,22 +279,6 @@ export default function SuperAdminPage() {
   const handleSaveApiKeys = async () => {
     setSavingKeys(true);
     try {
-      // Lưu key 1
-      const res1 = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'gemini_api_key_1', value: apiKey1, requesterId: currentUserId })
-      });
-      const r1 = await res1.json();
-      if (r1.error) throw new Error(r1.error);
-
-      // Lưu key 2
-      const res2 = await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'gemini_api_key_2', value: apiKey2, requesterId: currentUserId })
-      });
-      const r2 = await res2.json();
       const res = await fetch('/api/admin/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -351,6 +358,60 @@ export default function SuperAdminPage() {
     }
   };
 
+  const handleProcessKnowledge = async () => {
+    if (!rawContent.trim()) return alert('Vui lòng nhập nội dung thô!');
+    setIsProcessing(true);
+    setProcessedResult(null);
+
+    try {
+      const res = await fetch('/api/admin/knowledge/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: rawContent, 
+          voice: selectedVoice,
+          requesterId: currentUserId 
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setProcessedResult(data.result);
+    } catch (e: any) {
+      alert('Lỗi xử lý AI: ' + e.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePushKnowledge = async () => {
+    const codeList = targetCodes.trim().split(/\s+/).filter(c => c.length > 0);
+    if (!processedResult || codeList.length === 0) return alert('Thiếu thông tin kết quả hoặc mã shop!');
+    setPushingKnowledge(true);
+
+    try {
+      const res = await fetch('/api/admin/knowledge/push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          codes: codeList,
+          data: processedResult,
+          voice: selectedVoice,
+          requesterId: currentUserId
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      alert(`🚀 Thành công! Đã cập nhật tri thức cho ${data.count} shops.`);
+      setProcessedResult(null);
+      setRawContent('');
+      setTargetCodes('');
+    } catch (e: any) {
+      alert('Lỗi xuất xưởng: ' + e.message);
+    } finally {
+      setPushingKnowledge(false);
+    }
+  };
+
   // ==================== RENDER ====================
   if (loading) return <div className="p-8">Đang tải dữ liệu...</div>;
 
@@ -389,6 +450,9 @@ export default function SuperAdminPage() {
         </button>
         <button onClick={() => setActiveTab('config')} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'config' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
           ⚙️ Cấu hình
+        </button>
+        <button onClick={() => { setActiveTab('knowledge'); fetchTemplates(); }} className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeTab === 'knowledge' ? 'bg-emerald-600 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}>
+          🏭 Xưởng Tri Thức
         </button>
       </div>
 
@@ -670,41 +734,138 @@ export default function SuperAdminPage() {
         </div>
       )}
 
-      {/* ==================== TAB: CONFIG ==================== */}
-      {activeTab === 'config' && (
-        <div className="glass rounded-[2.5rem] p-8 shadow-xl max-w-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 bg-indigo-100 rounded-2xl">⚙️</div>
-            <div>
-              <h2 className="text-xl font-black text-slate-900">Cấu hình Hệ thống</h2>
-              <p className="text-sm text-slate-500 font-medium">Thiết lập các thông số vận hành mặc định.</p>
+      {/* ==================== TAB: KNOWLEDGE WORKSHOP ==================== */}
+      {activeTab === 'knowledge' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in slide-in-from-right-4 duration-500">
+          {/* Cột 1: Input & Cấu hình */}
+          <div className="space-y-6">
+            <div className="glass rounded-[2rem] p-8 shadow-xl border-white/40">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-emerald-100 rounded-2xl">📥</div>
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Trạm Nạp Nguyên Liệu Thô</h2>
+                  <p className="text-sm text-slate-500 font-medium">Dán văn bản bất kỳ để AI chắt lọc tri thức.</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                    <label className="block text-xs font-bold uppercase text-slate-400 mb-2">📄 Nội dung thô (Dán text vào đây)</label>
+                    <textarea 
+                        rows={12}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-sm focus:border-emerald-500 outline-none transition-all font-medium"
+                        placeholder="Ví dụ: Lịch sử shop, danh sách sản phẩm, các cuộc hội thoại cũ..."
+                        value={rawContent}
+                        onChange={(e) => setRawContent(e.target.value)}
+                    ></textarea>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-400 mb-2">🎭 Giọng văn muốn tạo</label>
+                        <select 
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 text-sm font-bold outline-none"
+                            value={selectedVoice}
+                            onChange={(e) => setSelectedVoice(e.target.value)}
+                        >
+                            <option value="nhẹ nhàng">🌸 Nhẹ nhàng, ấm áp</option>
+                            <option value="bán hàng">🔥 Bán hàng, thúc đẩy</option>
+                            <option value="sang trọng">💎 Sang trọng, đẳng cấp</option>
+                            <option value="hài hước">🤣 Hài hước, duyên dáng</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold uppercase text-slate-400 mb-2">🏪 Cấp cho các mã Shop (cách nhau khoảng trống)</label>
+                        <input 
+                            type="text" 
+                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 text-sm font-bold outline-none uppercase"
+                            placeholder="VD: 70WPN 88ABC"
+                            value={targetCodes}
+                            onChange={(e) => setTargetCodes(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <button 
+                    onClick={handleProcessKnowledge}
+                    disabled={isProcessing || !rawContent.trim()}
+                    className="w-full bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-emerald-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {isProcessing ? (
+                        <>
+                            <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                            ĐANG NẤU TRI THỨC...
+                        </>
+                    ) : (
+                        <>🔥 BẮT ĐẦU LUYỆN TRI THỨC (AI)</>
+                    )}
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold uppercase text-slate-500 mb-2">🏪 Mã Shop Mẫu (Dùng thử)</label>
-              <input 
-                type="text" 
-                value={trialTemplateCode} 
-                onChange={e => setTrialTemplateCode(e.target.value.toUpperCase())}
-                placeholder="VD: 70WPN"
-                className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-bold text-sm focus:border-indigo-500 outline-none transition-all"
-              />
-            </div>
+          {/* Cột 2: Kết quả xem trước & Edit */}
+          <div className="space-y-6">
+            <div className="glass rounded-[2rem] p-8 shadow-xl border-white/40 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-100 rounded-2xl">✨</div>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-900">Kết Quả Xuất Xưởng</h2>
+                        <p className="text-sm text-slate-500 font-medium">Kiểm tra và chỉnh sửa trước khi lưu.</p>
+                    </div>
+                </div>
+                {processedResult && (
+                    <button 
+                        onClick={handlePushKnowledge}
+                        disabled={pushingKnowledge}
+                        className="bg-blue-600 text-white px-6 py-2 rounded-xl font-black text-sm hover:bg-blue-700 shadow-md transition-all flex items-center gap-2"
+                    >
+                        {pushingKnowledge ? 'ĐANG ĐẨY...' : '🚀 XUẤT XƯỞNG NGAY'}
+                    </button>
+                )}
+              </div>
 
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-xs text-indigo-700 font-medium leading-relaxed">
-              <strong>💡 Giải thích:</strong> Đây là mã Shop mà hệ thống sẽ lấy dữ liệu "Cấu hình Chatbot" để nhân bản (copy) 
-              sang cho những người dùng mới bấm vào nút <strong>Dùng thử miễn phí</strong>.
-            </div>
+              {processedResult ? (
+                <div className="space-y-6 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-[10px] font-black text-blue-500 uppercase mb-2">📦 Product Info (Đoạn tóm tắt)</label>
+                        <textarea 
+                            className="w-full text-sm font-medium leading-relaxed bg-transparent border-none p-0 focus:ring-0 outline-none"
+                            rows={6}
+                            value={processedResult.product_info}
+                            onChange={(e) => setProcessedResult({...processedResult, product_info: e.target.value})}
+                        ></textarea>
+                    </div>
 
-            <button 
-              onClick={handleSaveConfig}
-              disabled={savingConfig}
-              className="w-full bg-indigo-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-indigo-700 transition-all disabled:opacity-50 uppercase tracking-widest"
-            >
-              {savingConfig ? 'Đang lưu...' : 'LƯU CẤU HÌNH'}
-            </button>
+                    <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <label className="block text-[10px] font-black text-emerald-500 uppercase mb-2">❓ FAQ (Câu hỏi thường gặp)</label>
+                        <textarea 
+                            className="w-full text-sm font-medium leading-relaxed bg-transparent border-none p-0 focus:ring-0 outline-none"
+                            rows={8}
+                            value={processedResult.faq}
+                            onChange={(e) => setProcessedResult({...processedResult, faq: e.target.value})}
+                        ></textarea>
+                    </div>
+
+                    <div className="p-5 bg-amber-50 rounded-2xl border border-amber-100 shadow-sm">
+                        <label className="block text-[10px] font-black text-amber-600 uppercase mb-2">💡 Insight khách hàng (Chiến thuật níu kéo)</label>
+                        <textarea 
+                            className="w-full text-sm font-medium leading-relaxed bg-transparent border-none p-0 focus:ring-0 outline-none italic text-slate-600"
+                            rows={6}
+                            value={processedResult.insights}
+                            onChange={(e) => setProcessedResult({...processedResult, insights: e.target.value})}
+                        ></textarea>
+                    </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
+                    <div className="w-24 h-24 bg-slate-100 rounded-full mb-4 flex items-center justify-center text-4xl">🧪</div>
+                    <p className="font-bold text-slate-900">Chưa có thành phẩm</p>
+                    <p className="text-sm">Hãy nạp nguyên liệu ở cột bên trái và nhấn nút xử lý.</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

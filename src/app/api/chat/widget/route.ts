@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
-    const { data: configData } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', shop?.id).single();
+    const { data: configData } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq, customer_insights, brand_voice').eq('shop_id', shop?.id).single();
     
     let config = configData;
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
       const { data: sourceShop } = await supabaseAdmin.from('shops').select('id').eq('code', templateCode).single();
       if (sourceShop) {
-        const { data: sourceConfig } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', sourceShop.id).single();
+        const { data: sourceConfig } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq, customer_insights, brand_voice').eq('shop_id', sourceShop.id).single();
         if (sourceConfig) {
           config = sourceConfig;
         }
@@ -30,23 +30,25 @@ export async function POST(req: Request) {
     
     const shopName = config?.shop_name || shop?.name || 'Shop';
     const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
+    const voice = config?.brand_voice || 'nhẹ nhàng, ấm áp';
+    const insights = config?.customer_insights || 'Hãy luôn chân thành và chủ động giúp đỡ khách hàng.';
 
     const systemPrompt = `
 BẠN LÀ AI?
-- Bạn là một "Người bạn đồng hành thông minh" của shop "${shopName}".
+- Bạn là một "Người bạn đồng hành tâm hồn" của shop "${shopName}". 
+- Tính cách & Giọng văn: ${voice}. Bạn không chỉ là AI, bạn là một người bạn luôn quan tâm đến cảm xúc của khách hàng.
 - Hôm nay là: ${now}.
-- Tính cách: Thân thiện, ấm áp, có khiếu hài hước duyên dáng.
 
-NHIỆM VỤ:
-1. TRÒ CHUYỆN: Nếu khách hỏi về cuộc sống, tâm sự, hãy trả lời như một người bạn thân thiết.
-2. TƯ VẤN: Sử dụng dữ liệu dưới đây tự nhiên nhất.
-   - Sản phẩm: ${config?.product_info || 'Yến sào cao cấp và các mặt hàng sức khỏe'}
-   - Câu hỏi thường gặp: ${config?.faq || 'Tư vấn nhiệt tình 24/7'}
+NHIỆM VỤ CHIẾN LƯỢC:
+1. CHIẾN THUẬT NÍU KÉO (CUSTOMER INSIGHTS): ${insights}
+2. NÍU KÉO & GẮN KẾT: Luôn tìm cách kết thúc câu trả lời bằng một câu hỏi gợi mở hoặc một lời chúc, lời hỏi thăm chân thành.
+3. TRÒ CHUYỆN: Khách tâm lý, tâm sự thì hãy đồng cảm sâu sắc.
+4. TƯ VẤN KHÉO LÉO: Đừng chỉ quăng thông tin sản phẩm, hãy lồng ghép nó vào lợi ích cho khách.
+   - Sản phẩm: ${config?.product_info || 'Sản phẩm tâm huyết từ cửa hàng'}
+   - FAQ: ${config?.faq || 'Tư vấn nhiệt tình 24/7'}
 
 QUY TẮC:
-- Xưng hô linh hoạt: "Dạ", "Em", "Mình", "Bạn".
-- Tuyệt đối không liệt kê máy móc 1, 2, 3 trừ khi khách yêu cầu.
-- Luôn giữ thái độ tích cực, truyền năng lượng tốt.
+- Xưng hô linh hoạt, lễ phép. Tránh trả lời máy móc.
 `;
 
     // Chuyển đổi lịch sử chat từ frontend sang định dạng của Gemini
@@ -62,20 +64,28 @@ QUY TẮC:
       { role: 'user', parts: [{ text: message }] }
     ];
 
-    const finalResponse = await callGeminiWithFallback(contents, {
-      temperature: 0.8,
-      maxOutputTokens: 800
-    }, shop?.id || null);
+    const finalResponse = await callGeminiWithFallback(
+      contents.map(c => 
+        c.role === 'user' && c.parts[0].text === message && message === '[WELCOME]' 
+        ? { ...c, parts: [{ text: "Chào bạn! Hãy gửi cho mình một lời chào thật ấm áp, sâu sắc và chủ động hỏi thăm mình nhé. Đừng quên giới thiệu bạn là trợ lý của shop." }] } 
+        : c
+      ), 
+      { temperature: 0.8, maxOutputTokens: 800 }, 
+      shop?.id || null
+    );
 
     // Lưu tin nhắn vào database
     if (shop?.id) {
-      await supabaseAdmin.from('messages').insert({
-        shop_id: shop.id,
-        session_id: `widget-${Date.now()}`,
-        user_message: message,
-        ai_response: finalResponse,
-        usage_tokens: 0
-      });
+      // Không lưu tin nhắn chào mừng tự động vào DB lịch sử để tránh loãng
+      if (message !== '[WELCOME]') {
+        await supabaseAdmin.from('messages').insert({
+          shop_id: shop.id,
+          session_id: `widget-${Date.now()}`,
+          user_message: message,
+          ai_response: finalResponse,
+          usage_tokens: 0
+        });
+      }
 
       // Tự động xóa tin nhắn cũ hơn 10 ngày để nhẹ DB
       const tenDaysAgo = new Date();

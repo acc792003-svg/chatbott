@@ -40,10 +40,10 @@ export async function getDetailedApiKeys(isPro: boolean = false): Promise<Detail
     }
   } catch (e) {}
 
-  // Fallback .env.local nếu không có key nào
-  if (keys.length === 0) {
-    const envKey = (process.env.GEMINI_API_KEY || '').trim();
-    if (envKey) keys.push({ name: 'Key .ENV', value: envKey });
+  // Luôn thêm key từ .env.local vào cuối danh sách như phương án dự phòng cuối cùng
+  const envKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (envKey && !keys.find(k => k.value === envKey)) {
+    keys.push({ name: 'Key .ENV', value: envKey });
   }
   
   return keys;

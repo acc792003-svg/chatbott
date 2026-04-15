@@ -59,3 +59,83 @@ Thông minh và Tiết kiệm:
 Hệ thống sẽ tự động thử các Key theo thứ tự ưu tiên: Key PRO -> Key 1 -> Key 2.
 Nếu phát hiện Key nào bị sai (Invalid), nó sẽ bỏ qua Key đó ngay lập tức để tiết kiệm thời gian chờ cho khách.
 Bây giờ bạn có thể hoàn toàn yên tâm ngồi theo dõi hệ thống, nếu có bất kỳ Key nào "có vấn đề", bạn sẽ biết chính xác là cái nào để vào thay thế kịp thời! ✅_    ######
+
+------KEY-----
+
+
+1. Ưu tiên và lấy API Keys từ cả 2 nguồn:
+Tôi đã chỉnh sửa logic trong src/lib/gemini.ts. Giờ đây, hệ thống sẽ:
+
+Thử các Key trong Database trước: Lấy từ mục "Quản lý API Key Gemini" mà bạn đã nhập ở Super Admin.
+Thử Key trong .env.local cuối cùng: Luôn thêm key từ file cấu hình vào cuối danh sách như một phương án dự phòng cuối cùng (Last Resort). Điều này đảm bảo nếu tất cả key trong DB bị lỗi hoặc chưa nhập, hệ thống vẫn còn key trong file để chạy.
+2. Đảm bảo mọi lỗi đều báo về Super Admin:
+Ghi log chi tiết: Mọi lỗi phát sinh trong quá trình gọi AI (bao gồm: sai key, hết hạn, model không phản hồi, lỗi kết nối...) đều được ghi lại vào bảng error_logs.
+Cải thiện API lấy lỗi: Tôi đã cập nhật file /api/admin/errors để đảm bảo nó luôn hiển thị được lỗi lên Dashboard kể cả khi cấu hình supabaseAdmin gặp trục trặc (bằng cách dùng client dự phòng).
+3. Các file đã được cập nhật:
+src/lib/gemini.ts: Chỉnh lại thứ tự ưu tiên API Key và đảm bảo log mọi lỗi.
+src/app/api/admin/errors/route.ts: Cập nhật API để Super Admin xem được danh sách lỗi ổn định hơn.
+src/app/api/admin/settings/route.ts: Cập nhật API để quản lý API Key từ Dashboard hoạt động tốt nhất.
+Bạn hãy thử chat lại với chatbot:
+
+Nếu có lỗi xảy ra, bạn hãy vào Super Admin -> Tab "Nhật ký Lỗi" và bấm "Làm mới" 🔄. Mọi thông tin chi tiết về việc Key nào lỗi, Model nào không chạy sẽ hiện ra ở đó để bạn dễ dàng xử lý.
+Nếu bạn đã thêm SUPABASE_SERVICE_ROLE_KEY vào .env.local, hệ thống sẽ hoạt động với đầy đủ quyền hạn và độ bảo mật cao nhất.
+
+---------------------------------------------
+
+
+
+Gợi ý về "Script chuẩn hóa tri thức" của mình sẽ tập trung vào việc biến những tập tin văn bản thô (như các file .txt bạn đang có) thành một "bộ não" tinh gọn, có cấu trúc và giàu cảm xúc để dán vào Dashboard.
+
+Dưới đây là ý tưởng về cách script này hoạt động:
+
+1. Quy trình của Script (Concept)
+Script này sẽ sử dụng chính API Gemini để "đọc hiểu" và "viết lại" dữ liệu của bạn theo 3 bước:
+
+Bước 1 - Lọc nhiễu: Loại bỏ các thông tin thừa, các câu từ lặp lại không cần thiết trong file gốc.
+Bước 2 - Chuyển đổi Q&A: Biến các đoạn mô tả khô khan thành các cặp Câu hỏi - Câu trả lời (FAQ) theo phong cách trò chuyện.
+Bước 3 - Thổi hồn (Emotional Rewrite): Chỉnh sửa văn phong của toàn bộ dữ liệu sang kiểu "ấm áp, tình cảm" như bạn mong muốn.
+2. Cấu trúc đầu ra (Output chuẩn)
+Thay vì một file text dài, script sẽ xuất ra một định dạng cực kỳ dễ dùng cho Dashboard, ví dụ:
+
+json
+{
+  "product_info": "Tóm tắt 5-10 dòng tinh túy nhất về sản phẩm, lồng ghép sự trân trọng.",
+  "faq_optimized": [
+    {
+      "q": "Khách hỏi về giá...",
+      "a": "Trả lời khéo léo, nhấn mạnh vào giá trị sức khỏe và tình thân thay vì con số."
+    },
+    {
+      "q": "Khách phân vân...",
+      "a": "Lời an ủi và cam kết đồng hành nhẹ nhàng."
+    }
+  ]
+}
+3. Ví dụ về một đoạn Script nhỏ (Node.js) để bạn tham khảo ý tưởng:
+Bạn có thể tạo một file standardize.js trong thư mục gốc. Khi chạy, nó sẽ đọc file FAQ.txt và trả về kết quả đã được "tối ưu hóa":
+
+javascript
+// Ý tưởng script (Bạn có thể chạy thử nếu muốn)
+const fs = require('fs');
+// Gọi API Gemini để xử lý văn bản
+async function standardize(fileName) {
+  const rawData = fs.readFileSync(fileName, 'utf-8');
+  
+  const prompt = `
+    Dưới đây là dữ liệu thô của shop. Hãy giúp mình:
+    1. Trích xuất các ý chính về sản phẩm (Product Info).
+    2. Chuyển các thông tin khác thành bộ FAQ (Câu hỏi - Trả lời).
+    3. QUAN TRỌNG: Hãy viết lại toàn bộ bằng văn phong cực kỳ TÌNH CẢM, ẤM ÁP, chân thành.
+    
+    Dữ liệu thô: ${rawData}
+  `;
+  
+  // Gửi prompt này lên Gemini và nhận về kết quả đã "chuẩn hóa"
+  // Sau đó bạn chỉ việc copy results dán vào Dashboard.
+}
+4. Tại sao cái này lại "Lợi hại"?
+Tiết kiệm Token: AI không phải đọc đi đọc lại những thứ rác, giúp chatbot phản hồi nhanh hơn và ít tốn API key hơn.
+Đồng nhất tính cách: Bạn không sợ AI lúc thì trả lời khô khan, lúc thì tình cảm vì "nguồn tri thức" đầu vào đã được nhuộm màu tình cảm ngay từ đầu.
+Dễ bảo trì: Mỗi lần bạn có thông tin mới, chỉ cần ném vào script này xử lý rồi update Dashboard là xong.
+Ý kiến của mình: Bạn nên làm một cái trang nhỏ trong mục Super Admin gọi là "Xưởng Tri Thức", nơi bạn dán văn bản thô vào, nhấn nút và nó "nấu" ra nội dung chuẩn để bạn copy cho các Shop. Bạn thấy ý tưởng "Xưởng Tri Thức" này thế nào?
+

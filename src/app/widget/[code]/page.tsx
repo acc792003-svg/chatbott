@@ -15,7 +15,7 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
   const code = resolvedParams.code;
   
   const [messages, setMessages] = useState<Message[]>([
-    { role: 'assistant', content: 'Chào bạn! Tôi có thể giúp gì cho bạn hôm nay?' }
+    { role: 'assistant', content: 'Đang kết nối cùng trợ lý...' }
   ]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,6 +51,27 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Lấy lời chào tự động khi vừa mở widget
+  useEffect(() => {
+    const fetchGreeting = async () => {
+      try {
+        const res = await fetch('/api/chat/widget', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: '[WELCOME]', code: code, history: [] }),
+        });
+        const data = await res.json();
+        if (data.response) {
+          setMessages([{ role: 'assistant', content: data.response }]);
+        }
+        if (data.shop_name) setShopName(data.shop_name);
+      } catch (e) {
+        console.error('Không lấy được lời chào:', e);
+      }
+    };
+    fetchGreeting();
+  }, [code]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
