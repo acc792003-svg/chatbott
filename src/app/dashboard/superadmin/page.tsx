@@ -90,7 +90,7 @@ export default function SuperAdminPage() {
         // Fetch chatbot icons for each shop
         const { data: configs } = await supabase.from('chatbot_configs').select('shop_id, head_icon');
         const iconMap: any = {};
-        configs?.forEach(c => iconMap[c.shop_id] = c.head_icon);
+        configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
         setActiveIcons(iconMap);
     }
     setLoading(false);
@@ -142,6 +142,14 @@ export default function SuperAdminPage() {
     const expiry = newPlan === 'pro' ? new Date(Date.now() + 30*24*60*60*1000).toISOString() : null;
     await supabase.from('shops').update({ plan: newPlan, plan_expiry_date: expiry }).eq('id', shop.id);
     fetchShops();
+  };
+
+  const handleDeleteShop = async (id: string, name: string) => {
+    if (!confirm(`Bạn có chắc muốn xóa shop "${name}"?`)) return;
+    try {
+      await supabase.from('shops').delete().eq('id', id);
+      fetchShops();
+    } catch (e: any) { alert(e.message); }
   };
 
   const handleUpdateDeeplink = async (shopId: string, path: string) => {
