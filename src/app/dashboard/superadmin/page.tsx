@@ -183,24 +183,25 @@ export default function SuperAdminPage() {
     try {
       const res = await fetch('/api/admin/knowledge/process', { method: 'POST', body: JSON.stringify({ content: rawContent, voice: 'nhẹ nhàng', requesterId: currentUserId }) });
       const data = await res.json();
-      setProcessedResult(data.result);
-    } catch (e) { alert('Lỗi AI!'); } finally { setIsProcessing(false); }
-  };
-
-  const handleSavePackage = async () => {
-    if (!processedResult) return;
-    const { error } = await supabase.from('knowledge_templates').insert({
-        industry_name: industryName,
-        package_name: packageName,
-        product_info: processedResult.product_info,
-        faq: processedResult.faq,
-        insights: processedResult.insights,
-        example_content: rawContent
-    });
-    if (error) throw error;
-    alert('✅ Đã lưu gói vào kho!');
-    setProcessedResult(null); setRawContent(''); setPackageName('');
-    fetchKnowledgePackages();
+      
+      if (data.result) {
+        // TỰ ĐỘNG LƯU VÀO KHO SAU KHI AI XỬ LÝ XONG
+        const { error } = await supabase.from('knowledge_templates').insert({
+            industry_name: industryName,
+            package_name: packageName,
+            product_info: data.result.product_info,
+            faq: data.result.faq,
+            insights: data.result.insights,
+            example_content: rawContent
+        });
+        
+        if (error) throw error;
+        
+        alert(`✅ Đã luyện và đóng gói thành công: ${packageName}`);
+        setRawContent(''); setPackageName('');
+        fetchKnowledgePackages(); // Cập nhật lại kho ngay lập tức
+      }
+    } catch (e: any) { alert('Lỗi xử lý AI: ' + e.message); } finally { setIsProcessing(false); }
   };
 
   const handleUpdatePackage = async () => {
