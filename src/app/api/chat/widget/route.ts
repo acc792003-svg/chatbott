@@ -96,6 +96,22 @@ QUY TẮC:
     return NextResponse.json({ response: finalResponse, shop_name: shopName });
 
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 503 });
+    console.error('Lỗi Chatbot Widget:', error);
+    
+    // GHI LOG LỖI VÀO DB ĐỂ SUPER ADMIN BIẾT
+    if (supabaseAdmin) {
+      try {
+        await supabaseAdmin.from('error_logs').insert({
+          error_type: 'CHATBOT_WIDGET_ERROR',
+          error_message: error.message || 'Lỗi không xác định',
+          source: 'API_CHAT_WIDGET'
+        });
+      } catch (logErr) {}
+    }
+
+    return NextResponse.json({ 
+      response: "Dạ, em (Trợ lý ảo của shop) đang gặp chút gián đoạn kết nối kỹ thuật. Anh/chị vui lòng đợi em giây lát hoặc thử lại nhé. Shop xin lỗi vì sự bất tiện này ạ! 🙏",
+      error: error.message 
+    }, { status: 200 }); 
   }
 }

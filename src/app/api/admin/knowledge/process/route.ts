@@ -61,10 +61,26 @@ export async function POST(req: Request) {
         }
       }
       
+      // GHI LOG LỖI VÀO DB ĐỂ THEO DÕI
+      if (supabaseAdmin) {
+        await supabaseAdmin.from('error_logs').insert({
+          error_type: 'AI_PROCESS_ERROR',
+          error_message: `Định dạng lạ: ${aiResponse.substring(0, 50)}...`,
+          source: 'API_KNOWLEDGE_PROCESS'
+        });
+      }
       return NextResponse.json({ error: `Định dạng lạ: ${aiResponse.substring(0, 50)}...` }, { status: 500 });
     }
 
   } catch (error: any) {
+    // GHI LOG LỖI VÀO DB ĐỂ THEO DÕI
+    if (supabaseAdmin) {
+      await supabaseAdmin.from('error_logs').insert({
+        error_type: 'AI_PROCESS_ERROR',
+        error_message: error.message || 'Lỗi bóc tách JSON',
+        source: 'API_KNOWLEDGE_PROCESS'
+      });
+    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
