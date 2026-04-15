@@ -107,10 +107,14 @@ QUY TẮC:
     // GHI LOG LỖI VÀO DB ĐỂ SUPER ADMIN BIẾT
     if (supabaseAdmin) {
       try {
+        // Lấy thông tin shop để ghim vào tin nhắn lỗi cho dễ tìm
+        const { data: shop } = await supabaseAdmin.from('shops').select('name, code').eq('id', shopId).single();
+        const shopPrefix = shop ? `[SHOP: ${shop.name} - #${shop.code}] ` : '[KHÔNG RÕ SHOP] ';
+        
         await supabaseAdmin.from('error_logs').insert({
           shop_id: shopId,
           error_type: 'CHATBOT_WIDGET_ERROR',
-          error_message: error.message || 'Lỗi không xác định',
+          error_message: shopPrefix + (error.message || 'Lỗi không xác định'),
           source: 'API_CHAT_WIDGET'
         });
       } catch (logErr) {}
