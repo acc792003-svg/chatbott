@@ -1,7 +1,7 @@
 // Hệ thống tự động phát hiện và gọi model Gemini khả dụng
 // Với cơ chế retry thông minh, API key từ DB, và ghi log lỗi
 
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 const MODEL_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút
 let cachedModels: string[] = [];
@@ -17,9 +17,10 @@ export async function getDetailedApiKeys(isPro: boolean = false): Promise<Detail
   const keys: DetailedKey[] = [];
   
   try {
-    if (supabaseAdmin) {
+    const client = supabaseAdmin || supabase;
+    if (client) {
       const searchKeys = isPro ? ['gemini_api_key_pro'] : ['gemini_api_key_1', 'gemini_api_key_2'];
-      const { data } = await supabaseAdmin
+      const { data } = await client
         .from('system_settings')
         .select('key, value')
         .in('key', searchKeys);
@@ -48,18 +49,21 @@ export async function getDetailedApiKeys(isPro: boolean = false): Promise<Detail
   return keys;
 }
 
-// Ghi log lỗi vào database
+// Ghi log lỗi vào database (Ưu tiên dùng supabaseAdmin, nếu không có thì dùng supabase anon)
 async function logError(shopId: string | null, errorType: string, errorMessage: string, source: string) {
   try {
-    if (supabaseAdmin) {
-      await supabaseAdmin.from('error_logs').insert({
+    const client = supabaseAdmin || supabase;
+    if (client) {
+      await client.from('error_logs').insert({
         shop_id: shopId,
         error_type: errorType,
         error_message: errorMessage,
         source: source
       });
     }
-  } catch (e) {}
+  } catch (e) {
+    console.error('Lỗi khi ghi error_log:', e);
+  }
 }
 
 async function getAvailableModels(apiKey: string): Promise<string[]> {
@@ -92,7 +96,7 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
       }
     }
   } catch (e) {}
-  return ['models/gemini-2.1-flash', 'models/gemini-1.5-flash'];
+  return ['models/gemini-2.0-flash', 'models/gemini-1.5-flash'];
 }
 
 function delay(ms: number) {
@@ -106,12 +110,13 @@ export async function callGeminiWithFallback(
 ): Promise<string> {
   // 1. Kiểm tra trạng thái PRO của Shop
   let shopPlan: 'free' | 'pro' = 'free';
-  if (shopId && supabaseAdmin) {
-    const { data: shop } = await supabaseAdmin.from('shops').select('plan, plan_expiry_date').eq('id', shopId).single();
+  const client = supabaseAdmin || supabase;
+  if (shopId && client) {
+    const { data: shop } = await client.from('shops').select('plan, plan_expiry_date').eq('id', shopId).single();
     if (shop?.plan === 'pro') {
       const expiry = shop.plan_expiry_date ? new Date(shop.plan_expiry_date) : null;
       if (!expiry || expiry > new Date()) shopPlan = 'pro';
-      else await supabaseAdmin.from('shops').update({ plan: 'free' }).eq('id', shopId);
+      else await client.from('shops').update({ plan: 'free' }).eq('id', shopId);
     }
   }
 
@@ -172,9 +177,9 @@ export async function callGeminiWithFallback(
            break; // Chuyển sang key tiếp theo
         }
 
-        // Các lỗi khác
-        await logError(shopId || null, 'AI_ERROR', `[${keyObj.name}] Gặp lỗi: ${errorMsg}`, 'gemini');
-        break; 
+        // Các lỗi khác (404, 400, ...) → Log lại và thử model tiếp theo trong cùng key
+        await logError(shopId || null, 'AI_ERROR', `[${keyObj.name}] Model ${fullModelName} lỗi: ${errorMsg}`, 'gemini');
+        continue; 
 
       } catch (e: any) {
         lastError = `${keyObj.name}: ${e.message}`;

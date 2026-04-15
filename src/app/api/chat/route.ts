@@ -11,15 +11,16 @@ export async function POST(req: Request) {
 
     // Nếu shopConfig trống (VD: Shop dùng thử mới tạo), lấy mặc định từ shop mẫu
     if (!config || (!config.product_info && !config.faq)) {
-      const { supabaseAdmin } = await import('@/lib/supabase');
-      if (supabaseAdmin) {
+      const { supabase, supabaseAdmin } = await import('@/lib/supabase');
+      const client = supabaseAdmin || supabase;
+      if (client) {
         // Lấy mã shop mẫu từ cài đặt (mặc định 70WPN)
-        const { data: st } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
+        const { data: st } = await client.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
         const templateCode = st?.value || '70WPN';
 
-        const { data: sourceShop } = await supabaseAdmin.from('shops').select('id').eq('code', templateCode).single();
+        const { data: sourceShop } = await client.from('shops').select('id').eq('code', templateCode).single();
         if (sourceShop) {
-          const { data: sourceConfig } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', sourceShop.id).single();
+          const { data: sourceConfig } = await client.from('chatbot_configs').select('shop_name, product_info, faq').eq('shop_id', sourceShop.id).single();
           if (sourceConfig) config = sourceConfig;
         }
       }
