@@ -445,7 +445,8 @@ export default function SuperAdminPage() {
                                     </tr>
                                 )}
                             </Fragment>
-                        ))}
+                            );
+                        })}
                     </tbody>
                 </table>
             </div>
