@@ -39,20 +39,23 @@ export async function POST(req: Request) {
       maxOutputTokens: 2000
     }, null);
 
-    // Bóc tách JSON từ phản hồi của AI (xử lý trường hợp AI trả về markdown code block)
-    let cleanedResponse = aiResponse.trim();
-    if (cleanedResponse.startsWith('```json')) {
-      cleanedResponse = cleanedResponse.replace(/```json|```/g, '').trim();
-    } else if (cleanedResponse.startsWith('```')) {
-        cleanedResponse = cleanedResponse.replace(/```/g, '').trim();
-    }
-
+    // Bóc tách JSON một cách mạnh mẽ hơn bằng Regex
+    let result = null;
     try {
-      const result = JSON.parse(cleanedResponse);
+      // Tìm đoạn bắt đầu bằng { và kết thúc bằng }
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        result = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Không tìm thấy JSON');
+      }
       return NextResponse.json({ result });
     } catch (e) {
       console.error('Lỗi parse JSON từ AI:', aiResponse);
-      return NextResponse.json({ error: 'AI trả về định dạng không đúng. Hãy thử lại!' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'AI trả về định dạng không đúng hoặc bị nghẽn. Bạn hãy thử nhấn nút lại lần nữa nhé!',
+        raw: aiResponse 
+      }, { status: 500 });
     }
 
   } catch (error: any) {
