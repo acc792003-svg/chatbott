@@ -123,8 +123,7 @@ QUY TẮC:
     }
 
     return NextResponse.json({ 
-      response: "Dạ, em (Trợ lý ảo của shop) đang gặp chút gián đoạn kết nối kỹ thuật. Anh/chị vui lòng đợi em giây lát hoặc thử lại nhé. Shop xin lỗi vì sự bất tiện này ạ! 🙏",
-      error: error.message 
+      response: "Dạ, em (Trợ lý ảo của shop) đang gặp chút gián đoạn kết nối kỹ thuật. Anh/chị vui lòng đợi em giây lát hoặc thử lại nhé. Shop xin lỗi vì sự bất tiện này ạ! 🙏"
     }, { status: 200 }); 
   }
 }
