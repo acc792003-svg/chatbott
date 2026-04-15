@@ -32,20 +32,14 @@ export async function POST(req: Request) {
     const contents = [{ role: 'user', parts: [{ text: superPrompt }] }];
     
     const aiResponse = await callGeminiWithFallback(contents, {
-      temperature: 0.2, // Giảm temperature để AI bám sát định dạng JSON
-      maxOutputTokens: 2000
+      temperature: 0.1,
+      maxOutputTokens: 2000,
+      response_mime_type: "application/json" // Ép AI trả về JSON chuẩn
     }, null);
 
-    // Bóc tách JSON một cách mạnh mẽ hơn bằng Regex
-    let result = null;
+    // Xử lý kết quả
     try {
-      // Tìm đoạn bắt đầu bằng { và kết thúc bằng }
-      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Không tìm thấy JSON');
-      }
+      const result = JSON.parse(aiResponse.trim());
       return NextResponse.json({ result });
     } catch (e: any) {
       console.error('Lỗi parse JSON từ AI:', aiResponse);
