@@ -37,17 +37,31 @@ export async function POST(req: Request) {
       response_mime_type: "application/json" // Ép AI trả về JSON chuẩn
     }, null);
 
-    // Xử lý kết quả
+    // Xử lý bóc tách JSON mạnh mẽ hơn
+    let cleanedResponse = aiResponse.trim();
+    
+    // Loại bỏ markdown code blocks nếu có
+    if (cleanedResponse.startsWith('```')) {
+      cleanedResponse = cleanedResponse.replace(/^```json\n?/, '').replace(/```$/, '').trim();
+    }
+
     try {
-      const result = JSON.parse(aiResponse.trim());
+      const result = JSON.parse(cleanedResponse);
       return NextResponse.json({ result });
     } catch (e: any) {
-      console.error('Lỗi parse JSON từ AI:', aiResponse);
-      const errorDetail = aiResponse ? aiResponse.substring(0, 100) : 'AI không phản hồi';
-      return NextResponse.json({ 
-        error: `AI trả về định dạng lạ: "${errorDetail}..."`,
-        raw: aiResponse 
-      }, { status: 500 });
+      // Thử tìm JSON bằng Regex nếu parse trực tiếp thất bại
+      const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          const result = JSON.parse(jsonMatch[0].trim());
+          return NextResponse.json({ result });
+        } catch (innerError) {
+           console.error('Lỗi parse JSON sâu:', aiResponse);
+           return NextResponse.json({ error: 'Định dạng AI trả về không thể xử lý!', raw: aiResponse }, { status: 500 });
+        }
+      }
+      
+      return NextResponse.json({ error: `Định dạng lạ: ${aiResponse.substring(0, 50)}...` }, { status: 500 });
     }
 
   } catch (error: any) {
