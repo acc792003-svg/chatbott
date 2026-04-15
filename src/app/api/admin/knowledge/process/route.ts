@@ -15,27 +15,24 @@ export async function POST(req: Request) {
     }
 
     const superPrompt = `
-      BẠN LÀ MỘT CHUYÊN GIA BIÊN TẬP TRI THỨC AI CAO CẤP.
-      NHIỆM VỤ: Chắt lọc dữ liệu thô dưới đây thành cấu hình tri thức sạch cho chatbot.
-      GIỌNG VĂN YÊU CẦU: ${voice}
+      Nhiệm vụ: Chuyển đổi dữ liệu thô về sản phẩm thành cấu hình chatbot.
+      Giọng văn: ${voice}
 
-      DỮ LIỆU THÔ:
+      Dữ liệu cần xử lý:
       "${content}"
 
-      YÊU CẦU ĐẦU RA (TRẢ VỀ ĐỊNH DẠNG JSON CHÍNH XÁC):
+      BẮT BUỘC TRẢ VỀ JSON THEO ĐÚNG CẤU TRÚC SAU (KHÔNG GIẢI THÍCH THÊM):
       {
-        "product_info": "Đoạn mô tả ngắn gọn, tinh túy từ 5-10 dòng. Viết thật tình cảm và cuốn hút.",
-        "faq": "Danh sách các câu hỏi thường gặp và câu trả lời theo phong cách tâm sự. Định dạng: Q: ... A: ...",
-        "insights": "Phân tích 3 điểm tâm lý lớn nhất khách hàng lo lắng khi mua sản phẩm này và cách bot nên níu kéo khách."
+        "product_info": "Mô tả sản phẩm (5-10 dòng), giàu cảm xúc.",
+        "faq": "Các câu hỏi đáp Q: ... A: ...",
+        "insights": "3 điểm tâm lý khách hàng lo lắng và cách níu kéo."
       }
-
-      LƯU Ý: Không thêm bất kỳ văn bản nào ngoài JSON. Trả về đúng cấu trúc trên.
     `;
 
     const contents = [{ role: 'user', parts: [{ text: superPrompt }] }];
     
     const aiResponse = await callGeminiWithFallback(contents, {
-      temperature: 0.8,
+      temperature: 0.2, // Giảm temperature để AI bám sát định dạng JSON
       maxOutputTokens: 2000
     }, null);
 
@@ -52,8 +49,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ result });
     } catch (e) {
       console.error('Lỗi parse JSON từ AI:', aiResponse);
+      const isSafetyError = aiResponse.includes('Candidate was blocked') || aiResponse.length < 5;
       return NextResponse.json({ 
-        error: 'AI trả về định dạng không đúng hoặc bị nghẽn. Bạn hãy thử nhấn nút lại lần nữa nhé!',
+        error: isSafetyError 
+          ? 'AI từ chối xử lý nội dung này vì lý do an toàn hoặc từ ngữ nhạy cảm. Bạn hãy thử chỉnh lại nội dung thô nhé!' 
+          : 'AI trả về định dạng lạ. Bạn hãy thử nhấn nút lại lần nữa nhé!',
         raw: aiResponse 
       }, { status: 500 });
     }
