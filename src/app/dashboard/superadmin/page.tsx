@@ -107,8 +107,12 @@ export default function SuperAdminPage() {
   };
 
   const fetchErrorLogs = async () => {
-    // Tăng giới hạn và bỏ qua các bộ lọc phức tạp để Admin thấy hết lỗi
-    const { data } = await supabase.from('error_logs').select('*').order('created_at', { ascending: false }).limit(50);
+    // Truy vấn log kèm theo tên shop để admin dễ nhận diện
+    const { data } = await supabase
+        .from('error_logs')
+        .select('*, shops(name, code)')
+        .order('created_at', { ascending: false })
+        .limit(50);
     if (data) setErrorLogs(data);
   };
 
@@ -132,8 +136,17 @@ export default function SuperAdminPage() {
     if (!newShopName.trim()) return;
     setAddingShop(true);
     const code = 'SHOP-' + Math.floor(10000 + Math.random() * 90000);
+    // Tính toán ngày mai (1 ngày dùng thử)
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
     try {
-      await supabase.from('shops').insert({ name: newShopName, code: code, plan: 'free' });
+      await supabase.from('shops').insert({ 
+        name: newShopName, 
+        code: code, 
+        plan: 'free',
+        plan_expiry_date: tomorrow.toISOString()
+      });
       setNewShopName(''); fetchShops();
     } catch (e) {} finally { setAddingShop(false); }
   };
@@ -568,13 +581,35 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
 
 function LogsView({errorLogs}: any) {
     return (
-        <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100">
-            <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2"><AlertTriangle size={16}/> Neural Network Logs</h2>
+        <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 animate-in fade-in duration-500">
+            <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2"><AlertTriangle size={16}/> Neural Network Logs (Radar)</h2>
             <div className="space-y-3">
+                {errorLogs.length === 0 && <p className="text-center py-10 text-slate-300 font-bold italic">Chưa có ghi nhận lỗi nào...</p>}
                 {errorLogs.map((l: any) => (
-                    <div key={l.id} className="p-4 bg-slate-50 rounded-2xl flex justify-between items-center text-xs">
-                        <span className="font-bold flex-1 truncate pr-10">{l.error_message}</span>
-                        <span className="text-[10px] font-black text-slate-300 uppercase">{new Date(l.created_at).toLocaleTimeString('vi-VN')}</span>
+                    <div key={l.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                            {/* Nguồn lỗi label */}
+                            <span className={cn(
+                                "px-2 py-1 rounded-md text-[9px] font-black uppercase whitespace-nowrap",
+                                l.source === 'API_CHAT_WIDGET' ? "bg-amber-100 text-amber-600" : "bg-indigo-100 text-indigo-600"
+                            )}>
+                                {l.source === 'API_CHAT_WIDGET' ? 'Shop Widget' : 'Xưởng AI'}
+                            </span>
+                            
+                            {/* Thông tin Shop */}
+                            {l.shops && (
+                                <span className="text-[10px] font-black text-slate-900 bg-white px-2 py-1 rounded shadow-sm">
+                                    {l.shops.name} <span className="text-indigo-500">#{l.shops.code}</span>
+                                </span>
+                            )}
+
+                            {/* Nội dung lỗi */}
+                            <span className="text-xs font-bold text-slate-700 truncate">{l.error_message}</span>
+                        </div>
+                        
+                        <div className="text-[10px] font-black text-slate-300 uppercase whitespace-nowrap">
+                            {new Date(l.created_at).toLocaleString('vi-VN')}
+                        </div>
                     </div>
                 ))}
             </div>
