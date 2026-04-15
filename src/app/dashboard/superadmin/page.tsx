@@ -67,7 +67,38 @@ export default function SuperAdminPage() {
   // System Config
   const [trialTemplateCode, setTrialTemplateCode] = useState('');
 
-  useEffect(() => { checkUser(); }, []);
+  const [toasts, setToasts] = useState<any[]>([]);
+
+  useEffect(() => { 
+    checkUser();
+    
+    // THIẾT LẬP REALTIME CHO NHẬT KÝ LỖI
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'error_logs' },
+        (payload) => {
+          // Khi có lỗi mới, tự động tải lại danh sách logs
+          fetchErrorLogs();
+          // Đồng thời hiện thông báo "Toast" nếu đó là lỗi từ Widget
+          if (payload.new.source === 'API_CHAT_WIDGET') {
+            addToast(`Cảnh báo: Shop vừa có lỗi Chatbot!`, 'error');
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  const addToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, 5000);
+  };
 
   const checkUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -212,6 +243,7 @@ export default function SuperAdminPage() {
       
       if (data.error) {
         setProcessStatus(`❌ Lỗi AI: ${data.error}`);
+        addToast(`Lỗi AI: ${data.error}`, 'error');
         return;
       }
       
@@ -229,16 +261,19 @@ export default function SuperAdminPage() {
         
         if (error) {
             setProcessStatus(`❌ Lỗi lưu DB: ${error.message}`);
+            addToast('Lỗi lưu cơ sở dữ liệu!', 'error');
             return;
         }
         
-        setProcessStatus('✅ HOÀN THÀNH! Đã lưu vào kho.');
+        setProcessStatus('✅ HOÀN THÀNH!');
+        addToast(`Đã luyện thành công gói: ${packageName}`, 'success');
         setRawContent(''); 
         setPackageName('');
         fetchKnowledgePackages(); 
       }
     } catch (e: any) { 
         setProcessStatus(`❌ Lỗi hệ thống: ${e.message}`);
+        addToast('Lỗi kết nối hệ thống!', 'error');
     } finally { 
         setIsProcessing(false); 
     }
@@ -269,9 +304,11 @@ export default function SuperAdminPage() {
         };
         const res = await fetch('/api/admin/knowledge/push', { method: 'POST', body: JSON.stringify({ codes: codeList, data: combined, voice: 'nhẹ nhàng', requesterId: currentUserId }) });
         const data = await res.json();
-        alert(`🚀 Đã xuất xưởng thành công cho ${data.count} shop!`);
+        addToast(`🚀 Đã xuất xưởng thành công cho ${data.count} shop!`, 'success');
         setSelectedPackageIds([]); setTargetCodes('');
-    } catch (e) { alert('Lỗi xuất xưởng!'); } finally { setPushingKnowledge(false); }
+    } catch (e) { 
+        addToast('Lỗi xuất xưởng dữ liệu!', 'error');
+    } finally { setPushingKnowledge(false); }
   };
 
   // Filtered Shops
@@ -546,6 +583,23 @@ export default function SuperAdminPage() {
       {activeTab === 'apikeys' && <div className="px-2 lg:px-0"><ApiKeysView showKeys={showKeys} setShowKeys={setShowKeys} apiKey1={apiKey1} setApiKey1={setApiKey1} apiKey2={apiKey2} setApiKey2={setApiKey2} apiKeyPro={apiKeyPro} setApiKeyPro={setApiKeyPro} /></div>}
       {activeTab === 'errors' && <div className="px-2 lg:px-0"><LogsView errorLogs={errorLogs} /></div>}
       {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} /></div>}
+
+      {/* TOAST NOTIFICATIONS (PC/IPAD/MOBILE RESPONSIVE) */}
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 w-full max-w-[90%] md:max-w-xs pointer-events-none items-end">
+          {toasts.map(t => (
+            <div key={t.id} className={cn(
+                "animate-in slide-in-from-right-10 duration-300 pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border-l-[6px] min-w-[280px] md:min-w-0 w-fit",
+                t.type === 'error' ? "bg-white border-red-500 text-red-600" : 
+                t.type === 'success' ? "bg-white border-emerald-500 text-emerald-600" : 
+                "bg-white border-indigo-500 text-indigo-600"
+            )}>
+              <div className={cn("p-1.5 rounded-lg", t.type === 'error' ? "bg-red-50" : t.type === 'success' ? "bg-emerald-50" : "bg-indigo-50")}>
+                {t.type === 'error' ? <AlertTriangle size={18}/> : t.type === 'success' ? <CheckCircle size={18}/> : <Layers size={18}/>}
+              </div>
+              <p className="text-[11px] md:text-xs font-black uppercase whitespace-nowrap">{t.msg}</p>
+            </div>
+          ))}
+      </div>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 5px; }
