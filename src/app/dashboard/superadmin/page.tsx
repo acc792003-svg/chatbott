@@ -102,7 +102,7 @@ export default function SuperAdminPage() {
   };
 
   const fetchKnowledgePackages = async () => {
-    const { data } = await supabase.from('knowledge_templates').select('*').order('updated_at', { ascending: false });
+    const { data } = await supabase.from('knowledge_templates').select('*').order('created_at', { ascending: false });
     if (data) setKnowledgePackages(data);
   };
 
