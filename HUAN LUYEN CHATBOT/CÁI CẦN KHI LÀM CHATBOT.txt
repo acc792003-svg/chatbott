@@ -139,3 +139,7 @@ Tiết kiệm Token: AI không phải đọc đi đọc lại những thứ rác
 Dễ bảo trì: Mỗi lần bạn có thông tin mới, chỉ cần ném vào script này xử lý rồi update Dashboard là xong.
 Ý kiến của mình: Bạn nên làm một cái trang nhỏ trong mục Super Admin gọi là "Xưởng Tri Thức", nơi bạn dán văn bản thô vào, nhấn nút và nó "nấu" ra nội dung chuẩn để bạn copy cho các Shop. Bạn thấy ý tưởng "Xưởng Tri Thức" này thế nào?
 
+--------------
+
+Xưởng AI : làm riêng key free chạy 
+

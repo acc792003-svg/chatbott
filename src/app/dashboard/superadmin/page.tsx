@@ -588,15 +588,19 @@ export default function SuperAdminPage() {
       <div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 w-full max-w-[90%] md:max-w-xs pointer-events-none items-end">
           {toasts.map(t => (
             <div key={t.id} className={cn(
-                "animate-in slide-in-from-right-10 duration-300 pointer-events-auto flex items-center gap-3 px-5 py-4 rounded-2xl shadow-2xl border-l-[6px] min-w-[280px] md:min-w-0 w-fit",
+                "animate-in slide-in-from-right-10 duration-300 pointer-events-auto flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border-l-[6px] w-[90vw] md:w-[320px]",
                 t.type === 'error' ? "bg-white border-red-500 text-red-600" : 
                 t.type === 'success' ? "bg-white border-emerald-500 text-emerald-600" : 
                 "bg-white border-indigo-500 text-indigo-600"
             )}>
-              <div className={cn("p-1.5 rounded-lg", t.type === 'error' ? "bg-red-50" : t.type === 'success' ? "bg-emerald-50" : "bg-indigo-50")}>
+              <div className={cn("p-1.5 rounded-lg shrink-0", t.type === 'error' ? "bg-red-50" : t.type === 'success' ? "bg-emerald-50" : "bg-indigo-50")}>
                 {t.type === 'error' ? <AlertTriangle size={18}/> : t.type === 'success' ? <CheckCircle size={18}/> : <Layers size={18}/>}
               </div>
-              <p className="text-[11px] md:text-xs font-black uppercase whitespace-nowrap">{t.msg}</p>
+              <div className="flex-1 min-w-0 pr-2">
+                <p className="text-[11px] md:text-xs font-black uppercase leading-relaxed break-words">
+                    {t.msg}
+                </p>
+              </div>
             </div>
           ))}
       </div>
