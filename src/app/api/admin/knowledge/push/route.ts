@@ -28,10 +28,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Không tìm thấy shop nào khớp với các mã đã nhập.' }, { status: 404 });
     }
 
-    const shopIds = targetShops.map(s => s.id);
+    const shopIds = (targetShops || []).map((s: { id: string }) => s.id);
 
     // 2. Cập nhật chatbot_configs cho tất cả shop này
-    const updates = shopIds.map(id => ({
+    const updates = shopIds.map((id: string) => ({
       shop_id: id,
       product_info: data.product_info,
       faq: data.faq,
