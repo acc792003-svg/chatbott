@@ -78,12 +78,14 @@ export default function SuperAdminPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'error_logs' },
-        (payload: any) => {
-          // Khi có lỗi mới, tự động tải lại danh sách logs
+        async (payload: any) => {
           fetchErrorLogs();
-          // Đồng thời hiện thông báo "Toast" nếu đó là lỗi từ Widget
+          
           if (payload.new.source === 'API_CHAT_WIDGET') {
-            addToast(`Cảnh báo: Shop vừa có lỗi Chatbot!`, 'error');
+            // Lấy thêm thông tin shop từ ID để hiện lên Toast
+            const { data: shop } = await supabase.from('shops').select('name, code').eq('id', payload.new.shop_id).single();
+            const shopIdentify = shop ? `${shop.name} (#${shop.code})` : 'Một cửa hàng';
+            addToast(`🚨 LỖI CHATBOT: ${shopIdentify}`, 'error');
           }
         }
       )

@@ -3,12 +3,18 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { callGeminiWithFallback } from '@/lib/gemini';
 
 export async function POST(req: Request) {
+  let shopId: string | null = null;
+  let shopCode: string | null = null;
+
   try {
-    const { message, code, history } = await req.json();
+    const body = await req.json();
+    const { message, code, history } = body;
+    shopCode = code;
 
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
+    shopId = shop?.id || null;
     const { data: configData } = await supabaseAdmin.from('chatbot_configs').select('shop_name, product_info, faq, customer_insights, brand_voice').eq('shop_id', shop?.id).single();
     
     let config = configData;
@@ -102,6 +108,7 @@ QUY TẮC:
     if (supabaseAdmin) {
       try {
         await supabaseAdmin.from('error_logs').insert({
+          shop_id: shopId,
           error_type: 'CHATBOT_WIDGET_ERROR',
           error_message: error.message || 'Lỗi không xác định',
           source: 'API_CHAT_WIDGET'
