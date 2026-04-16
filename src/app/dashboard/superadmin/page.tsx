@@ -273,24 +273,7 @@ export default function SuperAdminPage() {
         return;
       }
       
-      if (data.result) {
-        setProcessStatus('📦 AI đã phân tích xong. Đang đóng gói dữ liệu...');
-        
-        const { error } = await supabase.from('knowledge_templates').insert({
-            industry_name: industryName,
-            package_name: packageName,
-            product_info: data.result.product_info,
-            faq: data.result.faq,
-            insights: data.result.insights,
-            example_content: rawContent
-        });
-        
-        if (error) {
-            setProcessStatus(`❌ Lỗi lưu DB: ${error.message}`);
-            addToast('Lỗi lưu cơ sở dữ liệu!', 'error');
-            return;
-        }
-        
+      if (data.success) {
         setProcessStatus('✅ HOÀN THÀNH!');
         addToast(`Đã luyện thành công gói: ${packageName}`, 'success');
         setFaqList([{ q: '', a: '' }]); 
