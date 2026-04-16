@@ -53,7 +53,7 @@ export default function SuperAdminPage() {
   const [activeIcons, setActiveIcons] = useState<{ [key: string]: string }>({});
 
   // Knowledge Workshop
-  const [faqList, setFaqList] = useState([{ q: '', a: '' }]); // Thay rawContent bằng faqList
+  const [bulkRawFaq, setBulkRawFaq] = useState(''); // Ô nhập hàng loạt
   const [targetCodes, setTargetCodes] = useState('');
   const [industryName, setIndustryName] = useState('');
   const [packageName, setPackageName] = useState('');
@@ -246,13 +246,39 @@ export default function SuperAdminPage() {
 
   // ==================== KNOWLEDGE WORKSHOP ACTIONS ====================
   const handleProcessKnowledge = async () => {
-    if (faqList.some(item => !item.q.trim() || !item.a.trim()) || !industryName.trim() || !packageName.trim()) {
+    if (!bulkRawFaq.trim() || !industryName.trim() || !packageName.trim()) {
         setProcessStatus('❌ Thiếu thông tin nạp liệu!');
+        return;
+    }
+
+    // LOGIC PARSING: Tách nội dung thành mảng FAQ
+    // Quy tắc: Q: ... A: ...
+    const lines = bulkRawFaq.split('\n');
+    const faqList: {q: string, a: string}[] = [];
+    let currentQ = '';
+    let currentA = '';
+
+    lines.forEach(line => {
+        const cleanLine = line.trim();
+        if (cleanLine.toUpperCase().startsWith('Q:')) {
+            if (currentQ && currentA) faqList.push({ q: currentQ, a: currentA });
+            currentQ = cleanLine.replace(/^Q:\s*/i, '');
+            currentA = '';
+        } else if (cleanLine.toUpperCase().startsWith('A:')) {
+            currentA = cleanLine.replace(/^A:\s*/i, '');
+        } else if (cleanLine && currentA) {
+            currentA += ' ' + cleanLine; // Hỗ trợ câu trả lời nhiều dòng
+        }
+    });
+    if (currentQ && currentA) faqList.push({ q: currentQ, a: currentA });
+
+    if (faqList.length === 0) {
+        setProcessStatus('❌ Định dạng FAQ không đúng (Cần Q: và A:)');
         return;
     }
     
     setIsProcessing(true);
-    setProcessStatus('🤖 Hệ thống đang mã hóa Vector tri thức...');
+    setProcessStatus(`🤖 Đang xử lý ${faqList.length} câu hỏi...`);
     
     try {
       const res = await fetch('/api/admin/knowledge/process', { 
@@ -276,7 +302,7 @@ export default function SuperAdminPage() {
       if (data.success) {
         setProcessStatus('✅ HOÀN THÀNH!');
         addToast(`Đã luyện thành công gói: ${packageName}`, 'success');
-        setFaqList([{ q: '', a: '' }]); 
+        setBulkRawFaq(''); 
         setPackageName('');
         fetchKnowledgePackages(); 
       }
@@ -555,63 +581,27 @@ export default function SuperAdminPage() {
                     </div>
                     <div>
                         <div className="flex justify-between items-center mb-2">
-                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">3. Danh sách FAQ (Câu hỏi & Đáp)</label>
-                            <button 
-                                onClick={() => setFaqList([...faqList, { q: '', a: '' }])}
-                                className="text-[9px] font-black text-indigo-600 hover:text-indigo-800 uppercase flex items-center gap-1"
-                            >
-                                <Plus size={10}/> Thêm câu hỏi
-                            </button>
+                            <label className="text-[9px] font-black text-slate-500 uppercase ml-1">3. Nhập tri thức hàng loạt (Định dạng Q: và A:)</label>
+                            <span className="text-[8px] font-bold text-slate-400 italic">Dán hàng trăm câu thoải mái</span>
                         </div>
                         
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                            {faqList.map((item, index) => (
-                                <div key={index} className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative group animate-in slide-in-from-top-2 duration-200">
-                                    {faqList.length > 1 && (
-                                        <button 
-                                            onClick={() => setFaqList(faqList.filter((_, i) => i !== index))}
-                                            className="absolute -top-2 -right-2 bg-white text-slate-300 hover:text-red-500 shadow-sm rounded-full p-1 border border-slate-100 opacity-0 group-hover:opacity-100 transition-all"
-                                        >
-                                            <Trash2 size={12}/>
-                                        </button>
-                                    )}
-                                    <div className="space-y-3">
-                                        <div className="relative">
-                                            <span className="absolute left-0 top-3 text-[10px] font-black text-slate-300">Q:</span>
-                                            <input 
-                                                type="text" 
-                                                className="w-full bg-transparent border-b border-slate-200 pl-5 py-2 text-xs font-bold focus:border-indigo-500 outline-none" 
-                                                placeholder="Khách hỏi gì?" 
-                                                value={item.q}
-                                                onChange={e => {
-                                                    const newList = [...faqList];
-                                                    newList[index].q = e.target.value;
-                                                    setFaqList(newList);
-                                                }}
-                                            />
-                                        </div>
-                                        <div className="relative">
-                                            <span className="absolute left-0 top-3 text-[10px] font-black text-indigo-300">A:</span>
-                                            <textarea 
-                                                rows={2}
-                                                className="w-full bg-transparent border-b border-slate-200 pl-5 py-2 text-xs font-medium focus:border-indigo-500 outline-none resize-none" 
-                                                placeholder="Shop trả lời thế nào..." 
-                                                value={item.a}
-                                                onChange={e => {
-                                                    const newList = [...faqList];
-                                                    newList[index].a = e.target.value;
-                                                    setFaqList(newList);
-                                                }}
-                                            ></textarea>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                        <textarea 
+                            rows={15} 
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-5 text-xs font-medium focus:border-indigo-500 outline-none shadow-inner custom-scrollbar" 
+                            placeholder="Q: Sản phẩm giá bao nhiêu?&#10;A: Dạ giá 500k ạ.&#10;&#10;Q: Có miễn phí ship không?&#10;A: Bên em freeship toàn quốc ạ.&#10;..." 
+                            value={bulkRawFaq} 
+                            onChange={e => setBulkRawFaq(e.target.value)}
+                        ></textarea>
+                        
+                        <div className="mt-2 bg-indigo-50 p-3 rounded-xl border border-indigo-100">
+                            <p className="text-[9px] text-indigo-700 font-bold leading-relaxed">
+                                💡 Mẹo: Bạn chỉ cần dán nội dung có chứa các chữ Q: (Question) và A: (Answer). Hệ thống sẽ tự lọc lấy đúng các cặp tri thức để luyện.
+                            </p>
                         </div>
                     </div>
                     
-                    <button onClick={handleProcessKnowledge} disabled={isProcessing || faqList.some(f => !f.q.trim())} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-3">
-                        {isProcessing ? 'Hệ thống đang mã hóa Vector...' : 'LUYỆN TRI THỨC (EMBEDDING)'}
+                    <button onClick={handleProcessKnowledge} disabled={isProcessing || !bulkRawFaq.trim()} className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl text-xs uppercase shadow-xl hover:bg-indigo-600 transition-all flex items-center justify-center gap-3">
+                        {isProcessing ? 'Đang mã hóa tri thức hàng loạt...' : 'BẮT ĐẦU LUYỆN'}
                     </button>
                     {processStatus && (
                         <div className={cn("mt-3 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center animate-in fade-in slide-in-from-top-2 duration-300", processStatus.includes('❌') ? "bg-red-50 text-red-600 border border-red-100" : processStatus.includes('✅') ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-inner")}>

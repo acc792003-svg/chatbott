@@ -40,8 +40,9 @@ export async function POST(req: Request) {
         if (!item.q || !item.a) continue;
         
         try {
-          // Tạo vector cho câu hỏi (Question)
-          const embedding = await generateEmbedding(item.q);
+          // Tạo vector cho câu hỏi kèm theo NGỮ CẢNH (Ngành hàng | Tên gói) để tăng độ chính xác
+          const contextText = `${industryName} | ${packageName} | ${item.q}`;
+          const embedding = await generateEmbedding(contextText);
           
           await supabaseAdmin.from('knowledge_items').insert({
             template_id: template.id,
