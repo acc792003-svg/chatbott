@@ -113,7 +113,7 @@ ${config?.pricing_info ? `GIÁ CẢ: ${config.pricing_info}` : ''}
 ${config?.faq ? `HỎI ĐÁP: ${config.faq}` : ''}
 QUY TẮC: Trả lời ngắn nhất có thể, dùng icon 😊. Tuyệt đối không spam khách.`;
 
-  const historyContents = (historyLogs || []).reverse().flatMap(h => [
+  const historyContents = (historyLogs || []).reverse().flatMap((h: any) => [
     { role: 'user', parts: [{ text: h.user_message }] },
     { role: 'model', parts: [{ text: h.ai_response }] }
   ]);
