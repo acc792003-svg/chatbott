@@ -19,7 +19,7 @@ export async function POST(req: Request) {
 
     // Lấy danh sách Template IDs mà shop này đang sử dụng
     const { data: stMap } = await supabaseAdmin.from('shop_templates').select('template_id').eq('shop_id', shopId);
-    const myTemplateIds = stMap?.map(m => m.template_id) || [];
+    const myTemplateIds = stMap?.map((m: any) => m.template_id) || [];
 
     const { data: config } = await supabaseAdmin.from('chatbot_configs')
         .select('shop_name, product_info, customer_insights, brand_voice')
