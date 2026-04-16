@@ -58,6 +58,7 @@ export default function SuperAdminPage() {
   const [industryName, setIndustryName] = useState('');
   const [packageName, setPackageName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processStatus, setProcessStatus] = useState('');
   const [processedResult, setProcessedResult] = useState<any>(null);
   const [knowledgePackages, setKnowledgePackages] = useState<KnowledgePackage[]>([]);
   const [selectedPackageIds, setSelectedPackageIds] = useState<string[]>([]);
