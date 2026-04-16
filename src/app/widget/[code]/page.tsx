@@ -22,6 +22,19 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
   const [shopName, setShopName] = useState('Trợ lý Tự động');
   const [viewportHeight, setViewportHeight] = useState('100dvh');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [clientId, setClientId] = useState<string>('');
+
+  // Lấy hoặc tạo Client ID duy nhất cho trình duyệt này
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let id = localStorage.getItem('chatbot_client_id');
+      if (!id) {
+        id = `c-${Math.random().toString(36).substring(2, 10)}-${Date.now()}`;
+        localStorage.setItem('chatbot_client_id', id);
+      }
+      setClientId(id);
+    }
+  }, []);
 
   // Xử lý Visual Viewport cho thiết bị di động (để tránh bị bàn phím che)
   useEffect(() => {
@@ -52,14 +65,32 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
     }
   }, [messages]);
 
-  // Lấy lời chào tự động khi vừa mở widget
+  // Lấy lời chào tự động và khôi phục lịch sử khi vừa mở widget
   useEffect(() => {
+    if (!clientId) return;
+
     const fetchGreeting = async () => {
       try {
+        // 1. Load lịch sử từ API riêng (GET)
+        const histRes = await fetch(`/api/chat/history?code=${code}&clientId=${clientId}`);
+        const histData = await histRes.json();
+        
+        if (histData.history && histData.history.length > 0) {
+           const historyMessages: Message[] = [];
+           histData.history.forEach((h: any) => {
+              historyMessages.push({ role: 'user', content: h.user_message });
+              historyMessages.push({ role: 'assistant', content: h.ai_response });
+           });
+           setMessages(historyMessages);
+           if (histData.shop_name) setShopName(histData.shop_name);
+           return; // Nếu đã có lịch sử, không cần lấy lời chào mặc định nữa
+        }
+
+        // 2. Nếu chưa từng chat (không có lịch sử), lấy lời chào mặc định
         const res = await fetch('/api/chat/widget', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: '[WELCOME]', code: code, history: [] }),
+          body: JSON.stringify({ message: '[WELCOME]', code: code, history: [], clientId }),
         });
         const data = await res.json();
         if (data.response) {
@@ -71,7 +102,7 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
       }
     };
     fetchGreeting();
-  }, [code]);
+  }, [code, clientId]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,8 +120,9 @@ export default function WidgetPage({ params }: { params: Promise<{ code: string 
         body: JSON.stringify({
           message: userMsg,
           code: code,
-          // Gửi toàn bộ lịch sử (trừ tin nhắn chào mặc định đầu tiên)
-          history: messages.slice(1).map(m => ({ role: m.role, content: m.content })),
+          clientId: clientId,
+          // Gửi tối đa 5 tin nhắn gần nhất để làm ngữ cảnh
+          history: messages.slice(-5).map(m => ({ role: m.role, content: m.content })),
         }),
       });
 

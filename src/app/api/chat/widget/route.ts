@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { message: rawMessage, code, history } = body;
+    const { message: rawMessage, code, history, clientId } = body;
 
     // --- CHUẨN HÓA TIN NHẮN (PRODUCTION CLEANUP) ---
     const message = rawMessage?.trim().toLowerCase();
@@ -189,7 +189,7 @@ export async function POST(req: Request) {
     if (message && message !== '[welcome]') {
       await supabaseAdmin.from('messages').insert({
         shop_id: shopId,
-        session_id: `widget-${Date.now()}`,
+        session_id: clientId || `anon-${ip}`,
         user_message: message,
         ai_response: finalResponse,
         usage_tokens: 1,
