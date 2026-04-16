@@ -451,32 +451,32 @@ export default function SuperAdminPage() {
         {userRole === 'super_admin' && systemStats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-2">
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-600"/> Tỷ lệ Cache (Tiết kiệm)</p>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-600"/> Tỷ lệ Cache (Tiết kiệm)</p>
                     <div className="flex items-end gap-2">
                         <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.cacheRatio}%</h3>
-                        <span className="text-[10px] font-bold text-emerald-500 mb-1 lg:block hidden">Tiết kiệm API</span>
+                        <span className="text-[10px] font-bold text-emerald-600 mb-1 lg:block hidden">Tiết kiệm API</span>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><Plus size={12} className="text-amber-500"/> AI Generation</p>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Plus size={12} className="text-amber-600"/> AI Generation</p>
                     <div className="flex items-end gap-2">
                         <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.aiRatio}%</h3>
-                        <span className="text-[10px] font-bold text-slate-400 mb-1 lg:block hidden">Lượt gọi AI</span>
+                        <span className="text-[10px] font-bold text-slate-500 mb-1 lg:block hidden">Lượt gọi AI</span>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-400"/> Request 24h</p>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
                     <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.totalRequests}</h3>
                 </div>
                 <div className="bg-indigo-600 p-6 rounded-[2rem] shadow-xl shadow-indigo-100 text-white group hover:scale-[1.02] transition-transform">
-                    <p className="text-[10px] font-black text-white/60 uppercase tracking-widest mb-1 flex items-center gap-2"><BrainCircuit size={12}/> AI Multi-Key Status</p>
+                    <p className="text-[10px] font-black text-white/90 uppercase tracking-widest mb-1 flex items-center gap-2"><BrainCircuit size={12}/> AI Multi-Key Status</p>
                     <div className="flex items-center gap-2 mt-1">
                         <div className="flex -space-x-2">
                             {systemStats.keys?.map((k: any, i: number) => (
                                 <div key={i} className={cn("w-3 h-3 rounded-full border-2 border-indigo-600", k.status === 'healthy' ? "bg-emerald-400" : k.status === 'cooldown' ? "bg-amber-400" : "bg-red-400")} title={`${k.name}: ${k.status}`}></div>
                             ))}
                         </div>
-                        <span className="text-xs font-black uppercase">Active Nodes</span>
+                        <span className="text-xs font-black uppercase text-white">Active Nodes</span>
                     </div>
                 </div>
             </div>
@@ -832,7 +832,7 @@ export default function SuperAdminPage() {
 function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setApiKey2, apiKeyPro, setApiKeyPro, systemStats}: any) {
     return (
         <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100">
-            <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2 font-xs"><Key size={16}/> System Encryption Keys</h2>
+            <h2 className="text-sm font-black uppercase text-slate-600 mb-8 flex items-center gap-2 font-xs"><Key size={16}/> System Encryption Keys</h2>
             <div className="space-y-8">
                 {[
                     {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
@@ -844,25 +844,25 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                         <div key={k.id} className="space-y-2 relative group">
                             <div className="flex justify-between items-end px-1">
                                 <div>
-                                    <label className="text-[10px] font-black text-slate-500 uppercase flex items-center gap-2">
+                                    <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
                                         {k.label}
                                         {stats && (
                                             <span className={cn(
-                                                "px-2 py-0.5 rounded-full text-[8px] border",
-                                                stats.status === 'healthy' ? "bg-emerald-50 text-emerald-600 border-emerald-100" : 
-                                                stats.status === 'cooldown' ? "bg-amber-50 text-amber-600 border-amber-100 animate-pulse" : 
-                                                "bg-red-50 text-red-600 border-red-100"
+                                                "px-2 py-0.5 rounded-full text-[8px] border font-black",
+                                                stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                                                stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
+                                                "bg-red-50 text-red-700 border-red-200"
                                             )}>
                                                 {stats.status.toUpperCase()}
                                             </span>
                                         )}
                                     </label>
-                                    <p className="text-[10px] text-slate-400 font-bold mt-1">Usage: <span className="text-slate-900">{stats?.usage || 0}</span> calls</p>
+                                    <p className="text-[10px] text-slate-500 font-black mt-1">Usage: <span className="text-indigo-600">{stats?.usage || 0}</span> calls</p>
                                 </div>
-                                <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-600 font-bold uppercase">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
                             </div>
-                            <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'disabled' ? "border-red-100 opacity-50" : "border-slate-100 focus:border-indigo-500")} />
-                            {stats?.lastUsed > 0 && <p className="text-[8px] text-slate-300 italic px-1">Dùng lần cuối: {new Date(stats.lastUsed).toLocaleTimeString()}</p>}
+                            <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'disabled' ? "border-red-200 opacity-50 shadow-inner" : "border-slate-200 focus:border-indigo-600 text-slate-900")} />
+                            {stats?.lastUsed > 0 && <p className="text-[8px] text-slate-400 font-bold italic px-1">Dùng lần cuối: {new Date(stats.lastUsed).toLocaleTimeString()}</p>}
                         </div>
                     );
                 })}
