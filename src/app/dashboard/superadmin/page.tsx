@@ -48,6 +48,7 @@ export default function SuperAdminPage() {
 
   // Shop Management
   const [newShopName, setNewShopName] = useState('');
+  const [nextGeneratedCode, setNextGeneratedCode] = useState(''); // Lưu mã sẽ được tạo tiếp theo
   const [addingShop, setAddingShop] = useState(false);
   const [openShopId, setOpenShopId] = useState<string | null>(null);
   const [activeIcons, setActiveIcons] = useState<{ [key: string]: string }>({});
@@ -109,7 +110,14 @@ export default function SuperAdminPage() {
     setToasts(prev => [...prev, { id, msg, type }]);
     setTimeout(() => {
         setToasts(prev => prev.filter(t => t.id !== id));
-    }, 5000);
+    }, 8000); // Tăng thời gian hiển thị lên 8s để Admin kịp nhìn mã
+  };
+
+  const generateCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let res = '';
+    for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+    return `CB-${res}`;
   };
 
   const checkUser = async () => {
@@ -121,6 +129,7 @@ export default function SuperAdminPage() {
     // Nếu là super_admin hoặc staff_admin thì mới cho vào
     if (userData?.role === 'super_admin' || userData?.role === 'staff_admin') {
       setUserRole(userData.role);
+      setNextGeneratedCode(generateCode()); // Sinh mã sẵn sàng
       fetchShops();
       fetchErrorLogs();
       fetchKnowledgePackages();
@@ -186,26 +195,29 @@ export default function SuperAdminPage() {
   const handleCreateShop = async () => {
     if (!newShopName.trim()) return;
     setAddingShop(true);
-    const generateUniqueCode = () => {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Bỏ I, O, 0, 1 để tránh nhầm lẫn
-        let res = '';
-        for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
-        return `CB-${res}`;
-    };
-    const code = generateUniqueCode();
+    const code = nextGeneratedCode; // Dùng mã đã sinh sẵn
+
     // Tính toán ngày mai (1 ngày dùng thử)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     try {
-      await supabase.from('shops').insert({ 
+      const { error } = await supabase.from('shops').insert({ 
         name: newShopName, 
         code: code, 
         plan: 'free',
         plan_expiry_date: tomorrow.toISOString()
       });
-      setNewShopName(''); fetchShops();
-    } catch (e) {} finally { setAddingShop(false); }
+      
+      if (error) throw error;
+
+      addToast(`ĐÃ TẠO THÀNH CÔNG: ${newShopName} (MÃ: ${code})`, 'success');
+      setNewShopName(''); 
+      setNextGeneratedCode(generateCode()); // Sinh mã mới cho lần tiếp theo
+      fetchShops();
+    } catch (e: any) { 
+        addToast(e.message, 'error');
+    } finally { setAddingShop(false); }
   };
 
   const handleUpdateExpiry = async (shopId: string, date: string) => {
@@ -422,13 +434,16 @@ export default function SuperAdminPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input type="text" placeholder="Tìm theo Tên, Mã hoặc Link (QLADY)..." className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs font-bold focus:border-indigo-500 outline-none shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
-                <div className="flex gap-2">
-                    <input type="text" placeholder="Thêm shop mới..." className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold w-48 shadow-sm" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                <div className="flex gap-2 items-end">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">{newShopName.trim() ? `Sẽ tạo mã: ${nextGeneratedCode}` : 'Tên shop mới'}</label>
+                        <input type="text" placeholder="Nhập tên shop..." className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold w-48 shadow-sm focus:border-indigo-500 outline-none" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                    </div>
                     <button 
                         onClick={handleCreateShop} 
                         disabled={addingShop || userRole !== 'super_admin'} 
                         className={cn(
-                            "px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all",
+                            "px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all h-[38px]",
                             userRole === 'super_admin' ? "bg-indigo-600 text-white active:scale-95" : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         )}
                     >
