@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
-    const { codes, data, voice, requesterId } = await req.json();
+    const { codes, data, templateIds, voice, requesterId } = await req.json();
 
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Connection Error' }, { status: 500 });
 
@@ -28,35 +28,43 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Không tìm thấy shop nào khớp với các mã đã nhập.' }, { status: 404 });
     }
 
-    const shopIds = (targetShops || []).map((s: { id: string }) => s.id);
+    const shopIds = targetShops.map(s => s.id);
 
-    // 2. Cập nhật chatbot_configs cho tất cả shop này
-    const updates = shopIds.map((id: string) => ({
+    // 2. Cập nhật chatbot_configs (Tri thức thuần văn bản + cấu hình giọng văn)
+    const updates = shopIds.map(id => ({
       shop_id: id,
       product_info: data.product_info,
-      faq: data.faq,
+      faq: data.faq, // Vẫn giữ bản text để AI fallback khi cần
       customer_insights: data.insights,
       brand_voice: voice,
       updated_at: new Date().toISOString()
     }));
 
-    // Sử dụng upsert để cập nhật nếu đã có, hoặc tạo mới nếu chưa có cấu hình
     const { error: updateError } = await supabaseAdmin
       .from('chatbot_configs')
       .upsert(updates, { onConflict: 'shop_id' });
 
     if (updateError) throw updateError;
 
-    // 3. Lưu log nạp tri thức
-    await supabaseAdmin.from('knowledge_logs').insert({
-        shop_codes: codes.join(' '),
-        raw_content: 'Cập nhật từ Xưởng Tri Thức',
-        processed_result: data
-    });
+    // 3. LIÊN KẾT VECTOR SEARCH (Bảng shop_templates)
+    // Giúp hệ thống biết shop nào được dùng gói tri thức nào để tìm kiếm Vector
+    if (templateIds && Array.isArray(templateIds)) {
+        const mappingRows: any[] = [];
+        shopIds.forEach(shopId => {
+            templateIds.forEach(tId => {
+                mappingRows.push({ shop_id: shopId, template_id: tId });
+            });
+        });
+
+        // Xóa mapping cũ để nạp mới (hoặc dùng upsert nếu không muốn xóa)
+        await supabaseAdmin.from('shop_templates').delete().in('shop_id', shopIds);
+        await supabaseAdmin.from('shop_templates').insert(mappingRows);
+    }
 
     return NextResponse.json({ success: true, count: targetShops.length });
 
   } catch (error: any) {
+    console.error('Push Knowledge Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

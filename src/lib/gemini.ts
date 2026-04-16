@@ -202,3 +202,35 @@ export async function callGeminiWithFallback(
 
   throw new Error(`AI đang bận (Quá tải). Vui lòng thử lại sau 1 phút hoặc nạp thêm API Key mới vào hệ thống bạn nhé! (Lỗi: ${lastError})`);
 }
+
+/**
+ * Tạo Vector Embedding cho văn bản sử dụng model text-embedding-004
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const keys = await getDetailedApiKeys(false); // Ưu tiên dùng key free cho embedding
+  if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
+  
+  const apiKey = keys[0].value;
+  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
+
+  try {
+    const response = await fetch(apiURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "models/text-embedding-04",
+        content: { parts: [{ text }] }
+      })
+    });
+
+    const data = await response.json();
+    if (response.ok && data.embedding?.values) {
+      return data.embedding.values;
+    }
+    
+    throw new Error(data.error?.message || 'Lỗi tạo Embedding');
+  } catch (error: any) {
+    console.error('Embedding Error:', error);
+    throw error;
+  }
+}
