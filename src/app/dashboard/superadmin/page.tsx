@@ -482,9 +482,19 @@ export default function SuperAdminPage() {
                                             <div>
                                                 <p className="text-xs font-black text-slate-900 leading-none mb-1.5">{shop.name}</p>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black text-indigo-600 tracking-tighter bg-indigo-50 px-1.5 py-0.5 rounded leading-none">#{shop.code}</span>
-                                                    {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-0.5 rounded leading-none">/{shop.slug}</span>}
-                                                    <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-600 hover:text-indigo-600 transition-colors bg-slate-100 p-1 rounded-md">
+                                                    <button 
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(shop.code);
+                                                            addToast(`Đã copy mã: ${shop.code}`, 'success');
+                                                        }}
+                                                        className="group/code flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded-lg transition-all shadow-sm hover:shadow-indigo-200"
+                                                        title="Bấm để copy mã"
+                                                    >
+                                                        <span className="text-[10px] font-black tracking-widest leading-none">#{shop.code}</span>
+                                                        <Copy size={10} className="opacity-50 group-hover/code:opacity-100 transition-opacity"/>
+                                                    </button>
+                                                    {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-1 rounded-lg leading-none">/{shop.slug}</span>}
+                                                    <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-100 p-1 rounded-lg shadow-sm">
                                                         <Settings size={13}/>
                                                     </button>
                                                 </div>
