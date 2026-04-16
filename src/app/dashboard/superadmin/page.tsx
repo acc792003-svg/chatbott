@@ -470,13 +470,22 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="bg-indigo-600 p-6 rounded-[2rem] shadow-xl shadow-indigo-100 text-white group hover:scale-[1.02] transition-transform">
                     <p className="text-[10px] font-black text-white/90 uppercase tracking-widest mb-1 flex items-center gap-2"><BrainCircuit size={12}/> AI Multi-Key Status</p>
-                    <div className="flex items-center gap-2 mt-1">
-                        <div className="flex -space-x-2">
+                    <div className="flex items-center gap-3 mt-1.5">
+                        <div className="flex gap-1.5">
                             {systemStats.keys?.map((k: any, i: number) => (
-                                <div key={i} className={cn("w-3 h-3 rounded-full border-2 border-indigo-600", k.status === 'healthy' ? "bg-emerald-400" : k.status === 'cooldown' ? "bg-amber-400" : "bg-red-400")} title={`${k.name}: ${k.status}`}></div>
+                                <div 
+                                    key={i} 
+                                    className={cn(
+                                        "w-5 h-5 rounded-full border-2 border-indigo-500 flex items-center justify-center text-[10px] font-black shadow-sm", 
+                                        k.status === 'healthy' ? "bg-emerald-400 text-white" : k.status === 'cooldown' ? "bg-amber-400 text-amber-900" : "bg-red-500 text-white"
+                                    )} 
+                                    title={`${k.name}: ${k.status.toUpperCase()}`}
+                                >
+                                    {k.name === 'Key 1' ? '1' : k.name === 'Key 2' ? '2' : k.name === 'Key PRO' ? 'P' : 'E'}
+                                </div>
                             ))}
                         </div>
-                        <span className="text-xs font-black uppercase text-white">Active Nodes</span>
+                        <span className="text-[10px] font-black uppercase text-white/80 tracking-tighter">Nodes Online</span>
                     </div>
                 </div>
             </div>
@@ -839,14 +848,17 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                     {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
                     {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
                 ].map((k: any) => {
-                    const stats = systemStats?.keys?.find((sk: any) => sk.name === (k.id === 'k1' ? 'Key 1' : k.id === 'k2' ? 'Key 2' : 'Key PRO'));
+                    const stats = systemStats?.keys?.find((sk: any) => {
+                        const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
+                        return sk.name === targetName;
+                    });
                     return (
                         <div key={k.id} className="space-y-2 relative group">
                             <div className="flex justify-between items-end px-1">
                                 <div>
                                     <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
                                         {k.label}
-                                        {stats && (
+                                        {stats && stats.status && (
                                             <span className={cn(
                                                 "px-2 py-0.5 rounded-full text-[8px] border font-black",
                                                 stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
@@ -857,12 +869,12 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                                             </span>
                                         )}
                                     </label>
-                                    <p className="text-[10px] text-slate-500 font-black mt-1">Usage: <span className="text-indigo-600">{stats?.usage || 0}</span> calls</p>
+                                    <p className="text-[10px] text-slate-500 font-black mt-1">Giao dịch: <span className="text-indigo-600">{stats?.usage || 0}</span> lượt</p>
                                 </div>
                                 <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
                             </div>
                             <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'disabled' ? "border-red-200 opacity-50 shadow-inner" : "border-slate-200 focus:border-indigo-600 text-slate-900")} />
-                            {stats?.lastUsed > 0 && <p className="text-[8px] text-slate-400 font-bold italic px-1">Dùng lần cuối: {new Date(stats.lastUsed).toLocaleTimeString()}</p>}
+                            {stats?.lastUsed > 0 && <p className="text-[8px] text-slate-400 font-bold italic px-1 mt-1 flex items-center gap-1"><Calendar size={8}/> Dùng lần cuối: {new Date(stats.lastUsed).toLocaleTimeString()}</p>}
                         </div>
                     );
                 })}
