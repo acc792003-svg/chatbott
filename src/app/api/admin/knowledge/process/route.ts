@@ -27,7 +27,7 @@ export async function POST(req: Request) {
         faq_json: faqList,
         // Các trường cũ để tương thích ngược nếu cần
         product_info: 'Gói tri thức Vector Search',
-        faq: faqList.map(f => `Q: ${f.q}\nA: ${f.a}`).join('\n\n')
+        faq: faqList.map((f: any) => `Q: ${f.q}\nA: ${f.a}`).join('\n\n')
       })
       .select()
       .single();

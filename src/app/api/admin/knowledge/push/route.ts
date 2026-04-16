@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     const shopIds = targetShops.map((s: any) => s.id);
 
     // 2. Cập nhật chatbot_configs (Tri thức thuần văn bản + cấu hình giọng văn)
-    const updates = shopIds.map(id => ({
+    const updates = shopIds.map((id: any) => ({
       shop_id: id,
       product_info: data.product_info,
       faq: data.faq, // Vẫn giữ bản text để AI fallback khi cần
@@ -50,8 +50,8 @@ export async function POST(req: Request) {
     // Giúp hệ thống biết shop nào được dùng gói tri thức nào để tìm kiếm Vector
     if (templateIds && Array.isArray(templateIds)) {
         const mappingRows: any[] = [];
-        shopIds.forEach(shopId => {
-            templateIds.forEach(tId => {
+        shopIds.forEach((shopId: any) => {
+            templateIds.forEach((tId: any) => {
                 mappingRows.push({ shop_id: shopId, template_id: tId });
             });
         });
