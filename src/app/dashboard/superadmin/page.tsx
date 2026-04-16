@@ -476,12 +476,16 @@ export default function SuperAdminPage() {
                                 <div 
                                     key={i} 
                                     className={cn(
-                                        "w-5 h-5 rounded-full border-2 border-indigo-500 flex items-center justify-center text-[10px] font-black shadow-sm", 
-                                        k.status === 'healthy' ? "bg-emerald-400 text-white" : k.status === 'cooldown' ? "bg-amber-400 text-amber-900" : "bg-red-500 text-white"
+                                        "w-5 h-5 rounded-full border-2 border-indigo-500 flex items-center justify-center text-[10px] font-black shadow-sm transition-all", 
+                                        k.status === 'healthy' ? "bg-emerald-400 text-white" : 
+                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 animate-pulse" : 
+                                        k.status === 'missing' ? "bg-slate-800 text-slate-400 border-slate-600" :
+                                        "bg-red-500 text-white"
                                     )} 
                                     title={`${k.name}: ${k.status.toUpperCase()}`}
                                 >
-                                    {k.name === 'Key 1' ? '1' : k.name === 'Key 2' ? '2' : k.name === 'Key PRO' ? 'P' : 'E'}
+                                    {k.status === 'missing' ? 'X' : 
+                                     (k.name === 'Key 1' ? '1' : k.name === 'Key 2' ? '2' : k.name === 'Key PRO' ? 'P' : 'E')}
                                 </div>
                             ))}
                         </div>
@@ -858,16 +862,15 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                                 <div>
                                     <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
                                         {k.label}
-                                        {stats && stats.status && (
-                                            <span className={cn(
-                                                "px-2 py-0.5 rounded-full text-[8px] border font-black",
-                                                stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
-                                                stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
-                                                "bg-red-50 text-red-700 border-red-200"
-                                            )}>
-                                                {stats.status.toUpperCase()}
-                                            </span>
-                                        )}
+                                        <span className={cn(
+                                            "px-2 py-0.5 rounded-full text-[8px] border font-black",
+                                            (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
+                                            stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                                            stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
+                                            "bg-red-50 text-red-700 border-red-200"
+                                        )}>
+                                            {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
+                                        </span>
                                     </label>
                                     <p className="text-[10px] text-slate-500 font-black mt-1">Giao dịch: <span className="text-indigo-600">{stats?.usage || 0}</span> lượt</p>
                                 </div>

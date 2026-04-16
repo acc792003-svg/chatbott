@@ -10,13 +10,13 @@ export async function GET() {
         const allKeys = [...proKeys, ...freeKeys];
 
         const now = Date.now();
-        const stats = allKeys.map(k => {
+        const keyNames = ['Key 1', 'Key 2', 'Key PRO'];
+        const stats = keyNames.map(name => {
+            const k = allKeys.find(ak => ak.name === name);
+            if (!k) return { name, usage: 0, error: 0, status: 'missing', lastUsed: 0 };
+
             const s = keyStatsMap.get(k.value) || { 
-                usageCount: 0, 
-                lastUsedTime: 0, 
-                errorCount: 0, 
-                isDisabled: false, 
-                lastErrorTime: 0 
+                usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 
             };
 
             return {
@@ -27,6 +27,19 @@ export async function GET() {
                 lastUsed: s.lastUsedTime
             };
         });
+
+        // Thêm key .env nếu có
+        const envKey = allKeys.find(ak => ak.name === 'Key .ENV');
+        if (envKey) {
+            const es = keyStatsMap.get(envKey.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+            stats.push({
+                name: envKey.name,
+                usage: es.usageCount,
+                error: es.errorCount,
+                status: es.isDisabled ? 'disabled' : (now - es.lastUsedTime < 2000 ? 'cooldown' : 'healthy'),
+                lastUsed: es.lastUsedTime
+            });
+        }
 
         // 2. Thống kê thêm từ Database về hiệu quả Cache (trong 24h qua)
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
