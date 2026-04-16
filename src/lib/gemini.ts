@@ -118,6 +118,9 @@ export async function callGeminiWithFallback(
   shopId?: string | null,
   source: string = "API_CHAT_WIDGET"
 ): Promise<string> {
+  const globalStart = Date.now();
+  const GLOBAL_TIMEOUT = 14000; // Giới hạn toàn bộ request trong 14s
+
   // 1. Kiểm tra trạng thái PRO của Shop
   let shopPlan: 'free' | 'pro' = 'free';
   const client = supabaseAdmin || supabase;
@@ -131,7 +134,6 @@ export async function callGeminiWithFallback(
   }
 
   // 2. Lấy danh sách Key cần thử
-  // Nếu là PRO → thử Key PRO trước. Nếu thất bại → thử Key Free dự phòng.
   let keysToTry: DetailedKey[] = [];
   if (shopPlan === 'pro') {
     const proKeys = await getDetailedApiKeys(true);
@@ -139,54 +141,56 @@ export async function callGeminiWithFallback(
     keysToTry = [...proKeys, ...freeKeys];
   } else {
     keysToTry = await getDetailedApiKeys(false);
-    // Xoay vòng ngẫu nhiên để chia tải đều cho các Key Free
     keysToTry = keysToTry.sort(() => Math.random() - 0.5);
   }
   
   if (keysToTry.length === 0) {
-    throw new Error('Hệ thống đang bảo trì dịch vụ AI, vui lòng quay lại sau! 🙏');
+    return "Hệ thống đang bảo trì dịch vụ AI, bạn vui lòng quay lại sau ít phút nhé! 🙏";
   }
 
   const config = generationConfig || { temperature: 0.8, maxOutputTokens: 1000 };
   let lastError = '';
-  const now = Date.now();
 
   // --- CHIẾN THUẬT CHỌN KEY: LEAST-USED + COOLDOWN + SHUFFLE ---
   const sortedKeys = [...keysToTry].sort((a, b) => {
+    const now = Date.now();
     const statsA = keyStatsMap.get(a.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
     const statsB = keyStatsMap.get(b.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-    
-    // Nếu cả 2 đều đang "nghỉ ngơi" (Cooldown 2s) hoặc cả 2 đều rảnh
     const isCoolingA = now - statsA.lastUsedTime < 2000;
     const isCoolingB = now - statsB.lastUsedTime < 2000;
-
-    if (isCoolingA !== isCoolingB) return isCoolingA ? 1 : -1; // Ưu tiên thằng không bị cooldown
-    if (statsA.usageCount !== statsB.usageCount) return statsA.usageCount - statsB.usageCount; // Ưu tiên thằng ít dùng
-    return Math.random() - 0.5; // Nếu bằng nhau hết thì random
+    if (isCoolingA !== isCoolingB) return isCoolingA ? 1 : -1;
+    if (statsA.usageCount !== statsB.usageCount) return statsA.usageCount - statsB.usageCount;
+    return Math.random() - 0.5;
   });
 
-  // 3. Vòng lặp thử từng API Key đã được sắp xếp ưu tiên
-  for (const keyObj of sortedKeys) {
+  // GIỚI HẠN: Chỉ thử tối đa 2 Key tốt nhất để fail nhanh,UX tốt
+  const activeKeys = sortedKeys.slice(0, 2);
+
+  // 3. Vòng lặp thử từng API Key (Max 2)
+  for (const keyObj of activeKeys) {
+    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 12s, ngừng thử key mới để trả fallback
+    if (Date.now() - globalStart > 12000) {
+        console.warn(`[GLOBAL_TIMEOUT] Ngắt request sau ${Date.now() - globalStart}ms để bảo vệ Vercel.`);
+        break;
+    }
+
     const stats = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-    
-    // Nếu key đang bị disable (Circuit Breaker)
     if (stats.isDisabled) {
-        if (now - stats.lastErrorTime > 120000) {
+        if (Date.now() - stats.lastErrorTime > 120000) {
             stats.isDisabled = false; 
             stats.errorCount = 3; 
-        } else {
-            continue; 
-        }
+        } else continue; 
     }
 
     const models = await getAvailableModels(keyObj.value);
 
     for (const fullModelName of models) {
       const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${keyObj.value}`;
+      const stepStart = Date.now();
       
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Timeout cho mỗi API call
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout 8s/key
 
         const response = await fetch(apiURL, {
           method: 'POST',
@@ -197,9 +201,9 @@ export async function callGeminiWithFallback(
         clearTimeout(timeoutId);
 
         const data = await response.json();
+        console.log(`[AI_STEP] ${keyObj.name} (${fullModelName}): ${Date.now() - stepStart}ms`);
 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          // --- THÀNH CÔNG: Cập nhật stats & Self-healing ---
           const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
           s.usageCount += 1;
           s.lastUsedTime = Date.now();
@@ -209,53 +213,53 @@ export async function callGeminiWithFallback(
           return data.candidates[0].content.parts[0].text;
         }
 
-        // --- XỬ LÝ LỖI ---
+        // XỬ LÝ LỖI
         const errorMsg = data.error?.message || 'Lỗi không xác định';
         const errorCode = data.error?.status || response.status;
         lastError = `${keyObj.name}: ${errorMsg}`;
 
-        // Nếu lỗi do Key (Sai key, Hết hạn, Vô hiệu hóa) → Báo Super Admin ngay
         if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400 || errorMsg.includes('API key not valid')) {
-           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] bị sai hoặc hư: ${errorMsg}`, source);
-           break; // Chuyển sang key tiếp theo ngay lập tức
+           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] hư: ${errorMsg}`, source);
+           break; 
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-           // --- EXPONENTIAL BACKOFF + JITTER (MAX 3 RETRIES TRONG 1 REQUEST) ---
-           const retryDelay = Math.min((2000 * Math.pow(2, 0)) + Math.floor(Math.random() * 500), 10000);
-           await delay(retryDelay);
+           // Retry nội bộ 1 lần nếu còn thời gian
+           if (Date.now() - globalStart < 10000) {
+               const retryDelay = Math.min((2000 * Math.pow(2, 0)) + Math.floor(Math.random() * 500), 5000);
+               await delay(retryDelay);
 
-           const controller = new AbortController();
-           const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout 10s cho retry
-
-           const retryResponse = await fetch(apiURL, {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ contents, generationConfig: config }),
-             signal: controller.signal
-           });
-           clearTimeout(timeoutId);
-           
-           const retryData = await retryResponse.json();
-           if (retryResponse.ok && retryData.candidates?.[0]?.content?.parts?.[0]?.text) {
-             const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-             s.usageCount += 1;
-             s.lastUsedTime = Date.now();
-             s.errorCount = Math.max(0, s.errorCount - 3);
-             keyStatsMap.set(keyObj.value, s);
-             return retryData.candidates[0].content.parts[0].text;
+               const controller = new AbortController();
+               const timeoutId = setTimeout(() => controller.abort(), 7000);
+               const retryResponse = await fetch(apiURL, {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify({ contents, generationConfig: config }),
+                 signal: controller.signal
+               });
+               clearTimeout(timeoutId);
+               
+               const retryData = await retryResponse.json();
+               if (retryResponse.ok && retryData.candidates?.[0]?.content?.parts?.[0]?.text) {
+                 const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+                 s.usageCount += 1;
+                 s.lastUsedTime = Date.now();
+                 s.errorCount = Math.max(0, s.errorCount - 3);
+                 keyStatsMap.set(keyObj.value, s);
+                 return retryData.candidates[0].content.parts[0].text;
+               }
            }
 
            if (keyObj.name === 'Key PRO') {
-              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải.`, source);
+              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO quá tải.`, source);
            }
         }
 
-        // --- CẬP NHẬT LỖI (CIRCUIT BREAKER) ---
+        // CIRCUIT BREAKER
         const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
         s.errorCount += 1;
         s.lastErrorTime = Date.now();
-        s.lastUsedTime = Date.now(); // Kể cả lỗi cũng tính là vừa mới dùng để cooldown
+        s.lastUsedTime = Date.now();
         if (s.errorCount >= 5) {
             s.isDisabled = true;
             await logError(shopId || null, 'CIRCUIT_BREAKER_OPEN', `Key ${keyObj.name} lỗi liên tục -> Nghỉ 2p.`, source);
@@ -273,20 +277,24 @@ export async function callGeminiWithFallback(
     }
   }
 
-  throw new Error(`AI đang bận (Quá tải). Vui lòng thử lại sau 1 phút hoặc nạp thêm API Key mới vào hệ thống bạn nhé! (Lỗi: ${lastError})`);
+  // FALLBACK CUỐI CÙNG (An toàn, không để client dính Failed to fetch)
+  console.log(`[GLOBAL_FINISH] Tổng thời gian xử lý: ${Date.now() - globalStart}ms`);
+  return "Hiện tại hệ thống đang kết nối hơi chậm, bạn vui lòng đợi vài giây và gửi lại tin nhắn nhé! 🙏";
 }
 
 /**
  * Tạo Vector Embedding cho văn bản sử dụng model text-embedding-004
  */
 export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
-  // Lấy key: Nếu là luyện tri thức (isPro=true) thì ưu tiên Key PRO
+  const stepStart = Date.now();
   const keys = await getDetailedApiKeys(isPro); 
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
-  // Nếu luyện tri thức thì bắt buộc dùng key đầu tiên (thường là Pro nếu isPro=true)
   const apiKey = keys[0].value;
   const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 7000); // 7s Embedding
 
   try {
     const response = await fetch(apiURL, {
@@ -295,22 +303,25 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
       body: JSON.stringify({
         model: "models/text-embedding-04",
         content: { parts: [{ text }] }
-      })
+      }),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     const data = await response.json();
+    console.log(`[EMBED_STEP] Finish: ${Date.now() - stepStart}ms`);
+
     if (response.ok && data.embedding?.values) {
       return data.embedding.values;
     }
     
-    // Nếu key Pro lỗi mà đang là tác vụ training, thử lùi về key thường để chữa cháy
     if (keys.length > 1) {
-       console.warn("Key ưu tiên lỗi, thử key dự phòng cho Embedding...");
        return generateEmbedding(text, false); 
     }
 
     throw new Error(data.error?.message || 'Lỗi tạo Embedding');
   } catch (error: any) {
+    clearTimeout(timeoutId);
     console.error('Embedding Error:', error);
     throw error;
   }
