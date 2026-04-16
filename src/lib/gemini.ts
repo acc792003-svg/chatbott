@@ -81,16 +81,32 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
   }
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const data = await res.json();
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+        next: { revalidate: 300 }
+    });
+    
+    const contentType = res.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Invalid content type: ${contentType}`);
+    }
 
+    const data = await res.json();
     if (data.models) {
       const models = data.models
-        .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+        .filter((m: any) => 
+          m.supportedGenerationMethods?.includes('generateContent') &&
+          !m.name.includes('-tts') &&
+          !m.name.includes('-image') &&
+          !m.name.includes('-audio') &&
+          !m.name.includes('-predict')
+        )
         .map((m: any) => m.name as string)
         .sort((a: string, b: string) => {
           const score = (name: string) => {
-            if (name.includes('2.5-flash')) return 100;
+            if (name.includes('3.1-flash')) return 120;
+            if (name.includes('3.0-flash')) return 110;
+            if (name.includes('3-flash')) return 100;
+            if (name.includes('2.5-flash')) return 95;
             if (name.includes('2.0-flash')) return 90;
             if (name.includes('1.5-flash')) return 80;
             return 10;
@@ -119,9 +135,18 @@ export async function callGeminiWithFallback(
   source: string = "API_CHAT_WIDGET"
 ): Promise<string> {
   const globalStart = Date.now();
-  const GLOBAL_TIMEOUT = 14000; // Giới hạn toàn bộ request trong 14s
+  const GLOBAL_TIMEOUT = 9000; // Giới hạn toàn bộ request trong 9s để tránh Vercel timeout (10s)
 
-  // 1. Kiểm tra trạng thái PRO của Shop
+  // -- HỖ TRỢ CHUẨN HÓA ROLE (TRÁNH LỖI CONSECUTIVE ROLES) --
+  let normalizedContents: any[] = [];
+  contents.forEach(item => {
+    if (normalizedContents.length > 0 && normalizedContents[normalizedContents.length - 1].role === item.role) {
+        // Gộp nội dung nếu trùng role liên tiếp
+        normalizedContents[normalizedContents.length - 1].parts[0].text += "\n" + item.parts[0].text;
+    } else {
+        normalizedContents.push(JSON.parse(JSON.stringify(item)));
+    }
+  });
   let shopPlan: 'free' | 'pro' = 'free';
   const client = supabaseAdmin || supabase;
   if (shopId && client) {
@@ -168,8 +193,8 @@ export async function callGeminiWithFallback(
 
   // 3. Vòng lặp thử từng API Key (Max 2)
   for (const keyObj of activeKeys) {
-    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 12s, ngừng thử key mới để trả fallback
-    if (Date.now() - globalStart > 12000) {
+    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 8s, ngừng thử key mới để trả fallback
+    if (Date.now() - globalStart > 8000) {
         console.warn(`[GLOBAL_TIMEOUT] Ngắt request sau ${Date.now() - globalStart}ms để bảo vệ Vercel.`);
         break;
     }
@@ -195,10 +220,16 @@ export async function callGeminiWithFallback(
         const response = await fetch(apiURL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents, generationConfig: config }),
+          body: JSON.stringify({ contents: normalizedContents, generationConfig: config }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            throw new Error(`API returned non-JSON (${response.status}): ${text.substring(0, 50)}`);
+        }
 
         const data = await response.json();
         console.log(`[AI_STEP] ${keyObj.name} (${fullModelName}): ${Date.now() - stepStart}ms`);
@@ -218,9 +249,14 @@ export async function callGeminiWithFallback(
         const errorCode = data.error?.status || response.status;
         lastError = `${keyObj.name}: ${errorMsg}`;
 
-        if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400 || errorMsg.includes('API key not valid')) {
-           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] hư: ${errorMsg}`, source);
-           break; 
+        if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400) {
+           if (errorMsg.includes('API key not valid') || errorMsg.includes('API_KEY_INVALID')) {
+              await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] hư: ${errorMsg}`, source);
+              break; // Thử Key tiếp theo
+           }
+           // Nếu là lỗi liên quan model (như multiturn không hỗ trợ), thử model tiếp theo của Key này
+           console.warn(`[AI_MODEL_ERROR] ${keyObj.name} (${fullModelName}): ${errorMsg}`);
+           continue; 
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
@@ -294,7 +330,7 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
   const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 7000); // 7s Embedding
+  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s Embedding
 
   try {
     const response = await fetch(apiURL, {
