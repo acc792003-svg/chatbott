@@ -186,7 +186,13 @@ export default function SuperAdminPage() {
   const handleCreateShop = async () => {
     if (!newShopName.trim()) return;
     setAddingShop(true);
-    const code = 'SHOP-' + Math.floor(10000 + Math.random() * 90000);
+    const generateUniqueCode = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Bỏ I, O, 0, 1 để tránh nhầm lẫn
+        let res = '';
+        for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        return `CB-${res}`;
+    };
+    const code = generateUniqueCode();
     // Tính toán ngày mai (1 ngày dùng thử)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
