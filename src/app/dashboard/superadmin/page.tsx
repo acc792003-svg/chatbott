@@ -838,7 +838,7 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                     {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
                     {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
                     {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
-                ].map(k => {
+                ].map((k: any) => {
                     const stats = systemStats?.keys?.find((sk: any) => sk.name === (k.id === 'k1' ? 'Key 1' : k.id === 'k2' ? 'Key 2' : 'Key PRO'));
                     return (
                         <div key={k.id} className="space-y-2 relative group">

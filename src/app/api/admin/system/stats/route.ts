@@ -36,7 +36,7 @@ export async function GET() {
             .gt('created_at', yesterday);
         
         const total = messages?.length || 0;
-        const cacheHits = messages?.filter(m => m.metadata?.source?.includes('cache') || m.metadata?.source === 'faq').length || 0;
+        const cacheHits = messages?.filter((m: any) => m.metadata?.source?.includes('cache') || m.metadata?.source === 'faq').length || 0;
         const aiCalls = total - cacheHits;
 
         return NextResponse.json({
