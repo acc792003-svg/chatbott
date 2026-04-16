@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { 
   Users, Key, AlertTriangle, Plus, Trash2, Search, CheckCircle, Settings, Database,
   ArrowRight, TrendingUp, BrainCircuit, Bot, LogIn, Edit2, Calendar, Layers, Eye, EyeOff,
-  User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail
+  User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
