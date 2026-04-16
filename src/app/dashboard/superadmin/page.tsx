@@ -476,13 +476,14 @@ export default function SuperAdminPage() {
                                 <div 
                                     key={i} 
                                     className={cn(
-                                        "w-5 h-5 rounded-full border-2 border-indigo-500 flex items-center justify-center text-[10px] font-black shadow-sm transition-all", 
-                                        k.status === 'healthy' ? "bg-emerald-400 text-white" : 
-                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 animate-pulse" : 
+                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-sm transition-all", 
+                                        k.status === 'healthy' && k.error === 0 ? "bg-emerald-400 text-white border-indigo-500" : 
+                                        k.status === 'healthy' && k.error > 0 ? "bg-orange-400 text-white border-orange-600 animate-pulse" : 
+                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 border-indigo-500 animate-pulse" : 
                                         k.status === 'missing' ? "bg-slate-800 text-slate-400 border-slate-600" :
-                                        "bg-red-500 text-white"
+                                        "bg-red-500 text-white border-red-700 animate-bounce"
                                     )} 
-                                    title={`${k.name}: ${k.status.toUpperCase()}`}
+                                    title={`${k.name}: ${k.status.toUpperCase()} (${k.error} lỗi)`}
                                 >
                                     {k.status === 'missing' ? 'X' : 
                                      (k.name === 'Key 1' ? '1' : k.name === 'Key 2' ? '2' : k.name === 'Key PRO' ? 'P' : 'E')}

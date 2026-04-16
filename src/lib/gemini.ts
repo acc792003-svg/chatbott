@@ -115,7 +115,8 @@ function delay(ms: number) {
 export async function callGeminiWithFallback(
   contents: any[],
   generationConfig?: any,
-  shopId?: string | null
+  shopId?: string | null,
+  source: string = "API_CHAT_WIDGET"
 ): Promise<string> {
   // 1. Kiểm tra trạng thái PRO của Shop
   let shopPlan: 'free' | 'pro' = 'free';
@@ -215,14 +216,12 @@ export async function callGeminiWithFallback(
 
         // Nếu lỗi do Key (Sai key, Hết hạn, Vô hiệu hóa) → Báo Super Admin ngay
         if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400 || errorMsg.includes('API key not valid')) {
-           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] bị sai hoặc hư: ${errorMsg}`, 'gemini');
+           await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] bị sai hoặc hư: ${errorMsg}`, source);
            break; // Chuyển sang key tiếp theo ngay lập tức
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
            // --- EXPONENTIAL BACKOFF + JITTER (MAX 3 RETRIES TRONG 1 REQUEST) ---
-           // Lưu ý: callGeminiWithFallback đang chạy vòng lặp Keys, nên ta chỉ retry nội bộ 1 lần 
-           // rồi chuyển key để đảm bảo tốc độ.
            const retryDelay = Math.min((2000 * Math.pow(2, 0)) + Math.floor(Math.random() * 500), 10000);
            await delay(retryDelay);
 
@@ -248,7 +247,7 @@ export async function callGeminiWithFallback(
            }
 
            if (keyObj.name === 'Key PRO') {
-              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải.`, 'gemini');
+              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải.`, source);
            }
         }
 
@@ -259,7 +258,7 @@ export async function callGeminiWithFallback(
         s.lastUsedTime = Date.now(); // Kể cả lỗi cũng tính là vừa mới dùng để cooldown
         if (s.errorCount >= 5) {
             s.isDisabled = true;
-            await logError(shopId || null, 'CIRCUIT_BREAKER_OPEN', `Key ${keyObj.name} lỗi liên tục -> Nghỉ 2p.`, 'gemini');
+            await logError(shopId || null, 'CIRCUIT_BREAKER_OPEN', `Key ${keyObj.name} lỗi liên tục -> Nghỉ 2p.`, source);
         }
         keyStatsMap.set(keyObj.value, s);
         
@@ -268,7 +267,7 @@ export async function callGeminiWithFallback(
 
       } catch (e: any) {
         lastError = `${keyObj.name}: ${e.message}`;
-        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi: ${e.message}`, 'gemini');
+        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi: ${e.message}`, source);
         continue;
       }
     }
