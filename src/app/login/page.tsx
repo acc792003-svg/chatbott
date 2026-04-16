@@ -41,61 +41,22 @@ function LoginForm() {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
         router.push('/dashboard');
-      } else {
-        if (password !== confirmPassword) throw new Error('Mật khẩu không khớp');
-        const { data, error: err } = await supabase.auth.signUp({ email, password });
-        if (err) throw err;
+        // CALL API ĐĂNG KÝ BẢO MẬT (Chống Spam IP & Tự động gán shop)
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password, shopCode })
+        });
         
-        let targetShopId = null;
-        let generatedCode = '';
-        if (shopCode) {
-          const { data: shop } = await supabase.from('shops').select('id').eq('code', shopCode).single();
-          if (!shop) throw new Error('Mã shop không tồn tại');
-          targetShopId = shop.id;
-        } else {
-          // Tạo mã ngẫu nhiên 5 ký tự (2 số + 3 chữ)
-          const nums = '0123456789'; const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-          generatedCode = `${nums[Math.floor(Math.random() * nums.length)]}${nums[Math.floor(Math.random() * nums.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}`;
-          
-          const expiryDate = new Date();
-          expiryDate.setDate(expiryDate.getDate() + 1);
-
-          const { data: newShop, error: createShopErr } = await supabase.from('shops').insert([{
-            name: 'Shop Dùng Thử',
-            code: generatedCode,
-            subscription_days: 1,
-            expiry_date: expiryDate.toISOString()
-          }]).select().single();
-          
-          if (createShopErr) throw createShopErr;
-          targetShopId = newShop.id;
-
-          // Lấy mã shop mẫu từ cài đặt hệ thống (do Super Admin cấu hình)
-          const { data: setting } = await supabase.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
-          const templateCode = setting?.value || '70WPN';
-
-          // Nhân bản cấu hình từ Shop mẫu
-          const { data: sourceShop } = await supabase.from('shops').select('id').eq('code', templateCode).single();
-          if (sourceShop) {
-             const { data: sourceConfig } = await supabase.from('chatbot_configs').select('*').eq('shop_id', sourceShop.id).single();
-             if (sourceConfig) {
-                const clonedConfig = { ...sourceConfig };
-                delete clonedConfig.id;
-                clonedConfig.shop_id = targetShopId;
-                clonedConfig.shop_name = 'Shop Dùng Thử';
-                await supabase.from('chatbot_configs').insert([clonedConfig]);
-             }
-          }
+        const result = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(result.error || 'Đăng ký thất bại');
         }
         
-        if (data.user && targetShopId) {
-          await supabase.from('users').insert([{ id: data.user.id, email, shop_id: targetShopId, role: 'user' }]);
-        }
-        
-        if (generatedCode) {
-          // Đăng ký dùng thử → hiện thông báo đẹp thay vì alert
-          await supabase.auth.signOut();
-          setSuccessCode(generatedCode);
+        if (result.generatedCode) {
+          // Đăng ký dùng thử → hiện thông báo đẹp
+          setSuccessCode(result.generatedCode);
         } else {
           alert('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
           setIsLogin(true);
