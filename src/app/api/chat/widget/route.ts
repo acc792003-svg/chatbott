@@ -13,10 +13,13 @@ export async function POST(req: Request) {
 
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
 
-    // 1. Lấy thông tin Shop & Cấu hình
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name').eq('code', code).single();
     if (!shop) throw new Error('Shop không tồn tại');
     shopId = shop.id;
+
+    // Lấy danh sách Template IDs mà shop này đang sử dụng
+    const { data: stMap } = await supabaseAdmin.from('shop_templates').select('template_id').eq('shop_id', shopId);
+    const myTemplateIds = stMap?.map(m => m.template_id) || [];
 
     const { data: config } = await supabaseAdmin.from('chatbot_configs')
         .select('shop_name, product_info, customer_insights, brand_voice')
@@ -29,53 +32,50 @@ export async function POST(req: Request) {
 
     let finalResponse = '';
     let usedVectorSearch = false;
-    let usedCache = false;
+    let resultSource: 'faq' | 'ai' = 'ai';
+    let matchedTemplateId: string | null = null;
 
-    // 2. LOGIC TỐI ƯU (CHỈ KHI KHÔNG PHẢI [WELCOME])
     if (message !== '[WELCOME]') {
       try {
-        // A. TẠO EMBEDDING CHO CÂU HỎI
         const queryEmbedding = await generateEmbedding(message);
 
-        // B. KIỂM TRA CACHE (Độ khớp cực cao > 96%)
-        const { data: cached } = await supabaseAdmin
-            .from('chat_cache')
-            .select('answer, embedding')
-            .eq('shop_id', shopId)
-            .order('created_at', { ascending: false })
-            .limit(20); // Kiểm tra 20 câu gần nhất
-
-        if (cached) {
-            // Tìm câu trong cache có độ tương đồng cao nhất
-            for (const item of cached as any[]) {
-                // Tính toán sơ bộ hoặc dùng logic so sánh vector nếu cần 
-                // Ở đây ta dùng RPC cho chính xác hoặc đơn giản là lọc trong DB
-            }
-            // (Đơn giản hóa: Ta sẽ dùng RPC để tìm cả cache và faq)
-        }
-
-        // C. TÌM TRONG FAQ (Sử dụng hàm match_faqs đã tối ưu)
-        const { data: matchedFaqs, error: rpcError } = await supabaseAdmin.rpc('match_faqs', {
+        // 1. TÌM KIẾM TRONG CACHE (Ưu tiên câu đã trả lời chất lượng cao)
+        // Tìm câu khớp trong Cache của Shop HOẶC Cache của các Template mà Shop đang dùng
+        const { data: cachedFaqs } = await supabaseAdmin.rpc('match_cache', {
             query_embedding: queryEmbedding,
-            match_threshold: 0.82, 
-            match_count: 3, // Lấy Top 3 để AI tham khảo
-            p_shop_id: shopId
+            match_threshold: 0.95, // Yêu cầu khớp cực cao để reuse cache
+            match_count: 1,
+            p_shop_id: shopId,
+            p_template_ids: myTemplateIds
         });
 
-        if (!rpcError && matchedFaqs && matchedFaqs.length > 0) {
-            // Nếu có câu cực khớp (> 92%), trả về luôn để tiết kiệm
-            if (matchedFaqs[0].similarity > 0.92) {
-                finalResponse = matchedFaqs[0].answer;
-                usedVectorSearch = true;
-                usedCache = false;
-            } else {
-                // Nếu khớp vừa phải (0.82 - 0.92), ta dùng AI để "diễn đạt" lại cho mượt
-                // Hoặc đưa vào Prompt làm ngữ cảnh
-                console.log('Khớp vừa phải, dùng AI để tinh chỉnh...');
+        if (cachedFaqs && cachedFaqs.length > 0) {
+            finalResponse = cachedFaqs[0].answer;
+            resultSource = cachedFaqs[0].source_type;
+            matchedTemplateId = cachedFaqs[0].template_id;
+            console.log(`⚡ [Cache Hit] - Source: ${resultSource}`);
+        }
+
+        // 2. TÌM KIẾM TRONG FAQ CHUYÊN SÂU (Nếu Cache không có)
+        if (!finalResponse) {
+            const { data: matchedFaqs, error: rpcError } = await supabaseAdmin.rpc('match_faqs', {
+                query_embedding: queryEmbedding,
+                match_threshold: 0.82, 
+                match_count: 3,
+                p_shop_id: shopId
+            });
+
+            if (!rpcError && matchedFaqs && matchedFaqs.length > 0) {
+                if (matchedFaqs[0].similarity > 0.92) {
+                    finalResponse = matchedFaqs[0].answer;
+                    resultSource = 'faq';
+                    matchedTemplateId = matchedFaqs[0].template_id;
+                    usedVectorSearch = true;
+                }
             }
         }
       } catch (err) {
-        console.error('Advanced RAG Error:', err);
+        console.error('RAG System Error:', err);
       }
     }
 
@@ -83,18 +83,19 @@ export async function POST(req: Request) {
     if (!finalResponse) {
         const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
         
-        // Truy vấn lại Top 3 FAQ liên quan (nếu có) để đưa vào ngữ cảnh cho AI
         let faqContext = 'Tư vấn nhiệt tình 24/7.';
         if (message !== '[WELCOME]') {
              const queryEmbedding = await generateEmbedding(message);
              const { data: topFaqs } = await supabaseAdmin.rpc('match_faqs', {
                 query_embedding: queryEmbedding,
-                match_threshold: 0.7, // Lấy rộng hơn để AI có dữ liệu tham khảo
+                match_threshold: 0.7,
                 match_count: 5,
                 p_shop_id: shopId
              });
              if (topFaqs && topFaqs.length > 0) {
                  faqContext = topFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
+                 // Nếu dùng AI fallback, ta lấy template_id của câu gần nhất để lưu vào cache sau này
+                 matchedTemplateId = topFaqs[0].template_id;
              }
         }
 
@@ -103,7 +104,7 @@ BẠN LÀ AI?
 - Trợ lý ảo của shop "${shopName}". Giọng văn: ${voice}. 
 - Hôm nay: ${now}.
 
-DỮ LIỆU TRI THỨC (ƯU TIÊN TRẢ LỜI THEO ĐÂY):
+DỮ LIỆU TRI THỨC (CỦA CHÍNH SHOP):
 ${faqContext}
 
 THÔNG TIN SẢN PHẨM KHÁC:
@@ -113,9 +114,8 @@ CHIẾN THUẬT NÍU KÉO:
 ${insights}
 
 QUY TẮC:
-- Nếu dữ liệu tri thức trên có câu trả lời, hãy dùng nó để trả lời khách một cách tự nhiên.
-- Nếu không thấy, hãy dùng kiến thức chung của bạn để hỗ trợ nhưng phải lịch sự và hướng khách để lại số điện thoại.
-- Kết thúc bằng một câu hỏi hoặc lời chúc.
+- Trả lời theo DỮ LIỆU TRI THỨC được cung cấp. Nếu không thấy, dùng kiến thức bổ trợ nhưng phải hướng về sản phẩm của shop.
+- Luôn lễ phép, kết thúc bằng một câu hỏi hoặc lời chúc.
 `;
 
         const historyContents = (history || []).map((msg: any) => ({
@@ -130,6 +130,7 @@ QUY TẮC:
         ];
 
         finalResponse = await callGeminiWithFallback(contents, { temperature: 0.8, maxOutputTokens: 1000 }, shopId);
+        resultSource = 'ai';
     }
 
     // 4. LƯU TIN NHẮN & CACHE
@@ -139,17 +140,19 @@ QUY TẮC:
         session_id: `widget-${Date.now()}`,
         user_message: message,
         ai_response: finalResponse,
-        usage_tokens: usedVectorSearch ? 0 : 1
+        usage_tokens: resultSource === 'faq' ? 0 : 1
       });
 
-      // Lưu vào Cache nếu đây là một câu trả lời chất lượng (từ AI hoặc FAQ)
+      // LƯU CACHE (Nâng cấp: Gắn thêm source_type và template_id)
       try {
         const queryEmbedding = await generateEmbedding(message);
         await supabaseAdmin.from('chat_cache').insert({
             shop_id: shopId,
+            template_id: matchedTemplateId,
             question: message,
             answer: finalResponse,
-            embedding: queryEmbedding
+            embedding: queryEmbedding,
+            source_type: resultSource
         });
       } catch (e) {}
     }
