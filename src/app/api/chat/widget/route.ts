@@ -108,7 +108,6 @@ export async function POST(req: Request) {
     let matchedTemplateId: string | null = null;
     let similarityScore = 0;
 
-    const isPro = shop.plan === 'pro';
 
     if (message && message !== '[WELCOME]') {
       try {
