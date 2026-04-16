@@ -7,3 +7,8 @@ Xóa bản cài đặt cũ trên màn hình điện thoại.
 Dùng Chrome vào lại link: https://app.dichvupro.net/s/qlady
 Đợi 1-2 giây rồi bấm Cài đặt ứng dụng (Install).
 Bây giờ, khi bạn mở App từ màn hình chính, nó sẽ hiện ngay khung chat của qlady trên nền trắng tinh tế, đúng như bạn mong muốn.
+---------------
+
+cho đường đi của câu hỏi khách với chatbot của shop A và đến các bảng cơ sở dữ liêu của "Xưởng tri thức"
+
+tối ưu api key gemini tránh bị khóa do spam, bị quá tải . 

@@ -206,8 +206,8 @@ export async function callGeminiWithFallback(
 /**
  * Tạo Vector Embedding cho văn bản sử dụng model text-embedding-004
  */
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const keys = await getDetailedApiKeys(false); // Ưu tiên dùng key free cho embedding
+export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
+  const keys = await getDetailedApiKeys(isPro); 
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
   const apiKey = keys[0].value;

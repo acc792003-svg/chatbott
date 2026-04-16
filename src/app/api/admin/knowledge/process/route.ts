@@ -40,9 +40,9 @@ export async function POST(req: Request) {
         if (!item.q || !item.a) continue;
         
         try {
-          // Tạo vector cho câu hỏi kèm theo NGỮ CẢNH (Ngành hàng | Tên gói) để tăng độ chính xác
+          // Tạo vector cho câu hỏi kèm theo NGỮ CẢNH sử dụng API Key PRO
           const contextText = `${industryName} | ${packageName} | ${item.q}`;
-          const embedding = await generateEmbedding(contextText);
+          const embedding = await generateEmbedding(contextText, true);
           
           await supabaseAdmin.from('knowledge_items').insert({
             template_id: template.id,
