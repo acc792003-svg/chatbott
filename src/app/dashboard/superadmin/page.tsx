@@ -227,9 +227,20 @@ export default function SuperAdminPage() {
   };
 
   const handleUpdateIcon = async (shopId: string, url: string) => {
-    await supabase.from('chatbot_configs').update({ head_icon: url }).eq('shop_id', shopId);
+    // Sử dụng upsert: Nếu shop chưa có dòng config thì tạo mới, có rồi thì cập nhật
+    const { error } = await supabase.from('chatbot_configs').upsert({ 
+      shop_id: shopId, 
+      head_icon: url,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'shop_id' });
+
+    if (error) {
+      alert('Lỗi khi lưu icon: ' + error.message);
+      return;
+    }
+
     setActiveIcons(prev => ({ ...prev, [shopId]: url }));
-    alert('Đã đổi icon!');
+    alert('Đã đổi icon và lưu thành công!');
   };
 
   // ==================== KNOWLEDGE WORKSHOP ACTIONS ====================
