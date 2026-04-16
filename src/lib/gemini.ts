@@ -103,9 +103,10 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
         .map((m: any) => m.name as string)
         .sort((a: string, b: string) => {
           const score = (name: string) => {
-            if (name.includes('3.1-flash')) return 120;
+            if (name.includes('3.1-flash')) return 130;
+            if (name.includes('flash-lite')) return 125; // Ưu tiên hàng đầu cho tốc độ widget
             if (name.includes('3.0-flash')) return 110;
-            if (name.includes('3-flash')) return 100;
+            if (name.includes('3-flash')) return 105;
             if (name.includes('2.5-flash')) return 95;
             if (name.includes('2.0-flash')) return 90;
             if (name.includes('1.5-flash')) return 80;
@@ -193,9 +194,9 @@ export async function callGeminiWithFallback(
 
   // 3. Vòng lặp thử từng API Key (Max 2)
   for (const keyObj of activeKeys) {
-    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 8s, ngừng thử key mới để trả fallback
-    if (Date.now() - globalStart > 8000) {
-        console.warn(`[GLOBAL_TIMEOUT] Ngắt request sau ${Date.now() - globalStart}ms để bảo vệ Vercel.`);
+    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 7s, ngừng thử key mới để trả fallback ngay
+    if (Date.now() - globalStart > 7000) {
+        console.warn(`[GLOBAL_TIMEOUT] Sắp hết hạn (7s). Dừng tìm Key mới.`);
         break;
     }
 
@@ -260,13 +261,13 @@ export async function callGeminiWithFallback(
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-           // Retry nội bộ 1 lần nếu còn thời gian
-           if (Date.now() - globalStart < 10000) {
-               const retryDelay = Math.min((2000 * Math.pow(2, 0)) + Math.floor(Math.random() * 500), 5000);
+           // Retry nội bộ 1 lần nếu còn dư thời gian
+           if (Date.now() - globalStart < 6000) {
+               const retryDelay = Math.min(1000 + Math.floor(Math.random() * 500), 2000);
                await delay(retryDelay);
 
                const controller = new AbortController();
-               const timeoutId = setTimeout(() => controller.abort(), 7000);
+               const timeoutId = setTimeout(() => controller.abort(), 4000);
                const retryResponse = await fetch(apiURL, {
                  method: 'POST',
                  headers: { 'Content-Type': 'application/json' },
@@ -330,7 +331,7 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
   const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000); // 4s Embedding
+  const timeoutId = setTimeout(() => controller.abort(), 3000); // Giảm xuống 3s cho Embedding
 
   try {
     const response = await fetch(apiURL, {
@@ -351,10 +352,7 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
       return data.embedding.values;
     }
     
-    if (keys.length > 1) {
-       return generateEmbedding(text, false); 
-    }
-
+    // Bỏ retry đệ quy để tránh treo request lâu
     throw new Error(data.error?.message || 'Lỗi tạo Embedding');
   } catch (error: any) {
     clearTimeout(timeoutId);
