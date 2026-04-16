@@ -695,7 +695,10 @@ function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setAp
                 ].map(k => (
                     <div key={k.id} className="space-y-2">
                         <div className="flex justify-between px-1">
-                            <label className="text-[10px] font-black text-slate-500 uppercase">{k.label}</label>
+                            <label className="text-[10px] font-black text-slate-500 uppercase">
+                                {k.label}
+                                {k.id === 'kp' && <span className="ml-2 text-indigo-400 normal-case font-bold">(Phục vụ cho Xưởng tri thức và Shop Pro)</span>}
+                            </label>
                             <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-600 font-bold uppercase">{showKeys[k.id] ? 'Hide' : 'Show'}</button>
                         </div>
                         <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 font-mono text-xs outline-none" />
