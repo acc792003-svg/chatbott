@@ -162,20 +162,31 @@ export default function SuperAdminPage() {
   }, [userRole]);
 
   const fetchShops = async () => {
-    // Truy vấn shop kèm theo email từ bảng users
-    const { data } = await supabase
-        .from('shops')
-        .select('*, users(email, id)')
-        .order('created_at', { ascending: false });
-
-    if (data) {
-        setShops(data);
-        const { data: configs } = await supabase.from('chatbot_configs').select('shop_id, head_icon');
-        const iconMap: any = {};
-        configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
-        setActiveIcons(iconMap);
+    try {
+        // Lấy token từ session hiện tại của Supabase
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        const res = await fetch('/api/admin/shops', {
+            headers: {
+                'Authorization': `Bearer ${session?.access_token}`
+            }
+        });
+        const data = await res.json();
+        
+        if (data && !data.error) {
+            setShops(data);
+            const { data: configs } = await supabase.from('chatbot_configs').select('shop_id, head_icon');
+            const iconMap: any = {};
+            configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
+            setActiveIcons(iconMap);
+        } else if (data.error) {
+            console.error('API Error:', data.error);
+        }
+    } catch (e) {
+        console.error('Lỗi khi load danh sách shop:', e);
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
   };
 
   const fetchKnowledgePackages = async () => {
