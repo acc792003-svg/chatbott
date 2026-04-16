@@ -49,12 +49,12 @@ export async function POST(req: Request) {
             answer: item.a,
             embedding: embedding
           });
-        } catch (err) {
+        } catch (err: any) {
           console.error(`Lỗi tạo embedding cho câu: ${item.q}`, err);
           // Ghi log lỗi nhưng tiếp tục câu tiếp theo
           await supabaseAdmin.from('error_logs').insert({
             error_type: 'EMBEDDING_ERROR',
-            error_message: `Câu hỏi: ${item.q} - ${err.message}`,
+            error_message: `Câu hỏi: ${item.q} - ${err.message || 'Lỗi không xác định'}`,
             source: 'API_KNOWLEDGE_PROCESS'
           });
         }

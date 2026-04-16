@@ -52,7 +52,7 @@ export async function POST(req: Request) {
             usedVectorSearch = true;
             console.log(`✅ [Vector Match] - Shop: ${shopCode} - Độ khớp: ${matchedFaqs[0].similarity}`);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Vector Search Error:', err);
         // Fallback sang AI nếu lỗi search
       }
