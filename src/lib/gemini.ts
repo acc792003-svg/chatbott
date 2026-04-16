@@ -7,6 +7,15 @@ const MODEL_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút
 let cachedModels: string[] = [];
 let cacheTimestamp = 0;
 
+// Bộ nhớ theo dõi sức khỏe và hiệu suất API Key (Circuit Breaker + Least Used)
+export const keyStatsMap = new Map<string, { 
+    errorCount: number, 
+    lastErrorTime: number, 
+    isDisabled: boolean,
+    usageCount: number,
+    lastUsedTime: number 
+}>();
+
 export type DetailedKey = {
   name: string;
   value: string;
@@ -129,6 +138,8 @@ export async function callGeminiWithFallback(
     keysToTry = [...proKeys, ...freeKeys];
   } else {
     keysToTry = await getDetailedApiKeys(false);
+    // Xoay vòng ngẫu nhiên để chia tải đều cho các Key Free
+    keysToTry = keysToTry.sort(() => Math.random() - 0.5);
   }
   
   if (keysToTry.length === 0) {
@@ -137,24 +148,63 @@ export async function callGeminiWithFallback(
 
   const config = generationConfig || { temperature: 0.8, maxOutputTokens: 1000 };
   let lastError = '';
+  const now = Date.now();
 
-  // 3. Vòng lặp thử từng API Key
-  for (const keyObj of keysToTry) {
+  // --- CHIẾN THUẬT CHỌN KEY: LEAST-USED + COOLDOWN + SHUFFLE ---
+  const sortedKeys = [...keysToTry].sort((a, b) => {
+    const statsA = keyStatsMap.get(a.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+    const statsB = keyStatsMap.get(b.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+    
+    // Nếu cả 2 đều đang "nghỉ ngơi" (Cooldown 2s) hoặc cả 2 đều rảnh
+    const isCoolingA = now - statsA.lastUsedTime < 2000;
+    const isCoolingB = now - statsB.lastUsedTime < 2000;
+
+    if (isCoolingA !== isCoolingB) return isCoolingA ? 1 : -1; // Ưu tiên thằng không bị cooldown
+    if (statsA.usageCount !== statsB.usageCount) return statsA.usageCount - statsB.usageCount; // Ưu tiên thằng ít dùng
+    return Math.random() - 0.5; // Nếu bằng nhau hết thì random
+  });
+
+  // 3. Vòng lặp thử từng API Key đã được sắp xếp ưu tiên
+  for (const keyObj of sortedKeys) {
+    const stats = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+    
+    // Nếu key đang bị disable (Circuit Breaker)
+    if (stats.isDisabled) {
+        if (now - stats.lastErrorTime > 120000) {
+            stats.isDisabled = false; 
+            stats.errorCount = 3; 
+        } else {
+            continue; 
+        }
+    }
+
     const models = await getAvailableModels(keyObj.value);
 
     for (const fullModelName of models) {
       const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${keyObj.value}`;
       
       try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Timeout cho mỗi API call
+
         const response = await fetch(apiURL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents, generationConfig: config })
+          body: JSON.stringify({ contents, generationConfig: config }),
+          signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         const data = await response.json();
 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          // --- THÀNH CÔNG: Cập nhật stats & Self-healing ---
+          const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+          s.usageCount += 1;
+          s.lastUsedTime = Date.now();
+          s.errorCount = Math.max(0, s.errorCount - 3);
+          s.isDisabled = false;
+          keyStatsMap.set(keyObj.value, s);
           return data.candidates[0].content.parts[0].text;
         }
 
@@ -170,32 +220,56 @@ export async function callGeminiWithFallback(
         }
 
         if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-           // THỬ LẠI SAU 2 GIÂY TRƯỚC KHI ĐỔI KEY
-           await delay(2000);
+           // --- EXPONENTIAL BACKOFF + JITTER (MAX 3 RETRIES TRONG 1 REQUEST) ---
+           // Lưu ý: callGeminiWithFallback đang chạy vòng lặp Keys, nên ta chỉ retry nội bộ 1 lần 
+           // rồi chuyển key để đảm bảo tốc độ.
+           const retryDelay = Math.min((2000 * Math.pow(2, 0)) + Math.floor(Math.random() * 500), 10000);
+           await delay(retryDelay);
+
+           const controller = new AbortController();
+           const timeoutId = setTimeout(() => controller.abort(), 10000); // Timeout 10s cho retry
+
            const retryResponse = await fetch(apiURL, {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ contents, generationConfig: config })
+             body: JSON.stringify({ contents, generationConfig: config }),
+             signal: controller.signal
            });
+           clearTimeout(timeoutId);
+           
            const retryData = await retryResponse.json();
            if (retryResponse.ok && retryData.candidates?.[0]?.content?.parts?.[0]?.text) {
+             const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+             s.usageCount += 1;
+             s.lastUsedTime = Date.now();
+             s.errorCount = Math.max(0, s.errorCount - 3);
+             keyStatsMap.set(keyObj.value, s);
              return retryData.candidates[0].content.parts[0].text;
            }
 
            if (keyObj.name === 'Key PRO') {
-              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải (429/503).`, 'gemini');
+              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO đang bị quá tải.`, 'gemini');
            }
-           break; 
         }
 
-        // Các lỗi khác (404, 400, ...) → Log lại và thử model tiếp theo trong cùng key
-        await logError(shopId || null, 'AI_ERROR', `[${keyObj.name}] Model ${fullModelName} lỗi: ${errorMsg}`, 'gemini');
+        // --- CẬP NHẬT LỖI (CIRCUIT BREAKER) ---
+        const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
+        s.errorCount += 1;
+        s.lastErrorTime = Date.now();
+        s.lastUsedTime = Date.now(); // Kể cả lỗi cũng tính là vừa mới dùng để cooldown
+        if (s.errorCount >= 5) {
+            s.isDisabled = true;
+            await logError(shopId || null, 'CIRCUIT_BREAKER_OPEN', `Key ${keyObj.name} lỗi liên tục -> Nghỉ 2p.`, 'gemini');
+        }
+        keyStatsMap.set(keyObj.value, s);
+        
+        lastError = `${keyObj.name}: ${errorMsg}`;
         continue; 
 
       } catch (e: any) {
         lastError = `${keyObj.name}: ${e.message}`;
-        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi kết nối: ${e.message}`, 'gemini');
-        break;
+        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi: ${e.message}`, 'gemini');
+        continue;
       }
     }
   }
@@ -207,9 +281,11 @@ export async function callGeminiWithFallback(
  * Tạo Vector Embedding cho văn bản sử dụng model text-embedding-004
  */
 export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
+  // Lấy key: Nếu là luyện tri thức (isPro=true) thì ưu tiên Key PRO
   const keys = await getDetailedApiKeys(isPro); 
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
+  // Nếu luyện tri thức thì bắt buộc dùng key đầu tiên (thường là Pro nếu isPro=true)
   const apiKey = keys[0].value;
   const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
 
@@ -228,6 +304,12 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
       return data.embedding.values;
     }
     
+    // Nếu key Pro lỗi mà đang là tác vụ training, thử lùi về key thường để chữa cháy
+    if (keys.length > 1) {
+       console.warn("Key ưu tiên lỗi, thử key dự phòng cho Embedding...");
+       return generateEmbedding(text, false); 
+    }
+
     throw new Error(data.error?.message || 'Lỗi tạo Embedding');
   } catch (error: any) {
     console.error('Embedding Error:', error);
