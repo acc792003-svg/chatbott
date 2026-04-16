@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const systemInstruction = `Hôm nay là ${now}. Bạn là trợ lý AI thân thiện của cửa hàng "${config?.shop_name || 'Shop'}". 
 Thông tin sản phẩm: ${config?.product_info || 'Chưa cập nhật'}.
 FAQ: ${config?.faq || 'Chưa cập nhật'}.
-Hãy trả lời tự nhiên, thân thiện, nhớ ngữ cảnh cuộc trò chuyện.`;
+Hãy trả lời tự nhiên, thân thiện, nhớ ngữ cảnh cuộc trò chuyện. Hãy dùng thêm các icon (emoji) dễ thương vào câu trả lời để tạo sự thân thiện.`;
 
     let contents: any[] = [];
 
