@@ -89,7 +89,7 @@ export async function POST(req: Request) {
     let similarityScore = 0;
     let queryEmbedding: number[] | null = null;
 
-    if (message && message !== '[WELCOME]') {
+    if (message && message !== '[welcome]') {
       try {
         // --- CACHE L1: EXACT MATCH (0ms Embedding) ---
         const { data: exactMatch } = await supabaseAdmin
@@ -174,7 +174,7 @@ export async function POST(req: Request) {
         const contents = [
           { role: 'user', parts: [{ text: systemPrompt }] },
           ...(history || []).map((msg: any) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
-          { role: 'user', parts: [{ text: message === '[WELCOME]' ? 'Chào bạn!' : message }] }
+          { role: 'user', parts: [{ text: message === '[welcome]' ? 'Chào bạn!' : message }] }
         ];
 
         finalResponse = await callGeminiWithFallback(contents, { temperature: 0.7 }, shopId);
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
     }
 
     // --- LƯU TIN NHẮN & CACHE (DÙNG LẠI EMBEDDING CÓ SẴN) ---
-    if (message && message !== '[WELCOME]') {
+    if (message && message !== '[welcome]') {
       await supabaseAdmin.from('messages').insert({
         shop_id: shopId,
         session_id: `widget-${Date.now()}`,

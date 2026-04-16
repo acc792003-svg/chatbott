@@ -54,7 +54,7 @@ Hãy trả lời tự nhiên, thân thiện, nhớ ngữ cảnh cuộc trò chuy
       };
     }
 
-    const responseText = await callGeminiWithFallback(contents, undefined, shopId || null);
+    const responseText = await callGeminiWithFallback(contents, undefined, shopId || null, 'API_GENERIC_CHAT');
 
     return NextResponse.json({ response: responseText });
   } catch (error: any) {
