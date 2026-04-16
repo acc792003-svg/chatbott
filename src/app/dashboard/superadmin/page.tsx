@@ -140,9 +140,6 @@ export default function SuperAdminPage() {
           fetchApiKeys();
           fetchTrialConfig();
           fetchSystemStats();
-          // Auto-refresh stats every 30s
-          const interval = setInterval(fetchSystemStats, 30000);
-          return () => clearInterval(interval);
       }
     } else { 
         window.location.href = '/login'; 
@@ -156,6 +153,13 @@ export default function SuperAdminPage() {
         if (data.keys) setSystemStats(data);
     } catch (e) {}
   };
+
+  useEffect(() => {
+    if (userRole === 'super_admin') {
+      const interval = setInterval(fetchSystemStats, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [userRole]);
 
   const fetchShops = async () => {
     // Truy vấn shop kèm theo email từ bảng users
