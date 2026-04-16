@@ -778,20 +778,21 @@ export default function SuperAdminPage() {
       </div>
       
       {/* OTHER SYSTEM TABS */}
-       <div className="px-2 lg:px-0">
-          <ApiKeysView 
-            showKeys={showKeys} 
-            setShowKeys={setShowKeys} 
-            apiKey1={apiKey1} 
-            setApiKey1={setApiKey1} 
-            apiKey2={apiKey2} 
-            setApiKey2={setApiKey2} 
-            apiKeyPro={apiKeyPro} 
-            setApiKeyPro={setApiKeyPro} 
-            systemStats={systemStats}
-          />
-        </div>
-      }
+      {activeTab === 'apikeys' && (
+        <div className="px-2 lg:px-0">
+            <ApiKeysView 
+              showKeys={showKeys} 
+              setShowKeys={setShowKeys} 
+              apiKey1={apiKey1} 
+              setApiKey1={setApiKey1} 
+              apiKey2={apiKey2} 
+              setApiKey2={setApiKey2} 
+              apiKeyPro={apiKeyPro} 
+              setApiKeyPro={setApiKeyPro} 
+              systemStats={systemStats}
+            />
+          </div>
+      )}
       {activeTab === 'errors' && <div className="px-2 lg:px-0"><LogsView errorLogs={errorLogs} /></div>}
       {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} /></div>}
 
