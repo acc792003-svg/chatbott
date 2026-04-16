@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 export async function POST(req: Request) {
   try {
     const { email, password, shopCode } = await req.json();
-    const headerList = headers();
+    const headerList = await headers();
     
     // Lấy IP của người dùng (Xử lý các trường hợp proxy/Vercel)
     const forwarded = headerList.get('x-forwarded-for');
