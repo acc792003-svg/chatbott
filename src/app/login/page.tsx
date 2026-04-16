@@ -41,7 +41,10 @@ function LoginForm() {
         const { error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
         router.push('/dashboard');
-        // CALL API ĐĂNG KÝ BẢO MẬT (Chống Spam IP & Tự động gán shop)
+      } else {
+        if (password !== confirmPassword) {
+          throw new Error('Mật khẩu nhập lại không khớp');
+        }
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -55,7 +58,6 @@ function LoginForm() {
         }
         
         if (result.generatedCode) {
-          // Đăng ký dùng thử → hiện thông báo đẹp
           setSuccessCode(result.generatedCode);
         } else {
           alert('Đăng ký thành công! Bạn có thể đăng nhập ngay.');
