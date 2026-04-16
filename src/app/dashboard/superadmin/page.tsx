@@ -202,18 +202,22 @@ export default function SuperAdminPage() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     
     try {
+      const codeToUse = code || generateCode(); 
       const { error } = await supabase.from('shops').insert({ 
         name: newShopName, 
-        code: code, 
+        code: codeToUse, 
         plan: 'free',
         plan_expiry_date: tomorrow.toISOString()
       });
       
       if (error) throw error;
 
-      addToast(`ĐÃ TẠO THÀNH CÔNG: ${newShopName} (MÃ: ${code})`, 'success');
+      // Thông báo siêu lớn và rõ ràng
+      addToast(`🎉 CHÚC MỪNG! ĐÃ TẠO THÀNH CÔNG SHOP: ${newShopName.toUpperCase()}`, 'success');
+      addToast(`🔑 MÃ TRUY CẬP CỦA SHOP LÀ: ${codeToUse}`, 'success');
+      
       setNewShopName(''); 
-      setNextGeneratedCode(generateCode()); // Sinh mã mới cho lần tiếp theo
+      setNextGeneratedCode(generateCode()); 
       fetchShops();
     } catch (e: any) { 
         addToast(e.message, 'error');
@@ -436,8 +440,10 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="flex gap-2 items-end">
                     <div className="flex flex-col gap-1">
-                        <label className="text-[9px] font-black text-slate-400 uppercase ml-2 tracking-widest">{newShopName.trim() ? `Sẽ tạo mã: ${nextGeneratedCode}` : 'Tên shop mới'}</label>
-                        <input type="text" placeholder="Nhập tên shop..." className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold w-48 shadow-sm focus:border-indigo-500 outline-none" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                        <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest animate-pulse border-b-2 border-indigo-100 w-fit">
+                            {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : 'Nhập tên cửa hàng mới'}
+                        </label>
+                        <input type="text" placeholder="Ví dụ: Yến Sào Phương Nam..." className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
                     </div>
                     <button 
                         onClick={handleCreateShop} 
@@ -456,11 +462,11 @@ export default function SuperAdminPage() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase pl-6">Thông tin Shop & Tài khoản</th>
+                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase pl-6">Thông tin Cửa hàng</th>
+                            <th className="p-4 text-[10px] font-black text-indigo-400 uppercase text-center w-36 bg-indigo-50/30">Mã Shop (Code)</th>
                             <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-center w-28">Gói Dùng</th>
                             <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-36">Thời hạn dùng</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-32">Trạng thái</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-right w-24 pr-8">Actions</th>
+                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-24">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -482,17 +488,6 @@ export default function SuperAdminPage() {
                                             <div>
                                                 <p className="text-xs font-black text-slate-900 leading-none mb-1.5">{shop.name}</p>
                                                 <div className="flex items-center gap-2">
-                                                    <button 
-                                                        onClick={() => {
-                                                            navigator.clipboard.writeText(shop.code);
-                                                            addToast(`Đã copy mã: ${shop.code}`, 'success');
-                                                        }}
-                                                        className="group/code flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-1 rounded-lg transition-all shadow-sm hover:shadow-indigo-200"
-                                                        title="Bấm để copy mã"
-                                                    >
-                                                        <span className="text-[10px] font-black tracking-widest leading-none">#{shop.code}</span>
-                                                        <Copy size={10} className="opacity-50 group-hover/code:opacity-100 transition-opacity"/>
-                                                    </button>
                                                     {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-1 rounded-lg leading-none">/{shop.slug}</span>}
                                                     <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-100 p-1 rounded-lg shadow-sm">
                                                         <Settings size={13}/>
@@ -500,6 +495,19 @@ export default function SuperAdminPage() {
                                                 </div>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td className="p-4 text-center bg-indigo-50/10">
+                                        <button 
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(shop.code);
+                                                addToast(`Đã copy mã: ${shop.code}`, 'success');
+                                            }}
+                                            className="group/code inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl transition-all shadow-lg hover:shadow-indigo-300 ring-2 ring-indigo-100 mx-auto"
+                                            title="Bấm để copy mã nhanh"
+                                        >
+                                            <span className="text-xs font-black tracking-widest leading-none">{shop.code}</span>
+                                            <Copy size={12} className="opacity-70 group-hover/code:opacity-100 transition-opacity"/>
+                                        </button>
                                     </td>
                                     <td className="p-4 text-center">
                                         <button onClick={() => togglePlan(shop)} className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all", shop.plan === 'pro' ? "bg-amber-100 border-amber-300 text-amber-900 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-400")}>
