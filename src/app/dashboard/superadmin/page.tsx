@@ -778,8 +778,6 @@ export default function SuperAdminPage() {
                 </div>
             </div>
         )}
-
-      </div>
       
       {/* OTHER SYSTEM TABS */}
       {activeTab === 'apikeys' && (
@@ -821,10 +819,8 @@ export default function SuperAdminPage() {
           ))}
       </div>
 
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 20px; }
       `}</style>
+      </div>
     </div>
   );
 }
