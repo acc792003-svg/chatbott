@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     }
 
     const { data: config } = await supabaseAdmin.from('chatbot_configs')
-        .select('shop_name, product_info, customer_insights, brand_voice')
+        .select('shop_name, product_info, pricing_info, faq, customer_insights, brand_voice')
         .eq('shop_id', shopId)
         .single();
     
@@ -169,7 +169,11 @@ export async function POST(req: Request) {
         }
 
         const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
-        const systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế.`;
+        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế.`;
+        
+        if (message === '[welcome]') {
+            systemPrompt += "\nLƯU Ý: Đây là lời chào đầu tiên. Hãy chào hỏi khách hàng thật ngắn gọn, thân thiện và mời họ đặt câu hỏi. Tuyệt đối không liệt kê danh sách sản phẩm hay thông tin chi tiết lúc này.";
+        }
 
         const contents = [
           { role: 'user', parts: [{ text: systemPrompt }] },
