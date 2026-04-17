@@ -6,7 +6,7 @@ import {
   Users, Key, AlertTriangle, Plus, Trash2, Search, CheckCircle, Settings, Database,
   ArrowRight, TrendingUp, BrainCircuit, Bot, LogIn, Edit2, Calendar, Layers, Eye, EyeOff,
   User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy,
-  Brain, MessageCircle, Info, Activity
+  Brain, MessageCircle, Info, Activity, ShieldAlert
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TelegramMonitor from '@/components/admin/TelegramMonitor';
