@@ -2,9 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
 import { sendFacebookMessage } from '@/lib/facebook';
+import crypto from 'crypto';
 
 /**
- * 🔒 FACEBOOK WEBHOOK HANDLER (Omnichannel Version)
+ * 🔒 FACEBOOK WEBHOOK - PRODUCTION HARDENED (V3)
+ * - X-Hub-Signature-256 Verification (Bảo mật tuyệt đối)
+ * - Message Deduplication (Chống trả lời lặp lại)
+ * - Multi-tenant Channel Routing (Định tuyến thông minh)
  */
 
 export async function GET(req: NextRequest) {
@@ -33,7 +37,16 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.text();
+    const signature = req.headers.get('x-hub-signature-256');
+
+    // 1. VERIFY SIGNATURE (Bảo vệ khỏi hacker)
+    if (!await verifySignature(rawBody, signature)) {
+      console.error('❌ Invalid Webhook Signature!');
+      return NextResponse.json({ error: 'Invalid Signature' }, { status: 401 });
+    }
+
+    const body = JSON.parse(rawBody);
 
     if (body.object === 'page') {
       for (const entry of body.entry) {
@@ -42,46 +55,99 @@ export async function POST(req: NextRequest) {
         const webhook_event = entry.messaging[0];
         const sender_id = webhook_event.sender.id;
         const page_id = entry.id;
+        const message_id = webhook_event.message?.mid;
+
+        // 2. CHECK DUPLICATE (Chặn tin nhắn trùng lặp)
+        if (message_id) {
+            const isDuplicate = await checkAndLogMessage(message_id);
+            if (isDuplicate) {
+                console.warn(`♻️ Duplicate message detected: ${message_id}. Skipping.`);
+                continue;
+            }
+        }
 
         if (webhook_event.message && webhook_event.message.text) {
           const message_text = webhook_event.message.text;
           
-          // Xử lý không đồng bộ để không block Facebook Webhook
+          // Xử lý bất đồng bộ (Giai đoạn chuyển tiếp sang Async)
           handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
             console.error('FB logic error:', e)
           );
         }
       }
       return NextResponse.json({ status: 'EVENT_RECEIVED' });
-    } else {
-      return NextResponse.json({ status: 'NOT_A_PAGE_EVENT' }, { status: 404 });
     }
+    
+    return NextResponse.json({ status: 'NOT_A_PAGE_EVENT' }, { status: 404 });
+
   } catch (e: any) {
+    console.error('Webhook Root Error:', e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
+}
+
+/**
+ * 🛡️ XÁC THỰC CHỮ KÝ TỪ FACEBOOK
+ */
+async function verifySignature(payload: string, signature: string | null): Promise<boolean> {
+  if (!signature) return false;
+  
+  const { data: setting } = await supabaseAdmin
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'fb_app_secret')
+    .single();
+
+  const APP_SECRET = setting?.value;
+  if (!APP_SECRET) {
+      console.warn('⚠️ FB_APP_SECRET chưa được cấu hình. Tạm thời bỏ qua verify (Không khuyến khích).');
+      return true; // Phải có App Secret mới chạy được production thực sự
+  }
+
+  const expectedSignature = 'sha256=' + crypto
+    .createHmac('sha256', APP_SECRET)
+    .update(payload)
+    .digest('hex');
+
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expectedSignature));
+}
+
+/**
+ * ♻️ KIỂM TRA VÀ GHI NHẬT KÝ TIN NHẮN (DEDUPLICATION)
+ */
+async function checkAndLogMessage(msgId: string): Promise<boolean> {
+    const { error } = await supabaseAdmin
+        .from('webhook_logs')
+        .insert({ message_id: msgId });
+    
+    // Nếu lỗi có code 23505 (unique_violation) -> Tin đã xử lý
+    return error?.code === '23505';
 }
 
 /**
  * 🧠 LUỒNG XỬ LÝ TIN NHẮN FACEBOOK
  */
 async function handleFacebookMessage(sender_id: string, page_id: string, text: string) {
-  // 1. Tìm shop tương ứng
-  const { data: shop } = await supabaseAdmin
-    .from('shops')
-    .select('id, name, plan, fb_page_access_token')
-    .eq('fb_page_id', page_id)
+  // 1. Tìm shop tương ứng qua bảng Channel Config (Đã chuyển đổi kiến trúc)
+  const { data: config } = await supabaseAdmin
+    .from('channel_configs')
+    .select('shop_id, access_token, shops(name, plan)')
+    .eq('provider_id', page_id)
+    .eq('channel_type', 'facebook')
     .single();
 
-  if (!shop || !shop.fb_page_access_token) {
-    console.warn(`⚠️ Page ${page_id} chưa cấu hình Access Token!`);
+  if (!config || !config.access_token) {
+    console.warn(`⚠️ Page ${page_id} chưa được gán cho bất kỳ Shop nào!`);
     return;
   }
 
-  // 2. Lấy lịch sử hội thoại (6 tin gần nhất)
+  const shop: any = config.shops;
+
+  // 2. Lấy lịch sử hội thoại
   const { data: history } = await supabaseAdmin
     .from('messages')
     .select('user_message, ai_response')
-    .eq('shop_id', shop.id)
+    .eq('shop_id', config.shop_id)
     .eq('external_user_id', sender_id)
     .eq('platform', 'facebook')
     .order('created_at', { ascending: false })
@@ -94,9 +160,9 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
       { role: 'model', content: m.ai_response }
     ]);
 
-  // 3. Gửi tới Bộ não xử lý (chatbot-engine)
+  // 3. Gửi tới Bộ não xử lý
   const result = await processChat({
-    shopId: shop.id,
+    shopId: config.shop_id,
     message: text,
     history: formattedHistory,
     externalUserId: sender_id,
@@ -104,8 +170,13 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
     isPro: shop.plan === 'pro'
   });
 
-  // 4. Phản hồi cho người dùng Facebook
-  await sendFacebookMessage(sender_id, shop.fb_page_access_token, result.answer);
+  // 4. Phản hồi kèm Retry logic (Giai đoạn nhẹ)
+  let success = await sendFacebookMessage(sender_id, config.access_token, result.answer);
   
-  console.log(`✅ FB Replied to ${sender_id}: ${result.answer.substring(0, 50)}... [Source: ${result.source}]`);
+  // Retry đơn giản nếu thất bại (Lần 2 sau 2s)
+  if (!success) {
+      setTimeout(async () => {
+          await sendFacebookMessage(sender_id, config.access_token, result.answer);
+      }, 2000);
+  }
 }

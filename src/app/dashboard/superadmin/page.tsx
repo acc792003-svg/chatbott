@@ -44,6 +44,7 @@ export default function SuperAdminPage() {
   const [apiKey2, setApiKey2] = useState('');
   const [apiKeyPro, setApiKeyPro] = useState('');
   const [fbVerifyToken, setFbVerifyToken] = useState('');
+  const [fbAppSecret, setFbAppSecret] = useState('');
   const [systemTelegramToken, setSystemTelegramToken] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
@@ -218,6 +219,7 @@ export default function SuperAdminPage() {
       setApiKey2(data.find((d: any) => d.key === 'gemini_api_key_2')?.value || '');
       setApiKeyPro(data.find((d: any) => d.key === 'gemini_api_key_pro')?.value || '');
       setFbVerifyToken(data.find((d: any) => d.key === 'fb_verify_token')?.value || '');
+      setFbAppSecret(data.find((d: any) => d.key === 'fb_app_secret')?.value || '');
       setSystemTelegramToken(data.find((d: any) => d.key === 'system_telegram_bot_token')?.value || '');
     }
   };
@@ -311,15 +313,23 @@ export default function SuperAdminPage() {
   };
 
   const handleUpdateFBConfig = async (shopId: string, pageId: string, accessToken: string) => {
-    const { error } = await supabase.from('shops').update({ 
-      fb_page_id: pageId.trim(), 
-      fb_page_access_token: accessToken.trim() 
-    }).eq('id', shopId);
+    const { error } = await supabase.from('channel_configs').upsert({ 
+      shop_id: shopId,
+      channel_type: 'facebook',
+      provider_id: pageId.trim(), 
+      access_token: accessToken.trim() 
+    }, { onConflict: 'channel_type, provider_id' });
 
     if (error) {
         addToast(`Lỗi cấu hình FB: ${error.message}`, 'error');
     } else {
-        addToast(`Đã cập nhật cấu hình Facebook!`, 'success');
+        // Cập nhật ngược lại shop để hiển thị UI nhanh (Optional)
+        await supabase.from('shops').update({ 
+            fb_page_id: pageId.trim(), 
+            fb_page_access_token: accessToken.trim() 
+        }).eq('id', shopId);
+        
+        addToast(`Đã bọc thép cấu hình Facebook!`, 'success');
         fetchShops();
     }
   };
@@ -919,6 +929,8 @@ export default function SuperAdminPage() {
               setApiKeyPro={setApiKeyPro} 
               fbVerifyToken={fbVerifyToken}
               setFbVerifyToken={setFbVerifyToken}
+              fbAppSecret={fbAppSecret}
+              setFbAppSecret={setFbAppSecret}
               systemTelegramToken={systemTelegramToken}
               setSystemTelegramToken={setSystemTelegramToken}
               systemStats={systemStats}
@@ -988,6 +1000,7 @@ function ApiKeysView({
     apiKey2, setApiKey2, 
     apiKeyPro, setApiKeyPro, 
     fbVerifyToken, setFbVerifyToken,
+    fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
     systemStats
 }: any) {
@@ -1042,6 +1055,17 @@ function ApiKeysView({
                             <button onClick={() => setShowKeys({...showKeys, fb: !showKeys.fb})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fb ? 'Ẩn' : 'Hiện'}</button>
                         </div>
                         <input type={showKeys.fb ? "text" : "password"} value={fbVerifyToken} onChange={e => setFbVerifyToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Verify Token cho Webhook FB..." />
+                    </div>
+
+                    {/* FB App Secret */}
+                    <div className="space-y-2 relative group">
+                        <div className="flex justify-between items-end px-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                <Lock size={12}/> Facebook App Secret (High Security)
+                            </label>
+                            <button onClick={() => setShowKeys({...showKeys, fbs: !showKeys.fbs})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fbs ? 'Ẩn' : 'Hiện'}</button>
+                        </div>
+                        <input type={showKeys.fbs ? "text" : "password"} value={fbAppSecret} onChange={e => setFbAppSecret(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Lấy từ Facebook App Dashboard > Settings > Basic..." />
                     </div>
 
                     {/* System Telegram Bot Token */}
