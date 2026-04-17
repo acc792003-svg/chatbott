@@ -177,9 +177,9 @@ export async function POST(req: Request) {
             systemPrompt += "\nLƯU Ý: Đây là lời chào đầu tiên. Hãy chào hỏi khách hàng thật ngắn gọn, thân thiện và mời họ đặt câu hỏi. Tuyệt đối không liệt kê danh sách sản phẩm hay thông tin chi tiết lúc này.";
         }
 
-        // --- 🔥 LEAD DETECTION (CHẠY NGẦM) ---
+        // --- 🔥 LEAD DETECTION (CHỜ XỬ LÝ XONG ĐỂ GỬI TELEGRAM) ---
         if (message && message !== '[welcome]' && shopId) {
-            detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Silent Lead Error:', e));
+            await detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Lead Error:', e));
         }
 
         const contents = [

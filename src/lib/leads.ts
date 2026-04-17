@@ -139,7 +139,7 @@ export async function detectAndSaveLead(
 
     // 3. Gửi Notify (Có retry bên trong)
     if (shopConfig?.telegram_chat_id) {
-       sendTelegramNotification({
+       await sendTelegramNotification({
          botToken: shopConfig.telegram_bot_token,
          chatId: shopConfig.telegram_chat_id,
          phone: cleanPhone,

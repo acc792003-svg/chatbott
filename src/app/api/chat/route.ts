@@ -28,9 +28,8 @@ export async function POST(req: Request) {
 
     // 🔥 Bước 1: Phát hiện và lưu Lead (Số điện thoại) nếu có
     if (message && shopId) {
-       // Không cần await để tránh làm chậm tốc độ phản hồi của AI
-       detectAndSaveLead(message, shopId, sessionId || 'unknown', config).catch(err => {
-          console.error('Lead detection error (silent):', err);
+       await detectAndSaveLead(message, shopId, sessionId || 'unknown', config).catch(err => {
+          console.error('Lead detection error:', err);
        });
     }
 
