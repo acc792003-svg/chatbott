@@ -293,15 +293,6 @@ export default function SuperAdminPage() {
     if (res.ok) alert('Đã đổi mật khẩu thành công!');
   };
 
-    if (error) {
-      alert('Lỗi khi lưu icon: ' + error.message);
-      return;
-    }
-
-    setActiveIcons(prev => ({ ...prev, [shopId]: url }));
-    alert('Đã đổi icon và lưu thành công!');
-  };
-
   const handleUpdateIcon = async (shopId: string, url: string) => {
     // Sử dụng upsert: Nếu shop chưa có dòng config thì tạo mới, có rồi thì cập nhật
     const { error } = await supabase.from('chatbot_configs').upsert({ 
