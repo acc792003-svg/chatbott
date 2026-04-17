@@ -89,7 +89,7 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
 
   const formattedHistory = (history || [])
     .reverse()
-    .flatMap(m => [
+    .flatMap((m: any) => [
       { role: 'user', content: m.user_message },
       { role: 'model', content: m.ai_response }
     ]);
