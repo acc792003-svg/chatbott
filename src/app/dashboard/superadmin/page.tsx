@@ -459,7 +459,7 @@ export default function SuperAdminPage() {
             settings.push({ key: 'trial_template_shop_code', value: trialTemplateCode });
         }
 
-        const { error } = await supabase.from('system_settings').upsert(settings);
+        const { error } = await supabase.from('system_settings').upsert(settings, { onConflict: 'key' });
         if (error) throw error;
         
         addToast(`Đã lưu ${type === 'api' ? 'cấu hình API' : 'cài đặt chung'} thành công!`, 'success');
