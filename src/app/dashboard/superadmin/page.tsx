@@ -6,7 +6,7 @@ import {
   Users, Key, AlertTriangle, Plus, Trash2, Search, CheckCircle, Settings, Database,
   ArrowRight, TrendingUp, BrainCircuit, Bot, LogIn, Edit2, Calendar, Layers, Eye, EyeOff,
   User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy,
-  Brain, Facebook, Info, Activity
+  Brain, MessageCircle, Info, Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TelegramMonitor from '@/components/admin/TelegramMonitor';
@@ -485,7 +485,7 @@ export default function SuperAdminPage() {
             { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
             { id: 'analytics', label: 'Phân tích AI', icon: <Brain size={14}/> },
             { id: 'telegram', label: 'Kênh Telegram', icon: <Send size={14}/>, adminOnly: true },
-            { id: 'facebook', label: 'Kênh Facebook', icon: <Facebook size={14}/>, adminOnly: true },
+            { id: 'facebook', label: 'Kênh Facebook', icon: <MessageCircle size={14}/>, adminOnly: true },
             { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
             { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
             { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
@@ -887,7 +887,7 @@ export default function SuperAdminPage() {
         <div className="px-2 lg:px-0">
           <div className="bg-white rounded-[2.5rem] p-20 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center gap-6">
              <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center animate-bounce">
-                <Facebook size={40} />
+                <MessageCircle size={40} />
              </div>
              <div>
                 <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Kênh Facebook Messenger</h2>
