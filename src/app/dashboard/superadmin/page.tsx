@@ -326,7 +326,7 @@ export default function SuperAdminPage() {
         // Cập nhật ngược lại shop để hiển thị UI nhanh (Optional)
         await supabase.from('shops').update({ 
             fb_page_id: pageId.trim(), 
-            fb_page_access_token: accessToken.trim() 
+            fb_page_token: accessToken.trim() 
         }).eq('id', shopId);
         
         addToast(`Đã bọc thép cấu hình Facebook!`, 'success');
