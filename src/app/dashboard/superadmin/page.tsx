@@ -747,7 +747,7 @@ export default function SuperAdminPage() {
 
                                                 {/* FACEBOOK CONFIG (NEW) */}
                                                 <div>
-                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-indigo-400"><MessageCircle size={12}/> Facebook Messenger</p>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-indigo-400"><MessageCircle size={12}/> Cấu hình Facebook Messenger</p>
                                                     <div className="space-y-4">
                                                         <div>
                                                             <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page ID</label>

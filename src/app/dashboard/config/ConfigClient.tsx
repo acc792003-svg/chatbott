@@ -43,23 +43,45 @@ export default function ConfigClient() {
     setLoading(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session?.user.id).single();
-      const payload: any = {
-        shop_id: userData?.shop_id,
+      if (!session) throw new Error('Chưa đăng nhập');
+      
+      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      if (!userData?.shop_id) throw new Error('Không tìm thấy shop');
+
+      const shopId = userData.shop_id;
+
+      // 1. Lưu cấu hình Chatbot cơ bản (FAQ/Info)
+      const { error: configError } = await supabase.from('chatbot_configs').upsert({
+        shop_id: shopId,
         shop_name: shopName,
         product_info: productInfo,
         faq: faq,
         is_active: true,
         telegram_chat_id: telegramChatId,
         telegram_bot_token: telegramBotToken
-      };
+      }, { onConflict: 'shop_id' });
 
-      if (fbPageId) payload.fb_page_id = fbPageId;
-      if (fbAccessToken) payload.fb_access_token = fbAccessToken;
+      if (configError) throw configError;
 
-      const { error } = await supabase.from('chatbot_configs').upsert(payload, { onConflict: 'shop_id' });
-      if (error) throw error;
-      alert('Đã lưu cấu hình thành công!');
+      // 2. Lưu cấu hình Facebook vào bảng channel_configs (Bọc thép SaaS)
+      if (fbPageId && fbAccessToken) {
+        const { error: fbError } = await supabase.from('channel_configs').upsert({
+          shop_id: shopId,
+          channel_type: 'facebook',
+          provider_id: fbPageId.trim(),
+          access_token: fbAccessToken.trim()
+        }, { onConflict: 'channel_type, provider_id' });
+        
+        if (fbError) throw fbError;
+
+        // Cập nhật ngược lại bảng shops để đồng bộ UI
+        await supabase.from('shops').update({ 
+          fb_page_id: fbPageId.trim(), 
+          fb_page_token: fbAccessToken.trim() 
+        }).eq('id', shopId);
+      }
+
+      alert('Đã lưu cấu hình chatbot thành công!');
     } catch (err: any) {
       alert('Lỗi: ' + err.message);
     } finally {
@@ -125,16 +147,25 @@ export default function ConfigClient() {
             </div>
           </div>
 
-          <div className="pt-6 border-t opacity-50">
-            <label className="block text-blue-600 font-bold mb-4">Facebook Messenger Integration <span className="text-sm font-normal text-slate-400 ml-2">(Sắp ra mắt)</span></label>
+          <div className="pt-6 border-t">
+            <label className="block text-indigo-600 font-bold mb-4 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current"><path d="M12 2.04c-5.5 0-10 4.43-10 9.89 0 3.12 1.45 5.86 3.73 7.66l-.04 3.03c0 .17.14.3.31.3.09 0 .17-.03.23-.1l3.59-1.98c.7.2 1.43.3 2.18.3 5.5 0 10-4.43 10-9.89s-4.5-9.89-10-9.89zm5.06 12.08l-2.61-2.73-5.11 2.73 5.62-5.97 2.61 2.73 5.11-2.73-5.62 5.97z"/></svg>
+              Facebook Messenger Integration <span className="text-sm font-normal text-slate-400 ml-2">(Hệ thống Bọc thép V3)</span>
+            </label>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} placeholder="Page ID" className="w-full bg-slate-50 border rounded-xl p-3" disabled />
-              <input type="password" value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} placeholder="Access Token" className="w-full bg-slate-50 border rounded-xl p-3" disabled />
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Page ID</label>
+                <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} placeholder="Nhập ID Fanpage..." className="w-full bg-slate-50 border rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-100 transition-all font-mono text-sm" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Page Access Token</label>
+                <input type="password" value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} placeholder="Dán EA... Token vào đây" className="w-full bg-slate-50 border rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-100 transition-all font-mono text-sm" />
+              </div>
             </div>
           </div>
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-colors">
-          {loading ? 'ĐANG LƯU...' : 'LƯU CẤU HÌNH'}
+        <button type="submit" disabled={loading} className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-indigo-600 transition-all uppercase tracking-widest text-sm">
+          {loading ? 'ĐANG LƯU HỆ THỐNG...' : 'XÁC NHẬN LƯU CẤU HÌNH'}
         </button>
       </form>
     </div>

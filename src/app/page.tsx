@@ -32,7 +32,7 @@ export default function LandingPage() {
     {
       icon: <Globe2 size={26} />,
       title: 'Đa Nền Tảng',
-      desc: 'Dễ dàng nhúng vào Website, Blogspot — sắp ra mắt tích hợp FB, Zalo.',
+      desc: 'Tích hợp mượt mà vào Website, Facebook Messenger — Zalo (Sắp ra mắt).',
       bg: 'bg-purple-50',
       color: 'text-purple-600',
       border: 'border-purple-100',
