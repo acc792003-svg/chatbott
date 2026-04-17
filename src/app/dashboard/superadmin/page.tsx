@@ -5,10 +5,12 @@ import { supabase } from '@/lib/supabase';
 import { 
   Users, Key, AlertTriangle, Plus, Trash2, Search, CheckCircle, Settings, Database,
   ArrowRight, TrendingUp, BrainCircuit, Bot, LogIn, Edit2, Calendar, Layers, Eye, EyeOff,
-  User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy
+  User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy,
+  Brain, Facebook, Info, Activity
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TelegramMonitor from '@/components/admin/TelegramMonitor';
+import AiAnalytics from '@/components/admin/AiAnalytics';
 import ChatHistoryMonitor from '@/components/admin/ChatHistoryMonitor';
 
 type Shop = {
@@ -45,7 +47,7 @@ export default function SuperAdminPage() {
   
   // UI States
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'apikeys' | 'errors' | 'config' | 'telegram'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'apikeys' | 'errors' | 'config' | 'telegram' | 'analytics' | 'facebook'>('shops');
   const [userRole, setUserRole] = useState<string>(''); // Lưu role thực tế (super_admin hoặc staff_admin)
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
 
@@ -481,9 +483,11 @@ export default function SuperAdminPage() {
         <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200 mb-6 w-fit mx-2">
           {[
             { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
+            { id: 'analytics', label: 'Phân tích AI', icon: <Brain size={14}/> },
+            { id: 'telegram', label: 'Kênh Telegram', icon: <Send size={14}/>, adminOnly: true },
+            { id: 'facebook', label: 'Kênh Facebook', icon: <Facebook size={14}/>, adminOnly: true },
             { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
             { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
-            { id: 'telegram', label: 'Giám sát Telegram', icon: <Send size={14}/>, adminOnly: true },
             { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
             { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
           ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
@@ -860,14 +864,36 @@ export default function SuperAdminPage() {
               setApiKey2={setApiKey2} 
               apiKeyPro={apiKeyPro} 
               setApiKeyPro={setApiKeyPro} 
+              fbVerifyToken={fbVerifyToken}
+              setFbVerifyToken={setFbVerifyToken}
+              systemTelegramToken={systemTelegramToken}
+              setSystemTelegramToken={setSystemTelegramToken}
               systemStats={systemStats}
             />
           </div>
       )}
       {activeTab === 'errors' && <div className="px-2 lg:px-0"><LogsView errorLogs={errorLogs} /></div>}
+      {activeTab === 'analytics' && (
+        <div className="px-2 lg:px-0">
+          <AiAnalytics />
+        </div>
+      )}
       {activeTab === 'telegram' && (
         <div className="px-2 lg:px-0">
           <TelegramMonitor />
+        </div>
+      )}
+      {activeTab === 'facebook' && (
+        <div className="px-2 lg:px-0">
+          <div className="bg-white rounded-[2.5rem] p-20 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center gap-6">
+             <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center animate-bounce">
+                <Facebook size={40} />
+             </div>
+             <div>
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Kênh Facebook Messenger</h2>
+                <p className="text-slate-400 font-bold mt-2">Tính năng đang được hoàn thiện và sẽ sớm ra mắt.</p>
+             </div>
+          </div>
         </div>
       )}
       {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} /></div>}
@@ -903,49 +929,82 @@ export default function SuperAdminPage() {
 }
 
 // --- SUB-COMPONENTS (Tách ra để file đỡ dài) ---
-function ApiKeysView({showKeys, setShowKeys, apiKey1, setApiKey1, apiKey2, setApiKey2, apiKeyPro, setApiKeyPro, systemStats}: any) {
+function ApiKeysView({
+    showKeys, setShowKeys, 
+    apiKey1, setApiKey1, 
+    apiKey2, setApiKey2, 
+    apiKeyPro, setApiKeyPro, 
+    fbVerifyToken, setFbVerifyToken,
+    systemTelegramToken, setSystemTelegramToken,
+    systemStats
+}: any) {
     return (
-        <div className="max-w-2xl bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100">
-            <h2 className="text-sm font-black uppercase text-slate-600 mb-8 flex items-center gap-2 font-xs"><Key size={16}/> System Encryption Keys</h2>
-            <div className="space-y-8">
-                {[
-                    {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
-                    {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
-                    {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
-                ].map((k: any) => {
-                    const stats = systemStats?.keys?.find((sk: any) => {
-                        const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
-                        return sk.name === targetName;
-                    });
-                    return (
-                        <div key={k.id} className="space-y-2 relative group">
-                            <div className="flex justify-between items-end px-1">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
-                                        {k.label}
-                                        <span className={cn(
-                                            "px-2 py-0.5 rounded-full text-[8px] border font-black",
-                                            (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
-                                            stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
-                                            stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
-                                            "bg-red-50 text-red-700 border-red-200"
-                                        )}>
-                                            {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
-                                        </span>
-                                    </label>
-                                    <p className="text-[10px] text-slate-500 font-black mt-1">Giao dịch: <span className="text-indigo-600">{stats?.usage || 0}</span> lượt</p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 h-fit">
+                <h2 className="text-sm font-black uppercase text-indigo-600 mb-8 flex items-center gap-2 font-xs"><Brain size={16}/> AI Service Keys (Gemini)</h2>
+                <div className="space-y-8">
+                    {[
+                        {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
+                        {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
+                        {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
+                    ].map((k: any) => {
+                        const stats = systemStats?.keys?.find((sk: any) => {
+                            const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
+                            return sk.name === targetName;
+                        });
+                        return (
+                            <div key={k.id} className="space-y-2 relative group">
+                                <div className="flex justify-between items-end px-1">
+                                    <div>
+                                        <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
+                                            {k.label}
+                                            <span className={cn(
+                                                "px-2 py-0.5 rounded-full text-[8px] border font-black",
+                                                (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
+                                                stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                                                stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
+                                                "bg-red-50 text-red-700 border-red-200"
+                                            )}>
+                                                {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
+                                            </span>
+                                        </label>
+                                        <p className="text-[10px] text-slate-500 font-black mt-1">Sử dụng: <span className="text-indigo-600">{stats?.usage || 0}</span> giao dịch</p>
+                                    </div>
+                                    <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
                                 </div>
-                                <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'disabled' ? "border-red-200 opacity-50 shadow-inner" : "border-slate-200 focus:border-indigo-600 text-slate-900")} />
                             </div>
-                            <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'disabled' ? "border-red-200 opacity-50 shadow-inner" : "border-slate-200 focus:border-indigo-600 text-slate-900")} />
-                            {stats?.lastUsed > 0 && <p className="text-[8px] text-slate-400 font-bold italic px-1 mt-1 flex items-center gap-1"><Calendar size={8}/> Dùng lần cuối: {new Date(stats.lastUsed).toLocaleTimeString()}</p>}
-                        </div>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
-            <div className="mt-10 p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-                <p className="text-[10px] font-black text-indigo-700 uppercase mb-2">💡 Mẹo quản lý:</p>
-                <p className="text-xs text-indigo-900 leading-relaxed font-medium">Hệ thống sẽ ưu tiên chọn Key có số Usage thấp nhất (Least-Used) và tự động cho Key nghỉ ngơi (Cooldown) 2 giây sau mỗi lần gọi để tránh bị Google chặn. Key bị lỗi 5 lần sẽ tự động chuyển đỏ.</p>
+
+            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 h-fit">
+                <h2 className="text-sm font-black uppercase text-indigo-600 mb-8 flex items-center gap-2 font-xs"><Settings size={16}/> Global Platform Keys</h2>
+                <div className="space-y-8">
+                    {/* FB Verify Token */}
+                    <div className="space-y-2 relative group">
+                        <div className="flex justify-between items-end px-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">Facebook Verify Token</label>
+                            <button onClick={() => setShowKeys({...showKeys, fb: !showKeys.fb})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fb ? 'Ẩn' : 'Hiện'}</button>
+                        </div>
+                        <input type={showKeys.fb ? "text" : "password"} value={fbVerifyToken} onChange={e => setFbVerifyToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Verify Token cho Webhook FB..." />
+                    </div>
+
+                    {/* System Telegram Bot Token */}
+                    <div className="space-y-2 relative group">
+                        <div className="flex justify-between items-end px-1">
+                            <label className="text-[10px] font-black text-slate-700 uppercase">System Telegram Bot Token (Fallback)</label>
+                            <button onClick={() => setShowKeys({...showKeys, stg: !showKeys.stg})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.stg ? 'Ẩn' : 'Hiện'}</button>
+                        </div>
+                        <input type={showKeys.stg ? "text" : "password"} value={systemTelegramToken} onChange={e => setSystemTelegramToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Bot Token dự phòng toàn hệ thống..." />
+                    </div>
+                </div>
+                
+                <div className="mt-16 p-6 bg-slate-900 rounded-3xl text-white">
+                    <p className="text-[10px] font-black text-indigo-400 uppercase mb-3 flex items-center gap-2"><Info size={14}/> Node Security Policy</p>
+                    <p className="text-[11px] text-slate-300 leading-relaxed font-medium">Hệ thống mã hóa các token này ở cấp độ Database. Khi thay đổi bất kỳ Token nào, vui lòng nhấn nút "Lưu cấu hình" ở tab Cài đặt chung để áp dụng hiệu lực tức thì trên toàn nơ-ron.</p>
+                </div>
             </div>
         </div>
     );

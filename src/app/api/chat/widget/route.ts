@@ -4,23 +4,26 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { callGeminiWithFallback, generateEmbedding } from '@/lib/gemini';
 import { detectAndSaveLead } from '@/lib/leads';
 
-// Memory cache đơn giản để chặn spam và quota ngày (IP-based)
+// --- UTILS ---
+function normalizeMessage(text: string): string {
+    return text.trim().toLowerCase()
+        .replace(/[?.,!]/g, '') // Loại bỏ dấu câu
+        .replace(/\s+/g, ' ');   // Thu gọn khoảng trắng
+}
+
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
 const dailyQuotaMap = new Map<string, { count: number, date: string }>();
 
 function checkRateLimit(key: string, limit: number, durationMs: number = 60000) {
     const now = Date.now();
     const info = rateLimitMap.get(key) || { count: 0, resetTime: now + durationMs };
-    
     if (now > info.resetTime) {
         info.count = 1;
         info.resetTime = now + durationMs;
         rateLimitMap.set(key, info);
         return true;
     }
-
     if (info.count >= limit) return false;
-    
     info.count += 1;
     rateLimitMap.set(key, info);
     return true;
@@ -30,38 +33,32 @@ export async function POST(req: Request) {
   const globalStart = Date.now();
   let shopId: string | null = null;
   let shopCode: string | null = null;
+  let conversationId: string | null = null;
 
   try {
-    // --- 0. RATE LIMITS ---
-    if (!checkRateLimit(`global:system`, 300)) {
-        return NextResponse.json({ response: "Hệ thống đang bận, vui lòng thử lại sau 1 phút!" }, { status: 429 });
-    }
-
     const body = await req.json();
     const { message: rawMessage, code, history, clientId } = body;
-
-    // --- CHUẨN HÓA TIN NHẮN (PRODUCTION CLEANUP) ---
-    const message = rawMessage?.trim().toLowerCase();
+    const message = rawMessage?.trim();
+    const normalized = normalizeMessage(message || '');
     shopCode = code;
 
     const headerList = await headers();
     const ip = headerList.get('x-forwarded-for') || 'anon-ip';
 
-    console.log(`[REQUEST_START] Shop: ${shopCode} | User: ${ip}`);
-
+    // --- 1. RATE LIMITS ---
     if (!checkRateLimit(`ip:${ip}`, 20) || !checkRateLimit(`user:${shopCode}:${ip}`, 10)) {
         return NextResponse.json({ response: "Bạn nhắn tin nhanh quá, hãy đợi chút nhé! ☕" });
     }
 
-    if (!supabaseAdmin) return NextResponse.json({ error: 'DB Error' }, { status: 500 });
+    if (!supabaseAdmin) throw new Error('DB Connection Error');
     
-    // --- SHOP CONFIG ---
+    // --- 2. SHOP & CONFIG ---
     const { data: shop } = await supabaseAdmin.from('shops').select('id, name, plan').eq('code', code).single();
     if (!shop) throw new Error('Shop không tồn tại');
     shopId = shop.id;
     const isPro = shop.plan === 'pro';
 
-    // --- DAILY QUOTA ---
+    // (Vẫn giữ logic Quota ngày)
     const today = new Date().toISOString().split('T')[0];
     const userQuotaKey = `quota:${today}:${ip}`;
     const userQuota = dailyQuotaMap.get(userQuotaKey) || { count: 0, date: today };
@@ -75,193 +72,177 @@ export async function POST(req: Request) {
         return NextResponse.json({ response: "Hôm nay bạn đã hỏi em rất nhiều rồi đó! Hãy nghỉ ngơi nhé. 😊" });
     }
 
-    const { data: config } = await supabaseAdmin.from('chatbot_configs')
-        .select('shop_name, product_info, pricing_info, faq, customer_insights, brand_voice, telegram_chat_id, telegram_bot_token')
+    // --- 3. CONVERSATION MANAGEMENT ---
+    const externalUserId = clientId || `anon-${ip}`;
+    const { data: conv } = await supabaseAdmin
+        .from('conversations')
+        .select('id')
         .eq('shop_id', shopId)
-        .single();
+        .eq('external_user_id', externalUserId)
+        .eq('platform', 'widget')
+        .maybeSingle();
     
-    const shopName = config?.shop_name || shop.name || 'Shop';
-    const voice = config?.brand_voice || 'nhẹ nhàng, ấm áp';
-    const insights = config?.customer_insights || 'Hãy luôn chân thành.';
+    if (conv) {
+        conversationId = conv.id;
+    } else {
+        const { data: newConv } = await supabaseAdmin
+            .from('conversations')
+            .insert({ shop_id: shopId, external_user_id: externalUserId, platform: 'widget' })
+            .select()
+            .single();
+        conversationId = newConv?.id;
+    }
 
+    // --- 4. HYBRID AI ENGINE (FAQ -> CACHE -> AI) ---
     let finalResponse = '';
-    let resultSource: 'faq' | 'ai' | 'cache_exact' | 'cache_semantic' = 'ai';
-    let matchedTemplateId: string | null = null;
+    let resultSource: 'faq' | 'cache' | 'ai' = 'ai';
     let similarityScore = 0;
     let queryEmbedding: number[] | null = null;
 
     if (message && message !== '[welcome]') {
-      try {
-        // --- CACHE L1: EXACT MATCH (0ms Embedding) ---
-        const { data: exactMatch } = await supabaseAdmin
-            .from('chat_cache')
-            .select('answer, source_type, template_id')
-            .eq('question', message)
+        // LỚP 1: FAQ MATCHING (Keyword FIRST)
+        const { data: exactFaq } = await supabaseAdmin
+            .from('faqs')
+            .select('answer')
             .eq('shop_id', shopId)
-            .limit(1)
-            .single();
-
-        if (exactMatch) {
-            finalResponse = exactMatch.answer;
-            resultSource = 'cache_exact';
-            matchedTemplateId = exactMatch.template_id;
+            .ilike('question', normalized)
+            .maybeSingle();
+        
+        if (exactFaq) {
+            finalResponse = exactFaq.answer;
+            resultSource = 'faq';
             similarityScore = 1.0;
         }
 
-        // --- NẾU L1 FAIL -> TẠO EMBEDDING 1 LẦN DUY NHẤT ---
+        // LỚP 1.5: VECTOR SEARCH (Nếu Keyword fail)
         if (!finalResponse) {
-          queryEmbedding = await generateEmbedding(message, isPro);
-          
-          // CACHE L2: SEMANTIC CACHE
-          const { data: stMap } = await supabaseAdmin.from('shop_templates').select('template_id').eq('shop_id', shopId);
-          const myTemplateIds = stMap?.map((m: any) => m.template_id) || [];
-
-          const { data: cachedSemantic } = await supabaseAdmin.rpc('match_cache', {
-              query_embedding: queryEmbedding,
-              match_threshold: 0.95,
-              match_count: 1,
-              p_shop_id: shopId,
-              p_template_ids: myTemplateIds
-          });
-
-          if (cachedSemantic && cachedSemantic.length > 0) {
-              finalResponse = cachedSemantic[0].answer;
-              resultSource = 'cache_semantic';
-              matchedTemplateId = cachedSemantic[0].template_id;
-              similarityScore = cachedSemantic[0].similarity;
-          }
-
-          // FAQ SEARCH
-          if (!finalResponse) {
-            const { data: matchedFaqs } = await supabaseAdmin.rpc('match_faqs', {
+            queryEmbedding = await generateEmbedding(normalized, isPro);
+            const { data: vectorFaqs } = await supabaseAdmin.rpc('match_faqs', {
                 query_embedding: queryEmbedding,
-                match_threshold: 0.80,
-                match_count: 3,
+                match_threshold: 0.85, // Ngưỡng chính xác cao
+                match_count: 1,
                 p_shop_id: shopId
             });
 
-            if (matchedFaqs && matchedFaqs.length > 0) {
-                similarityScore = matchedFaqs[0].similarity;
-                matchedTemplateId = matchedFaqs[0].template_id;
-
-                if (similarityScore >= 0.85) {
-                    finalResponse = matchedFaqs[0].answer;
-                    resultSource = 'faq';
-                }
+            if (vectorFaqs && vectorFaqs.length > 0) {
+                finalResponse = vectorFaqs[0].answer;
+                resultSource = 'faq';
+                similarityScore = vectorFaqs[0].similarity;
             }
-          }
         }
-      } catch (err) {
-        console.error('Core Logic Error:', err);
-      }
+
+        // LỚP 2: CACHE MATCHING
+        if (!finalResponse) {
+            const { data: cacheMatch } = await supabaseAdmin
+                .from('cache_answers')
+                .select('answer')
+                .eq('shop_id', shopId)
+                .eq('question', normalized)
+                .maybeSingle();
+            
+            if (cacheMatch) {
+                finalResponse = cacheMatch.answer;
+                resultSource = 'cache';
+            }
+        }
+
+        // LỚP 3: AI FALLBACK (Gemini)
+        if (!finalResponse) {
+            const { data: config } = await supabaseAdmin.from('chatbot_configs')
+                .select('shop_name, product_info, customer_insights, brand_voice')
+                .eq('shop_id', shopId)
+                .single();
+
+            // Lấy thêm ngữ cảnh từ FAQ (Top 3 tương đồng)
+            let faqContext = '';
+            if (queryEmbedding) {
+                const { data: topFaqs } = await supabaseAdmin.rpc('match_faqs', {
+                    query_embedding: queryEmbedding,
+                    match_threshold: 0.6,
+                    match_count: 3,
+                    p_shop_id: shopId
+                });
+                if (topFaqs) faqContext = topFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
+            }
+
+            const shopName = config?.shop_name || shop.name || 'Shop';
+            const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
+            
+            // CRM HOOK LOGIC (Phối hợp với lib/leads)
+            const leadsLib = await import('@/lib/leads');
+            const hasPhoneInMsg = leadsLib.extractPhone(message);
+            const historyText = (history || []).map((h: any) => h.content).join(" ");
+            const alreadyHasPhone = !!leadsLib.extractPhone(historyText) || !!hasPhoneInMsg;
+            const { count: askedCount, gap } = leadsLib.countPreviousAsks(history || []);
+            const hasIntent = leadsLib.hasHighIntent(normalized);
+
+            let leadInstruction = "";
+            if (!alreadyHasPhone && hasIntent && askedCount < 2 && gap >= 3) {
+                leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đang quan tâm, hãy khéo léo gợi ý họ để lại SĐT để shop hỗ trợ nhanh nhất.";
+            }
+
+            const systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${config?.brand_voice || 'nhẹ nhàng'}. Hôm nay: ${now}.
+${faqContext ? `TRI THỨC BỔ SUNG:\n${faqContext}\n\n` : ''}THÔNG TIN SHOP: ${config?.product_info || ''}
+${config?.customer_insights || ''}
+QUY TẮC: Trả lời lễ phép, dùng icon emoji. Nếu khách để lại SĐT, hãy cảm ơn.${leadInstruction}`;
+
+            const contents = [
+              { role: 'user', parts: [{ text: systemPrompt }] },
+              ...(history || []).map((msg: any) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
+              { role: 'user', parts: [{ text: message }] }
+            ];
+
+            finalResponse = await callGeminiWithFallback(contents, { temperature: 0.7 }, shopId);
+            resultSource = 'ai';
+
+            // Lưu vào Cache cho lần sau
+            if (queryEmbedding) {
+                await supabaseAdmin.from('cache_answers').insert({ 
+                    shop_id: shopId, question: normalized, answer: finalResponse 
+                }).catch(() => {});
+            }
+        }
+    } else if (message === '[welcome]') {
+        finalResponse = "Chào bạn! Shop có thể giúp gì cho bạn hôm nay? 😊";
+        resultSource = 'faq';
     }
 
-    // --- AI GENERATION ---
-    if (!finalResponse) {
-        let faqContext = '';
-        if (similarityScore > 0.75 && queryEmbedding) {
-            const { data: topContext } = await supabaseAdmin.rpc('match_faqs', {
-                query_embedding: queryEmbedding,
-                match_threshold: 0.7,
-                match_count: 3,
-                p_shop_id: shopId
-            });
-            if (topContext) faqContext = topContext.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
-        }
-
-        const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
-        
-        // --- 🔥 SMART CRM HOOK 2.0: TINH TẾ & KIỂM SOÁT ---
-        let leadInstruction = "";
-        const introMessage = message?.toLowerCase() || "";
-        
-        // 1. Nhận diện các yếu tố
-        const leadsLib = await import('@/lib/leads');
-        const hasIntent = leadsLib.hasHighIntent(introMessage);
-        const hasPhoneInMsg = leadsLib.extractPhone(introMessage);
-        const isRefusing = leadsLib.userRefusedPhone(introMessage);
-        
-        // 2. Phân tích bối cảnh lịch sử
-        const historyText = (history || []).map((h: any) => h.content).join(" ");
-        const alreadyHasPhoneInHistory = !!leadsLib.extractPhone(historyText);
-        const { count: askedCount, gap } = leadsLib.countPreviousAsks(history || []);
-
-        // 3. Logic quyết định (Decision Tree)
-        let crmAction = "STAY_SILENT";
-        if (!alreadyHasPhoneInHistory && !hasPhoneInMsg && !isRefusing) {
-           if (hasIntent && askedCount < 2 && gap >= 3) {
-              crmAction = askedCount === 0 ? "ASK_SOFT_1" : "ASK_SOFT_2";
-           }
-        }
-
-        // 4. Chỉ thị cụ thể cho AI
-        if (crmAction === "ASK_SOFT_1") {
-           leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đang quan tâm, hãy khéo léo gợi ý họ để lại SĐT để shop hỗ trợ nhanh nhất.";
-        } else if (crmAction === "ASK_SOFT_2") {
-           leadInstruction = "\n👉 HÀNH ĐỘNG: Đây là lần thứ 2 khách hỏi mà chưa để lại SĐT, hãy thử mời họ để lại SĐT một lần nữa với văn phong khác biệt, nhấn mạnh vào lợi ích được tư vấn kỹ hơn.";
-        } else if (isRefusing) {
-           leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đã từ chối hoặc không muốn gọi điện. Tuyệt đối KHÔNG nhắc đến việc xin SĐT nữa, hãy tập trung tư vấn nhiệt tình ngay tại đây.";
-        } else if (askedCount >= 2) {
-           leadInstruction = "\n👉 HÀNH ĐỘNG: Đã nhắc đủ 2 lần rồi, giờ hãy im lặng về việc xin SĐT và chỉ tập trung trả lời câu hỏi của khách.";
-        }
-
-        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế. Hãy thêm các icon (emoji) dễ thương. 
-Đặc biệt: Nếu khách hàng để lại SĐT, hãy cảm ơn và hứa sẽ có nhân viên liên hệ lại sớm nhất.${leadInstruction}`;
-        
-        if (message === '[welcome]') {
-            systemPrompt += "\nLƯU Ý: Đây là lời chào đầu tiên. Hãy chào hỏi khách hàng thật ngắn gọn, thân thiện và mời họ đặt câu hỏi. Tuyệt đối không liệt kê danh sách sản phẩm hay thông tin chi tiết lúc này.";
-        }
-
-        // --- 🔥 LEAD DETECTION (CHỜ XỬ LÝ XONG ĐỂ GỬI TELEGRAM) ---
-        if (message && message !== '[welcome]' && shopId) {
-            await (await import('@/lib/leads')).detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Lead Error:', e));
-        }
-
-        const contents = [
-          { role: 'user', parts: [{ text: systemPrompt }] },
-          ...(history || []).map((msg: any) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
-          { role: 'user', parts: [{ text: message === '[welcome]' ? 'Chào bạn!' : message }] }
-        ];
-
-        finalResponse = await callGeminiWithFallback(contents, { temperature: 0.7 }, shopId);
-        resultSource = 'ai';
-    }
-
-    // --- LƯU TIN NHẮN & CACHE (DÙNG LẠI EMBEDDING CÓ SẴN) ---
-    if (message && message !== '[welcome]') {
-      await supabaseAdmin.from('messages').insert({
+    // --- 5. LOGGING & LEADS ---
+    const latency = Date.now() - globalStart;
+    
+    // Ghi nhật ký vận hành (Production Monitor)
+    await supabaseAdmin.from('chat_logs').insert({
         shop_id: shopId,
-        session_id: clientId || `anon-${ip}`,
+        user_input: message,
+        answer: finalResponse,
+        source: resultSource,
+        latency_ms: latency
+    });
+
+    // Lưu tin nhắn vào lịch sử hội thoại
+    await supabaseAdmin.from('messages').insert({
+        shop_id: shopId,
+        conversation_id: conversationId,
         user_message: message,
         ai_response: finalResponse,
-        usage_tokens: 1,
-        metadata: { source: resultSource, score: similarityScore, time: Date.now() - globalStart }
-      });
+        platform: 'widget',
+        external_user_id: externalUserId,
+        metadata: { source: resultSource, score: similarityScore, latency }
+    });
 
-      if (resultSource !== 'cache_exact' && queryEmbedding) {
-        try {
-            await supabaseAdmin.from('chat_cache').insert({
-                shop_id: shopId,
-                template_id: matchedTemplateId,
-                question: message,
-                answer: finalResponse,
-                embedding: queryEmbedding,
-                source_type: resultSource === 'faq' ? 'faq' : 'ai'
-            });
-        } catch (e) {}
-      }
+    // Xử lý Lead (SĐT) ngầm
+    if (message && message !== '[welcome]' && shopId) {
+        const { data: config } = await supabaseAdmin.from('chatbot_configs').select('*').eq('shop_id', shopId).single();
+        (await import('@/lib/leads')).detectAndSaveLead(message, shopId, externalUserId, config).catch(() => {});
     }
 
-    let displayResponse = finalResponse;
-    if (userQuota.count >= softLimit && userQuota.count <= hardLimit) {
-        displayResponse += "\n\n(Lưu ý: Bạn sắp hết lượt hỏi trong ngày.)";
-    }
-
-    console.log(`[TOTAL_TIME] ${Date.now() - globalStart}ms`);
-    return NextResponse.json({ response: displayResponse, shop_name: shopName });
+    return NextResponse.json({ 
+        response: finalResponse + (userQuota.count >= softLimit ? "\n\n(Lưu ý: Bạn sắp hết lượt hỏi trong ngày.)" : ""), 
+        shop_name: shopCode 
+    });
 
   } catch (error: any) {
-    console.error('Final Optimized Error:', error);
+    console.error('Widget Chat Error:', error);
     return NextResponse.json({ response: "Em đang bận một chút, bạn thử lại sau vài giây nhé! 🙏" });
   }
 }

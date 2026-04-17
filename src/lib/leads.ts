@@ -41,19 +41,39 @@ export function translateTelegramError(error: string): string {
 }
 
 /**
- * 🔐 Lấy Token hệ thống
+ * 🔐 Lấy Token hệ thống (Optimized with In-Memory Cache)
+ * Giảm truy vấn DB, tăng tốc độ xử lý thông báo
  */
 async function getSystemToken(): Promise<string | null> {
   const now = Date.now();
-  if (cachedSystemToken && (now - lastCacheUpdate < CACHE_TTL)) return cachedSystemToken;
-  if (!supabaseAdmin) return process.env.TELEGRAM_BOT_TOKEN || null;
-
-  const { data } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'system_telegram_bot_token').single();
-  if (data?.value) {
-    cachedSystemToken = data.value;
-    lastCacheUpdate = now;
+  
+  // Trình tự ưu tiên: 
+  // 1. Cache còn hạn (< 5 phút)
+  // 2. Query Database & Cập nhật cache
+  // 3. Fallback Env
+  
+  if (cachedSystemToken && (now - lastCacheUpdate < CACHE_TTL)) {
     return cachedSystemToken;
   }
+
+  try {
+    if (supabaseAdmin) {
+      const { data } = await supabaseAdmin
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'system_telegram_bot_token')
+        .maybeSingle();
+
+      if (data?.value) {
+        cachedSystemToken = data.value;
+        lastCacheUpdate = now;
+        return cachedSystemToken;
+      }
+    }
+  } catch (e) {
+    console.error('Cache Miss - DB Error:', e);
+  }
+
   return process.env.TELEGRAM_BOT_TOKEN || null;
 }
 
@@ -169,10 +189,28 @@ export async function detectAndSaveLead(message: string, shopId: string, session
 
     const tenMinutesAgo = new Date();
     tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10);
-    const { data: recentLead } = await supabaseAdmin.from('leads').select('id, first_message, status').eq('shop_id', shopId).eq('phone', cleanPhone).gte('created_at', tenMinutesAgo.toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
+    
+    // Tìm lead gần nhất của SĐT này trong 10 phút qua
+    const { data: recentLead } = await supabaseAdmin.from('leads')
+      .select('id, first_message, status')
+      .eq('shop_id', shopId)
+      .eq('phone', cleanPhone)
+      .gte('created_at', tenMinutesAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (recentLead && (recentLead.first_message === message || recentLead.status === 'new')) {
-       await supabaseAdmin.from('leads').insert({ shop_id: shopId, session_id: sessionId, phone: cleanPhone, first_message: `[TRÙNG] ${message}`, telegram_status: 'duplicate' });
+    // LOGIC CHỐNG TRÙNG: Chỉ chặn nếu lead cũ vẫn đang ở trạng thái 'new' (chưa xử lý)
+    // Nếu lead cũ đã 'contacted' hoặc 'done' -> Cho phép khách tạo lead mới (Ví dụ: khách quay lại mua thêm)
+    if (recentLead && recentLead.status === 'new') {
+       await supabaseAdmin.from('leads').insert({ 
+         shop_id: shopId, 
+         session_id: sessionId, 
+         phone: cleanPhone, 
+         first_message: `[TRÙNG] ${message}`, 
+         status: 'new',
+         telegram_status: 'duplicate' 
+       });
        return null;
     }
 
