@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { 
   BarChart3, Activity, Zap, Database, Cpu, TrendingUp, Clock, MousePointer2,
-  AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw
+  AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, Send
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
