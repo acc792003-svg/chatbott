@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabaseAdmin';
+import { supabaseAdmin } from './supabase';
 import { callGeminiWithFallback, generateEmbedding } from './gemini';
 
 /**

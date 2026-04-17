@@ -22,6 +22,8 @@ type Shop = {
   created_at: string;
   slug?: string; // Tên đuôi deeplink (qlady)
   users?: { email: string; id: string }[]; // Tài khoản gán với shop
+  fb_page_id?: string;
+  fb_page_access_token?: string;
 };
 
 type KnowledgePackage = {
@@ -291,6 +293,15 @@ export default function SuperAdminPage() {
     if (res.ok) alert('Đã đổi mật khẩu thành công!');
   };
 
+    if (error) {
+      alert('Lỗi khi lưu icon: ' + error.message);
+      return;
+    }
+
+    setActiveIcons(prev => ({ ...prev, [shopId]: url }));
+    alert('Đã đổi icon và lưu thành công!');
+  };
+
   const handleUpdateIcon = async (shopId: string, url: string) => {
     // Sử dụng upsert: Nếu shop chưa có dòng config thì tạo mới, có rồi thì cập nhật
     const { error } = await supabase.from('chatbot_configs').upsert({ 
@@ -300,12 +311,26 @@ export default function SuperAdminPage() {
     }, { onConflict: 'shop_id' });
 
     if (error) {
-      alert('Lỗi khi lưu icon: ' + error.message);
+      addToast('Lỗi khi lưu icon: ' + error.message, 'error');
       return;
     }
 
     setActiveIcons(prev => ({ ...prev, [shopId]: url }));
-    alert('Đã đổi icon và lưu thành công!');
+    addToast('Đã đổi icon bot thành công!', 'success');
+  };
+
+  const handleUpdateFBConfig = async (shopId: string, pageId: string, accessToken: string) => {
+    const { error } = await supabase.from('shops').update({ 
+      fb_page_id: pageId.trim(), 
+      fb_page_access_token: accessToken.trim() 
+    }).eq('id', shopId);
+
+    if (error) {
+        addToast(`Lỗi cấu hình FB: ${error.message}`, 'error');
+    } else {
+        addToast(`Đã cập nhật cấu hình Facebook!`, 'success');
+        fetchShops();
+    }
   };
 
   // ==================== KNOWLEDGE WORKSHOP ACTIONS ====================
@@ -692,6 +717,43 @@ export default function SuperAdminPage() {
                                                         <button className="bg-indigo-600 p-2 rounded-xl text-white" title="Mở Link" onClick={() => window.open(`http://app.dichvupro.net/s/${shop.slug}`, '_blank')}><ExternalLink size={14}/></button>
                                                     </div>
                                                     <p className="text-[9px] text-slate-400 mt-2 italic flex items-center gap-1">Link chuẩn: app.dichvupro.net/s/{shop.slug || '...'}</p>
+                                                </div>
+
+                                                {/* FACEBOOK CONFIG (NEW) */}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-indigo-400"><MessageCircle size={12}/> Facebook Messenger</p>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page ID</label>
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="Nhập ID Fanpage..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-indigo-500"
+                                                                defaultValue={shop.fb_page_id || ''}
+                                                                id={`fbp-id-${shop.id}`}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page Access Token</label>
+                                                            <input 
+                                                                type="password" 
+                                                                placeholder="Nhập Token của Page..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-indigo-500"
+                                                                defaultValue={shop.fb_page_access_token || ''}
+                                                                id={`fbp-token-${shop.id}`}
+                                                            />
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => {
+                                                                const id = (document.getElementById(`fbp-id-${shop.id}`) as HTMLInputElement).value;
+                                                                const token = (document.getElementById(`fbp-token-${shop.id}`) as HTMLInputElement).value;
+                                                                handleUpdateFBConfig(shop.id, id, token);
+                                                            }}
+                                                            className="w-full bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white py-2 rounded-xl text-[9px] font-black uppercase transition-all"
+                                                        >
+                                                            Lưu cấu hình Messenger
+                                                        </button>
+                                                    </div>
                                                 </div>
 
                                                 {/* ACCOUNT CONFIG */}
