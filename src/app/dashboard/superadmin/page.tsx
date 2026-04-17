@@ -445,6 +445,31 @@ export default function SuperAdminPage() {
     } finally { setPushingKnowledge(false); }
   };
 
+  const handleSaveSystemSettings = async (type: 'api' | 'config') => {
+    try {
+        const settings = [];
+        if (type === 'api') {
+            settings.push({ key: 'gemini_api_key_1', value: apiKey1 });
+            settings.push({ key: 'gemini_api_key_2', value: apiKey2 });
+            settings.push({ key: 'gemini_api_key_pro', value: apiKeyPro });
+            settings.push({ key: 'fb_verify_token', value: fbVerifyToken });
+            settings.push({ key: 'fb_app_secret', value: fbAppSecret });
+            settings.push({ key: 'system_telegram_bot_token', value: systemTelegramToken });
+        } else {
+            settings.push({ key: 'trial_template_shop_code', value: trialTemplateCode });
+        }
+
+        const { error } = await supabase.from('system_settings').upsert(settings);
+        if (error) throw error;
+        
+        addToast(`Đã lưu ${type === 'api' ? 'cấu hình API' : 'cài đặt chung'} thành công!`, 'success');
+        fetchApiKeys();
+        fetchTrialConfig();
+    } catch (e: any) {
+        addToast(`Lỗi lưu cài đặt: ${e.message}`, 'error');
+    }
+  };
+
   const handleTestTelegram = async (shopId: string) => {
     addToast('⏳ Đang gửi tin nhắn thử nghiệm...', 'info');
     try {
@@ -934,6 +959,7 @@ export default function SuperAdminPage() {
               systemTelegramToken={systemTelegramToken}
               setSystemTelegramToken={setSystemTelegramToken}
               systemStats={systemStats}
+              onSave={() => handleSaveSystemSettings('api')}
             />
           </div>
       )}
@@ -1043,7 +1069,7 @@ export default function SuperAdminPage() {
           </div>
         </div>
       )}
-      {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} /></div>}
+      {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} onSave={() => handleSaveSystemSettings('config')} /></div>}
 
       {/* TOAST NOTIFICATIONS (PC/IPAD/MOBILE RESPONSIVE) */}
       <div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 w-full max-w-[90%] md:max-w-xs pointer-events-none items-end">
@@ -1084,7 +1110,7 @@ function ApiKeysView({
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
-    systemStats
+    systemStats, onSave
 }: any) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -1160,7 +1186,16 @@ function ApiKeysView({
                     </div>
                 </div>
                 
-                <div className="mt-16 p-6 bg-slate-900 rounded-3xl text-white">
+                <div className="mt-8">
+                    <button 
+                        onClick={onSave}
+                        className="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-indigo-700 transition-all text-sm uppercase flex items-center justify-center gap-3"
+                    >
+                        <Settings size={20}/> LƯU CẤU HÌNH API
+                    </button>
+                </div>
+
+                <div className="mt-12 p-6 bg-slate-900 rounded-3xl text-white">
                     <p className="text-[10px] font-black text-indigo-400 uppercase mb-3 flex items-center gap-2"><Info size={14}/> Node Security Policy</p>
                     <p className="text-[11px] text-slate-300 leading-relaxed font-medium">Hệ thống mã hóa các token này ở cấp độ Database. Khi thay đổi bất kỳ Token nào, vui lòng nhấn nút "Lưu cấu hình" ở tab Cài đặt chung để áp dụng hiệu lực tức thì trên toàn nơ-ron.</p>
                 </div>
@@ -1211,7 +1246,7 @@ function LogsView({errorLogs}: any) {
     );
 }
 
-function SettingsView({trialTemplateCode, setTrialTemplateCode}: any) {
+function SettingsView({trialTemplateCode, setTrialTemplateCode, onSave}: any) {
     return (
         <div className="max-w-xl bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100">
             <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2"><Settings size={16}/> Global Config</h2>
@@ -1219,7 +1254,15 @@ function SettingsView({trialTemplateCode, setTrialTemplateCode}: any) {
                 <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-500 uppercase">Shop Mẫu (Auto-Inherit)</label>
                     <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 text-3xl font-black text-slate-900 uppercase" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value)} />
+                    <div className="mt-10">
+                    <button 
+                        onClick={onSave}
+                        className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-indigo-600 transition-all text-sm uppercase"
+                    >
+                        LƯU CÀI ĐẶT CHUNG
+                    </button>
                 </div>
+            </div>
             </div>
         </div>
     );
