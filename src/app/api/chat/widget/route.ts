@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     }
 
     const { data: config } = await supabaseAdmin.from('chatbot_configs')
-        .select('shop_name, product_info, pricing_info, faq, customer_insights, brand_voice')
+        .select('shop_name, product_info, pricing_info, faq, customer_insights, brand_voice, telegram_chat_id, telegram_bot_token')
         .eq('shop_id', shopId)
         .single();
     
