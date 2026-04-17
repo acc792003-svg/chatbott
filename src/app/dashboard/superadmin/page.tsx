@@ -23,7 +23,7 @@ type Shop = {
   slug?: string; // Tên đuôi deeplink (qlady)
   users?: { email: string; id: string }[]; // Tài khoản gán với shop
   fb_page_id?: string;
-  fb_page_access_token?: string;
+  fb_page_token?: string;
 };
 
 type KnowledgePackage = {
@@ -765,7 +765,7 @@ export default function SuperAdminPage() {
                                                                 type="password" 
                                                                 placeholder="Nhập Token của Page..."
                                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-indigo-500"
-                                                                defaultValue={shop.fb_page_access_token || ''}
+                                                                defaultValue={shop.fb_page_token || ''}
                                                                 id={`fbp-token-${shop.id}`}
                                                             />
                                                         </div>
