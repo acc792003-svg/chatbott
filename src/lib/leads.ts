@@ -2,64 +2,63 @@ import { supabaseAdmin } from './supabase';
 
 const phoneRegex = /(0|\+84)(3|5|7|8|9)[0-9]{8}/g;
 
-// CACHE: Bộ đệm cho cấu hình hệ thống (hết hạn sau 5 phút)
+// CACHE & RATE LIMITS
 let cachedSystemToken: string | null = null;
 let lastCacheUpdate = 0;
 const CACHE_TTL = 5 * 60 * 1000; 
+let lastSystemSendTime = 0;
+const SYSTEM_SEND_INTERVAL = 200; // 5 tin/giây để an toàn tuyệt đối
+
+// THỐNG KÊ SHOP (Rate limit theo shop)
+const shopRequestCounter: Record<string, { count: number, resetAt: number }> = {};
 
 /**
- * 🔐 Lấy Token hệ thống với cơ chế Caching
+ * 🚦 Per-Shop Rate Limit: Giới hạn mỗi shop tối đa 5 lead/phút qua System Bot
+ */
+function checkShopRateLimit(shopId: string): boolean {
+  const now = Date.now();
+  const shopData = shopRequestCounter[shopId];
+
+  if (!shopData || now > shopData.resetAt) {
+    shopRequestCounter[shopId] = { count: 1, resetAt: now + 60000 };
+    return true;
+  }
+
+  if (shopData.count >= 5) return false;
+  shopData.count++;
+  return true;
+}
+
+/**
+ * 💬 Dịch lỗi Telegram sang tiếng Việt (UX xịn)
+ */
+export function translateTelegramError(error: string): string {
+  if (error.includes('chat not found')) return 'Khách chưa nhấn START Bot 🛑';
+  if (error.includes('forbidden') || error.includes('blocked')) return 'Shop đã chặn Bot hoặc chưa phân quyền 🚫';
+  if (error.includes('invalid token')) return 'Bot Token sai định dạng ❌';
+  if (error.includes('too many requests')) return 'Hệ thống đang quá tải, sẽ gửi lại sau ⏳';
+  return error;
+}
+
+/**
+ * 🔐 Lấy Token hệ thống
  */
 async function getSystemToken(): Promise<string | null> {
   const now = Date.now();
-  if (cachedSystemToken && (now - lastCacheUpdate < CACHE_TTL)) {
-    return cachedSystemToken;
-  }
-
+  if (cachedSystemToken && (now - lastCacheUpdate < CACHE_TTL)) return cachedSystemToken;
   if (!supabaseAdmin) return process.env.TELEGRAM_BOT_TOKEN || null;
 
-  const { data } = await supabaseAdmin
-    .from('system_settings')
-    .select('value')
-    .eq('key', 'system_telegram_bot_token')
-    .single();
-
+  const { data } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'system_telegram_bot_token').single();
   if (data?.value) {
     cachedSystemToken = data.value;
     lastCacheUpdate = now;
     return cachedSystemToken;
   }
-
   return process.env.TELEGRAM_BOT_TOKEN || null;
 }
 
 /**
- * 🚦 Rate Limiter đơn giản cho System Bot
- */
-let lastSystemSendTime = 0;
-const SYSTEM_SEND_INTERVAL = 100; // Tối đa 10 tin/giây
-
-async function waitRateLimit() {
-    const now = Date.now();
-    const waitTime = Math.max(0, lastSystemSendTime + SYSTEM_SEND_INTERVAL - now);
-    if (waitTime > 0) await new Promise(r => setTimeout(r, waitTime));
-    lastSystemSendTime = Date.now();
-}
-
-/**
- * Logic gửi lõi
- */
-async function callTelegramAPI(token: string, chatId: string, text: string) {
-    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
-    });
-    return res;
-}
-
-/**
- * 🚀 Gửi Telegram Production-Ready: Fallback + Cache + RateLimit
+ * 🚀 Gửi Telegram Production 99%: Retry + Backoff + RateLimit + Error Translate
  */
 export async function sendTelegramNotification(config: {
   botToken?: string;
@@ -69,6 +68,7 @@ export async function sendTelegramNotification(config: {
   shopName: string;
   sessionId: string;
   leadId: string;
+  shopId: string;
 }) {
   if (!config.chatId || !supabaseAdmin) return;
 
@@ -77,60 +77,75 @@ export async function sendTelegramNotification(config: {
                `💬 *Nội dung:* _${config.message}_\n\n` +
                `🔗 [Xem lịch sử](${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/history?session=${config.sessionId})`;
 
-  let response: Response;
-  let usedSystemBot = false;
+  const retryDelays = [2000, 5000, 10000]; // 2s, 5s, 10s backoff
+  let lastError = '';
 
-  // 1. Thử gửi bằng Bot riêng của Shop (nếu có)
-  if (config.botToken) {
-    try {
-      response = await callTelegramAPI(config.botToken, config.chatId, text);
-      if (response.ok) {
-        await supabaseAdmin.from('leads').update({ telegram_status: 'success', telegram_sent_at: new Date().toISOString() }).eq('id', config.leadId);
-        return;
-      }
-      // Nếu lỗi 401 (token sai) hoặc 404, sẽ tiếp tục fallback xuống dưới
-      console.warn('Shop Bot failed, attempting fallback to System Bot...');
-    } catch (err) {
-      console.error('Shop Bot Error:', err);
-    }
+  // Ưu tiên dùng token shop
+  const tokenToUse = config.botToken || await getSystemToken();
+  if (!tokenToUse) return;
+
+  // Nếu dùng Bot hệ thống -> Check Rate Limit theo shop
+  if (!config.botToken && !checkShopRateLimit(config.shopId)) {
+    await supabaseAdmin.from('leads').update({ 
+      telegram_status: 'failed', 
+      telegram_error: 'Shop bị giới hạn tốc độ gửi (Spam protection)' 
+    }).eq('id', config.leadId);
+    return;
   }
 
-  // 2. FALLBACK: Thử gửi bằng Bot hệ thống
-  const systemToken = await getSystemToken();
-  if (systemToken) {
-    await waitRateLimit(); // Chống spam hệ thống
+  for (let i = 0; i <= retryDelays.length; i++) {
     try {
-      response = await callTelegramAPI(systemToken, config.chatId, text);
-      if (response.ok) {
+      // 🚦 Global Rate Limit
+      const now = Date.now();
+      const waitTime = Math.max(0, lastSystemSendTime + SYSTEM_SEND_INTERVAL - now);
+      if (waitTime > 0) await new Promise(r => setTimeout(r, waitTime));
+      lastSystemSendTime = Date.now();
+
+      const res = await fetch(`https://api.telegram.org/bot${tokenToUse}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: config.chatId, text, parse_mode: 'Markdown' })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
         await supabaseAdmin.from('leads').update({ 
           telegram_status: 'success', 
           telegram_sent_at: new Date().toISOString(),
-          telegram_error: 'Sent via System Bot fallback'
+          telegram_error: config.botToken ? null : 'Sent via System Bot'
         }).eq('id', config.leadId);
         return;
       }
       
-      // Nếu cả 2 đều hỏng
-      const data = await response.json();
-      await supabaseAdmin.from('leads').update({ telegram_status: 'failed', telegram_error: `System Bot Error: ${data.description}` }).eq('id', config.leadId);
+      lastError = translateTelegramError(data.description || 'Unknown');
+      
+      // Nếu lỗi do User (Chat not found, Blocked) -> KHÔNG retry
+      if (data.description.includes('chat not found') || data.description.includes('blocked')) {
+        break; 
+      }
     } catch (err: any) {
-      await supabaseAdmin.from('leads').update({ telegram_status: 'failed', telegram_error: err.message }).eq('id', config.leadId);
+      lastError = err.message;
+    }
+
+    // Đợi trước khi thử lại
+    if (i < retryDelays.length) {
+      await new Promise(r => setTimeout(r, retryDelays[i]));
     }
   }
+
+  // Nếu tất cả các lần thử đều thất bại
+  await supabaseAdmin.from('leads').update({ 
+    telegram_status: 'failed', 
+    telegram_error: lastError 
+  }).eq('id', config.leadId);
 }
 
-// Giữ lại các hàm normalizeInput, extractPhone, hasHighIntent...
-export function normalizeInput(text: string): string {
-  return text.replace(/[.\-\s]/g, "").replace(/\+84/g, "0");    
-}
-export function hasHighIntent(message: string): boolean {
-  const keywords = ['gọi', 'liên hệ', 'tư vấn', 'sđt', 'số điện thoại', 'mua', 'giá', 'ship', 'đặt hàng', 'zalo'];
-  return keywords.some(key => message.toLowerCase().includes(key));
-}
-export function userRefusedPhone(message: string): boolean {
-  return ['không cần gọi', 'đừng hỏi', 'chat thôi', 'tư vấn đây'].some(key => message.toLowerCase().includes(key));
-}
+// Giữ lại các hàm tiện ích
+export function normalizeInput(text: string): string { return text.replace(/[.\-\s]/g, "").replace(/\+84/g, "0"); }
+export function hasHighIntent(message: string): boolean { return ['gọi', 'liên hệ', 'tư vấn', 'sđt', 'số điện thoại', 'mua', 'giá', 'ship', 'đặt hàng', 'zalo'].some(key => message.toLowerCase().includes(key)); }
+export function userRefusedPhone(message: string): boolean { return ['không cần gọi', 'đừng hỏi', 'chat thôi', 'tư vấn đây'].some(key => message.toLowerCase().includes(key)); }
 export function extractPhone(input: string): string | null {
+  const phoneRegex = /(0|\+84)(3|5|7|8|9)[0-9]{8}/g;
   const cleaned = normalizeInput(input);
   const matches = cleaned.match(phoneRegex);
   return matches ? matches[0] : null;
@@ -165,19 +180,20 @@ export async function detectAndSaveLead(message: string, shopId: string, session
     if (error) throw error;
 
     if (shopConfig?.telegram_enabled !== false && shopConfig?.telegram_chat_id) {
-       await sendTelegramNotification({
+       // Không đợi (AWAIT) quá lâu trong stream, nhưng xử lý retry bên trong hàm
+       sendTelegramNotification({
          botToken: shopConfig.telegram_bot_token,
          chatId: shopConfig.telegram_chat_id,
          phone: cleanPhone,
          message: message,
          shopName: shopConfig.shop_name || 'Cửa hàng',
          sessionId: sessionId,
-         leadId: newLead.id
+         leadId: newLead.id,
+         shopId: shopId
        });
     }
     return newLead;
   } catch (error) {
-    console.error('Core Lead Error:', error);
-    return null;
+    console.error('Core Lead Error:', error); return null;
   }
 }

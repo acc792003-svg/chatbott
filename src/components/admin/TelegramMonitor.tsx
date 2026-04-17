@@ -39,9 +39,9 @@ export default function TelegramMonitor() {
 
       if (leads) {
         const total = leads.length;
-        const success = leads.filter(l => l.telegram_status === 'success').length;
-        const failed = leads.filter(l => l.telegram_status === 'failed').length;
-        const duplicate = leads.filter(l => l.telegram_status === 'duplicate').length;
+        const success = leads.filter((l: any) => l.telegram_status === 'success').length;
+        const failed = leads.filter((l: any) => l.telegram_status === 'failed').length;
+        const duplicate = leads.filter((l: any) => l.telegram_status === 'duplicate').length;
         
         setStats({
           total,
@@ -52,7 +52,7 @@ export default function TelegramMonitor() {
         });
 
         // 3. Lấy 10 lỗi gần nhất
-        setRecentFails(leads.filter(l => l.telegram_status === 'failed').slice(0, 10));
+        setRecentFails(leads.filter((l: any) => l.telegram_status === 'failed').slice(0, 10));
       }
     } catch (e) {
       console.error('Error fetching monitor data:', e);
@@ -81,44 +81,78 @@ export default function TelegramMonitor() {
     }
   };
 
+  const getHealthScore = () => {
+    if (!stats || stats.total === 0) return 100;
+    const failRate = (stats.failed / (stats.total - stats.duplicate)) * 100;
+    return Math.max(0, Math.round(100 - (failRate * 2.5))); // Penalty x2.5 for failures
+  };
+
+  const healthScore = getHealthScore();
+  const isKritical = stats && (stats.failed / stats.total) > 0.3;
+
   if (loading) return <div className="p-8 text-xs font-bold text-slate-400 animate-pulse">📡 CONNECTING TO TELEGRAM RADAR...</div>;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
       {/* 📊 KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tỉ lệ thành công</p>
+        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Health Score</p>
           <div className="flex items-end gap-2">
-            <h3 className={cn("text-3xl font-black", stats.successRate > 90 ? "text-emerald-600" : "text-amber-500")}>
-              {stats.successRate}%
+            <h3 className={cn(
+              "text-3xl font-black", 
+              healthScore > 80 ? "text-emerald-600" : healthScore > 50 ? "text-amber-500" : "text-red-600"
+            )}>
+              {healthScore}
             </h3>
-            <span className="text-[10px] font-bold text-slate-400 mb-1 italic">Real-time</span>
+            <span className="text-[10px] font-bold text-slate-400 mb-1">/ 100</span>
           </div>
-          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-             <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${stats.successRate}%` }}></div>
+          <div className={cn(
+            "absolute top-4 right-4 text-[10px] font-black px-2 py-0.5 rounded-full",
+            healthScore > 80 ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600 animate-pulse"
+          )}>
+            {healthScore > 80 ? 'STABLE' : 'CRITICAL'}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng Lead</p>
-          <h3 className="text-3xl font-black text-slate-900">{stats.total}</h3>
-          <p className="text-[10px] text-slate-400 mt-1 font-bold">Dữ liệu toàn hệ thống</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tỉ lệ gửi (Success)</p>
+          <div className="flex items-end gap-2">
+            <h3 className="text-3xl font-black text-slate-900">{stats.successRate}%</h3>
+          </div>
+          <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
+             <div className="bg-indigo-500 h-full transition-all duration-1000" style={{ width: `${stats.successRate}%` }}></div>
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm border-l-4 border-l-red-500">
-          <p className="text-[10px] font-black text-red-400 uppercase tracking-widest mb-1">Gửi thất bại</p>
-          <h3 className="text-3xl font-black text-red-600">{stats.failed}</h3>
-          <p className="text-[10px] text-red-400 mt-1 font-bold">Cần kiểm tra ngay 🚨</p>
+          <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Lượt lỗi (Failed)</p>
+          <div className="flex items-center gap-2">
+            <h3 className="text-3xl font-black text-red-600">{stats.failed}</h3>
+            {isKritical && <span className="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded animate-bounce">DANGER</span>}
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Chặn trùng</p>
-          <h3 className="text-3xl font-black text-amber-600">{stats.duplicate}</h3>
-          <p className="text-[10px] text-slate-400 mt-1 font-bold">Tiết kiệm tài nguyên</p>
+          <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Tổng Lead</p>
+          <h3 className="text-3xl font-black text-slate-900">{stats.total}</h3>
         </div>
       </div>
+
+      {/* 🚨 CRITICAL ALERT COMPONENT */}
+      {isKritical && (
+         <div className="bg-red-600 text-white p-6 rounded-[2.5rem] shadow-2xl shadow-red-200 flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in-95">
+            <div className="flex items-center gap-4">
+               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl animate-pulse">📢</div>
+               <div>
+                  <h3 className="text-lg font-black uppercase tracking-tight">CẢNH BÁO: HỆ THỐNG ĐANG GẶP SỰ CỐ GỬI TIN</h3>
+                  <p className="text-xs font-bold text-white/80">Tỉ lệ lỗi vượt quá 30%. Vui lòng kiểm tra Token Bot hệ thống hoặc API Rate Limit.</p>
+               </div>
+            </div>
+            <button onClick={handleUpdateToken} className="bg-white text-red-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-slate-100 transition-all shadow-xl">Kiểm tra ngay</button>
+         </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
