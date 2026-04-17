@@ -170,8 +170,43 @@ export async function POST(req: Request) {
         }
 
         const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
-        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế. Hãy thêm các icon (emoji) dễ thương vào mỗi câu trả lời để tạo sự thân thiện và thiện cảm với khách hàng. 
-Đặc biệt: Nếu khách hàng để lại số điện thoại hoặc yêu cầu tư vấn trực tiếp, hãy cảm ơn và hứa sẽ có nhân viên liên hệ lại sớm nhất.`;
+        
+        // --- 🔥 SMART CRM HOOK 2.0: TINH TẾ & KIỂM SOÁT ---
+        let leadInstruction = "";
+        const introMessage = message?.toLowerCase() || "";
+        
+        // 1. Nhận diện các yếu tố
+        const leadsLib = await import('@/lib/leads');
+        const hasIntent = leadsLib.hasHighIntent(introMessage);
+        const hasPhoneInMsg = leadsLib.extractPhone(introMessage);
+        const isRefusing = leadsLib.userRefusedPhone(introMessage);
+        
+        // 2. Phân tích bối cảnh lịch sử
+        const historyText = (history || []).map((h: any) => h.content).join(" ");
+        const alreadyHasPhoneInHistory = !!leadsLib.extractPhone(historyText);
+        const { count: askedCount, gap } = leadsLib.countPreviousAsks(history || []);
+
+        // 3. Logic quyết định (Decision Tree)
+        let crmAction = "STAY_SILENT";
+        if (!alreadyHasPhoneInHistory && !hasPhoneInMsg && !isRefusing) {
+           if (hasIntent && askedCount < 2 && gap >= 3) {
+              crmAction = askedCount === 0 ? "ASK_SOFT_1" : "ASK_SOFT_2";
+           }
+        }
+
+        // 4. Chỉ thị cụ thể cho AI
+        if (crmAction === "ASK_SOFT_1") {
+           leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đang quan tâm, hãy khéo léo gợi ý họ để lại SĐT để shop hỗ trợ nhanh nhất.";
+        } else if (crmAction === "ASK_SOFT_2") {
+           leadInstruction = "\n👉 HÀNH ĐỘNG: Đây là lần thứ 2 khách hỏi mà chưa để lại SĐT, hãy thử mời họ để lại SĐT một lần nữa với văn phong khác biệt, nhấn mạnh vào lợi ích được tư vấn kỹ hơn.";
+        } else if (isRefusing) {
+           leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đã từ chối hoặc không muốn gọi điện. Tuyệt đối KHÔNG nhắc đến việc xin SĐT nữa, hãy tập trung tư vấn nhiệt tình ngay tại đây.";
+        } else if (askedCount >= 2) {
+           leadInstruction = "\n👉 HÀNH ĐỘNG: Đã nhắc đủ 2 lần rồi, giờ hãy im lặng về việc xin SĐT và chỉ tập trung trả lời câu hỏi của khách.";
+        }
+
+        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế. Hãy thêm các icon (emoji) dễ thương. 
+Đặc biệt: Nếu khách hàng để lại SĐT, hãy cảm ơn và hứa sẽ có nhân viên liên hệ lại sớm nhất.${leadInstruction}`;
         
         if (message === '[welcome]') {
             systemPrompt += "\nLƯU Ý: Đây là lời chào đầu tiên. Hãy chào hỏi khách hàng thật ngắn gọn, thân thiện và mời họ đặt câu hỏi. Tuyệt đối không liệt kê danh sách sản phẩm hay thông tin chi tiết lúc này.";
@@ -179,7 +214,7 @@ export async function POST(req: Request) {
 
         // --- 🔥 LEAD DETECTION (CHỜ XỬ LÝ XONG ĐỂ GỬI TELEGRAM) ---
         if (message && message !== '[welcome]' && shopId) {
-            await detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Lead Error:', e));
+            await (await import('@/lib/leads')).detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Lead Error:', e));
         }
 
         const contents = [

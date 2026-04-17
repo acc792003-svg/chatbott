@@ -2,26 +2,64 @@ import { supabaseAdmin } from './supabase';
 
 const phoneRegex = /(0|\+84)(3|5|7|8|9)[0-9]{8}/g;
 
+// CACHE: Bộ đệm cho cấu hình hệ thống (hết hạn sau 5 phút)
+let cachedSystemToken: string | null = null;
+let lastCacheUpdate = 0;
+const CACHE_TTL = 5 * 60 * 1000; 
+
 /**
- * 🔥 Normalize triệt để: Xóa ký tự nhiễu và chuyển +84 -> 0
+ * 🔐 Lấy Token hệ thống với cơ chế Caching
  */
-function normalizeInput(text: string): string {
-  return text
-    .replace(/[.\-\s]/g, "")   // Xóa dấu chấm, gạch ngang, khoảng trắng
-    .replace(/\+84/g, "0");    // Chuẩn hóa +84 về 0
+async function getSystemToken(): Promise<string | null> {
+  const now = Date.now();
+  if (cachedSystemToken && (now - lastCacheUpdate < CACHE_TTL)) {
+    return cachedSystemToken;
+  }
+
+  if (!supabaseAdmin) return process.env.TELEGRAM_BOT_TOKEN || null;
+
+  const { data } = await supabaseAdmin
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'system_telegram_bot_token')
+    .single();
+
+  if (data?.value) {
+    cachedSystemToken = data.value;
+    lastCacheUpdate = now;
+    return cachedSystemToken;
+  }
+
+  return process.env.TELEGRAM_BOT_TOKEN || null;
 }
 
 /**
- * Lấy SĐT từ tin nhắn sau khi đã làm sạch
+ * 🚦 Rate Limiter đơn giản cho System Bot
  */
-function extractPhone(input: string): string | null {
-  const cleaned = normalizeInput(input);
-  const matches = cleaned.match(phoneRegex);
-  return matches ? matches[0] : null;
+let lastSystemSendTime = 0;
+const SYSTEM_SEND_INTERVAL = 100; // Tối đa 10 tin/giây
+
+async function waitRateLimit() {
+    const now = Date.now();
+    const waitTime = Math.max(0, lastSystemSendTime + SYSTEM_SEND_INTERVAL - now);
+    if (waitTime > 0) await new Promise(r => setTimeout(r, waitTime));
+    lastSystemSendTime = Date.now();
 }
 
 /**
- * Gửi thông báo Telegram với cơ chế RETRY
+ * Logic gửi lõi
+ */
+async function callTelegramAPI(token: string, chatId: string, text: string) {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'Markdown' })
+    });
+    return res;
+}
+
+/**
+ * 🚀 Gửi Telegram Production-Ready: Fallback + Cache + RateLimit
  */
 export async function sendTelegramNotification(config: {
   botToken?: string;
@@ -32,113 +70,101 @@ export async function sendTelegramNotification(config: {
   sessionId: string;
   leadId: string;
 }) {
-  const DEFAULT_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '7851978255:AAH-S5iX_8F0YJ5uX_fV9XqS7Xg9p9S7Xg9';
-  const token = config.botToken || DEFAULT_BOT_TOKEN;
-  
-  if (!config.chatId) return;
+  if (!config.chatId || !supabaseAdmin) return;
 
   const text = `🔔 *KHÁCH HÀNG MỚI từ ${config.shopName}*\n\n` +
                `📱 *SĐT:* \`${config.phone}\`\n` +
                `💬 *Nội dung:* _${config.message}_\n\n` +
-               `🕒 *TG:* ${new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}\n` +
-               `🔗 [Xem lịch sử chat](${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/history?session=${config.sessionId})`;
+               `🔗 [Xem lịch sử](${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard/history?session=${config.sessionId})`;
 
-  // Cơ chế Retry: Thử tối đa 2 lần
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  let response: Response;
+  let usedSystemBot = false;
+
+  // 1. Thử gửi bằng Bot riêng của Shop (nếu có)
+  if (config.botToken) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: config.chatId,
-          text: text,
-          parse_mode: 'Markdown'
-        })
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        if (supabaseAdmin) {
-          await supabaseAdmin.from('leads').update({ 
-            telegram_status: 'success',
-            telegram_sent_at: new Date().toISOString()
-          }).eq('id', config.leadId);
-        }
-        return; // Thành công thì thoát
-      } else {
-        throw new Error(data.description || 'Unknown error');
+      response = await callTelegramAPI(config.botToken, config.chatId, text);
+      if (response.ok) {
+        await supabaseAdmin.from('leads').update({ telegram_status: 'success', telegram_sent_at: new Date().toISOString() }).eq('id', config.leadId);
+        return;
       }
-    } catch (error: any) {
-      if (attempt === 2 && supabaseAdmin) {
-        // Lần thử cuối vẫn fail thì mới ghi log lỗi
+      // Nếu lỗi 401 (token sai) hoặc 404, sẽ tiếp tục fallback xuống dưới
+      console.warn('Shop Bot failed, attempting fallback to System Bot...');
+    } catch (err) {
+      console.error('Shop Bot Error:', err);
+    }
+  }
+
+  // 2. FALLBACK: Thử gửi bằng Bot hệ thống
+  const systemToken = await getSystemToken();
+  if (systemToken) {
+    await waitRateLimit(); // Chống spam hệ thống
+    try {
+      response = await callTelegramAPI(systemToken, config.chatId, text);
+      if (response.ok) {
         await supabaseAdmin.from('leads').update({ 
-          telegram_status: 'failed', 
-          telegram_error: error.message 
+          telegram_status: 'success', 
+          telegram_sent_at: new Date().toISOString(),
+          telegram_error: 'Sent via System Bot fallback'
         }).eq('id', config.leadId);
-      } else {
-        // Đợi 2 giây trước khi thử lại lần 2
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        return;
       }
+      
+      // Nếu cả 2 đều hỏng
+      const data = await response.json();
+      await supabaseAdmin.from('leads').update({ telegram_status: 'failed', telegram_error: `System Bot Error: ${data.description}` }).eq('id', config.leadId);
+    } catch (err: any) {
+      await supabaseAdmin.from('leads').update({ telegram_status: 'failed', telegram_error: err.message }).eq('id', config.leadId);
     }
   }
 }
 
-export async function detectAndSaveLead(
-  message: string,
-  shopId: string,
-  sessionId: string,
-  shopConfig: any
-) {
+// Giữ lại các hàm normalizeInput, extractPhone, hasHighIntent...
+export function normalizeInput(text: string): string {
+  return text.replace(/[.\-\s]/g, "").replace(/\+84/g, "0");    
+}
+export function hasHighIntent(message: string): boolean {
+  const keywords = ['gọi', 'liên hệ', 'tư vấn', 'sđt', 'số điện thoại', 'mua', 'giá', 'ship', 'đặt hàng', 'zalo'];
+  return keywords.some(key => message.toLowerCase().includes(key));
+}
+export function userRefusedPhone(message: string): boolean {
+  return ['không cần gọi', 'đừng hỏi', 'chat thôi', 'tư vấn đây'].some(key => message.toLowerCase().includes(key));
+}
+export function extractPhone(input: string): string | null {
+  const cleaned = normalizeInput(input);
+  const matches = cleaned.match(phoneRegex);
+  return matches ? matches[0] : null;
+}
+export function countPreviousAsks(history: any[]): { count: number, gap: number } {
+  let count = 0; let gap = 10;
+  if (!history || history.length === 0) return { count, gap };
+  for (let i = history.length - 1; i >= 0; i--) {
+     const msg = history[i];
+     if ((msg.role === 'assistant' || msg.role === 'model') && (msg.content?.includes('SĐT') || msg.content?.includes('số điện thoại'))) {
+        count++; if (count === 1) gap = (history.length - 1) - i;
+     }
+  }
+  return { count, gap };
+}
+
+export async function detectAndSaveLead(message: string, shopId: string, sessionId: string, shopConfig: any) {
   try {
     const cleanPhone = extractPhone(message);
-    if (!cleanPhone) return null;
+    if (!cleanPhone || !supabaseAdmin) return null;
 
-    if (!supabaseAdmin) return null;
+    const tenMinutesAgo = new Date();
+    tenMinutesAgo.setMinutes(tenMinutesAgo.getMinutes() - 10);
+    const { data: recentLead } = await supabaseAdmin.from('leads').select('id, first_message, status').eq('shop_id', shopId).eq('phone', cleanPhone).gte('created_at', tenMinutesAgo.toISOString()).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
-    // 1. Kiểm tra trùng trong 24h
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    
-    const { data: existingLead } = await supabaseAdmin
-      .from('leads')
-      .select('id')
-      .eq('shop_id', shopId)
-      .eq('phone', cleanPhone)
-      .gte('created_at', oneDayAgo.toISOString())
-      .single();
-
-    if (existingLead) {
-      // 🔥 Thêm Case Duplicate: Vẫn lưu tin nhắn mới nhưng ghi chú là trùng
-      await supabaseAdmin.from('leads').insert({
-        shop_id: shopId,
-        session_id: sessionId,
-        phone: cleanPhone,
-        first_message: `[TRÙNG] ${message}`,
-        status: 'new',
-        telegram_status: 'duplicate'
-      });
-      return null;
+    if (recentLead && (recentLead.first_message === message || recentLead.status === 'new')) {
+       await supabaseAdmin.from('leads').insert({ shop_id: shopId, session_id: sessionId, phone: cleanPhone, first_message: `[TRÙNG] ${message}`, telegram_status: 'duplicate' });
+       return null;
     }
 
-    // 2. Lưu mới (Pending)
-    const { data: newLead, error } = await supabaseAdmin
-      .from('leads')
-      .insert({
-        shop_id: shopId,
-        session_id: sessionId,
-        phone: cleanPhone,
-        first_message: message,
-        status: 'new',
-        telegram_status: 'pending'
-      })
-      .select()
-      .single();
-
+    const { data: newLead, error } = await supabaseAdmin.from('leads').insert({ shop_id: shopId, session_id: sessionId, phone: cleanPhone, first_message: message, telegram_status: 'pending' }).select().single();
     if (error) throw error;
 
-    // 3. Gửi Notify (Có retry bên trong)
-    if (shopConfig?.telegram_chat_id) {
+    if (shopConfig?.telegram_enabled !== false && shopConfig?.telegram_chat_id) {
        await sendTelegramNotification({
          botToken: shopConfig.telegram_bot_token,
          chatId: shopConfig.telegram_chat_id,
@@ -149,7 +175,6 @@ export async function detectAndSaveLead(
          leadId: newLead.id
        });
     }
-
     return newLead;
   } catch (error) {
     console.error('Core Lead Error:', error);

@@ -8,6 +8,8 @@ import {
   User, Lock, Image as ImageIcon, CheckSquare, Square, Package, Send, ExternalLink, Link as LinkIcon, Mail, Copy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import TelegramMonitor from '@/components/admin/TelegramMonitor';
+import ChatHistoryMonitor from '@/components/admin/ChatHistoryMonitor';
 
 type Shop = {
   id: string;
@@ -36,13 +38,12 @@ export default function SuperAdminPage() {
   const [errorLogs, setErrorLogs] = useState<any[]>([]);
   const [apiKey1, setApiKey1] = useState('');
   const [apiKey2, setApiKey2] = useState('');
-  const [apiKeyPro, setApiKeyPro] = useState('');
-  const [fbVerifyToken, setFbVerifyToken] = useState('');
+  const [systemTelegramToken, setSystemTelegramToken] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // UI States
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'apikeys' | 'errors' | 'config'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'apikeys' | 'errors' | 'config' | 'telegram'>('shops');
   const [userRole, setUserRole] = useState<string>(''); // Lưu role thực tế (super_admin hoặc staff_admin)
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
 
@@ -211,6 +212,7 @@ export default function SuperAdminPage() {
       setApiKey2(data.find((d: any) => d.key === 'gemini_api_key_2')?.value || '');
       setApiKeyPro(data.find((d: any) => d.key === 'gemini_api_key_pro')?.value || '');
       setFbVerifyToken(data.find((d: any) => d.key === 'fb_verify_token')?.value || '');
+      setSystemTelegramToken(data.find((d: any) => d.key === 'system_telegram_bot_token')?.value || '');
     }
   };
 
@@ -413,6 +415,35 @@ export default function SuperAdminPage() {
     } finally { setPushingKnowledge(false); }
   };
 
+  const handleTestTelegram = async (shopId: string) => {
+    addToast('⏳ Đang gửi tin nhắn thử nghiệm...', 'info');
+    try {
+        const { data: config } = await supabase.from('chatbot_configs').select('telegram_chat_id, telegram_bot_token, shop_name').eq('shop_id', shopId).single();
+        if (!config?.telegram_chat_id) {
+            addToast('❌ Shop chưa cấu hình Chat ID!', 'error');
+            return;
+        }
+
+        const res = await fetch('/api/admin/telegram/test', {
+            method: 'POST',
+            body: JSON.stringify({
+                chatId: config.telegram_chat_id,
+                botToken: config.telegram_bot_token,
+                shopName: config.shop_name
+            })
+        });
+        
+        if (res.ok) {
+            addToast('✅ Đã gửi tin nhắn test thành công!', 'success');
+        } else {
+            const err = await res.json();
+            addToast(`❌ Lỗi: ${err.error}`, 'error');
+        }
+    } catch (e) {
+        addToast('Lỗi kết nối!', 'error');
+    }
+  };
+
   // Filtered Shops
   const filteredShops = shops.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code.toLowerCase().includes(searchTerm.toLowerCase()) || s.slug?.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -446,6 +477,7 @@ export default function SuperAdminPage() {
             { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
             { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
             { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
+            { id: 'telegram', label: 'Giám sát Telegram', icon: <Send size={14}/>, adminOnly: true },
             { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
             { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
           ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
@@ -664,6 +696,12 @@ export default function SuperAdminPage() {
                                                         </div>
                                                         <button onClick={() => handleResetPassword(shop.id)} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 py-3 rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg ring-4 ring-amber-500/10 flex items-center justify-center gap-2">
                                                             <Lock size={14}/> ĐỔI MẬT KHẨU
+                                                        </button>
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); handleTestTelegram(shop.id); }} 
+                                                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-2xl text-[10px] font-black uppercase transition-all shadow-lg ring-4 ring-indigo-500/10 flex items-center justify-center gap-2 mt-2"
+                                                        >
+                                                            <Send size={14}/> TEST TELEGRAM
                                                         </button>
                                                     </div>
                                                 </div>
