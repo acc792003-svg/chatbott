@@ -1,11 +1,11 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { Eye, EyeOff, Send, HelpCircle } from 'lucide-react';
 
 export default function ConfigClient() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [shopName, setShopName] = useState('');
   const [productInfo, setProductInfo] = useState('');
   const [faq, setFaq] = useState('');
@@ -92,14 +92,35 @@ export default function ConfigClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Telegram Chat ID</label>
-                <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} placeholder="VD: 12345678" className="w-full bg-slate-50 border rounded-xl p-3" />
+                <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} placeholder="VD: 12345678" className="w-full bg-slate-50 border rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-100 transition-all font-mono text-sm" />
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Bot Token (Tùy chọn)</label>
-                <input type="password" value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} placeholder="Bỏ trống nếu dùng Bot mặc định" className="w-full bg-slate-50 border rounded-xl p-3" />
+                <div className="relative">
+                  <input 
+                    type={showToken ? "text" : "password"} 
+                    value={telegramBotToken} 
+                    onChange={e => setTelegramBotToken(e.target.value)} 
+                    placeholder="1234567890:AAH-S5..." 
+                    className="w-full bg-slate-50 border rounded-xl p-3 pr-10 outline-none focus:ring-2 focus:ring-blue-100 transition-all font-mono text-sm" 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    {showToken ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
-            <p className="mt-2 text-[10px] text-slate-400">Dùng @userinfobot trên Telegram để lấy Chat ID của bạn.</p>
+            <div className="mt-3 flex items-start gap-2 bg-blue-50/50 p-3 rounded-xl border border-blue-100/50">
+               <HelpCircle size={14} className="text-blue-500 mt-0.5 shrink-0" />
+               <p className="text-[10px] text-blue-600 leading-relaxed font-medium">
+                  Định dạng Token chuẩn có dạng <code className="bg-blue-100 px-1 rounded text-blue-800">123456:AAH-S5...</code>. 
+                  Hãy đảm bảo bạn đã nhấn <strong>START</strong> bot trên Telegram trước khi lưu.
+               </p>
+            </div>
           </div>
 
           <div className="pt-6 border-t opacity-50">
