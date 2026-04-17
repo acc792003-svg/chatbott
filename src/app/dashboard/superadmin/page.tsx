@@ -949,14 +949,96 @@ export default function SuperAdminPage() {
         </div>
       )}
       {activeTab === 'facebook' && (
-        <div className="px-2 lg:px-0">
-          <div className="bg-white rounded-[2.5rem] p-20 border border-slate-200 shadow-sm flex flex-col items-center justify-center text-center gap-6">
-             <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center animate-bounce">
-                <MessageCircle size={40} />
+        <div className="px-2 lg:px-0 space-y-6">
+          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm">
+             <div className="flex items-center gap-4 mb-8">
+                <div className="p-4 bg-indigo-50 text-indigo-600 rounded-3xl animate-pulse">
+                   <MessageCircle size={32} />
+                </div>
+                <div>
+                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Kênh Facebook Messenger</h2>
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cấu hình Webhook & Bảo mật hệ thống</p>
+                </div>
              </div>
-             <div>
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Kênh Facebook Messenger</h2>
-                <p className="text-slate-400 font-bold mt-2">Tính năng đang được hoàn thiện và sẽ sớm ra mắt.</p>
+
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                {/* THÔNG TIN WEBHOOK */}
+                <div className="space-y-6">
+                   <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Webhook URL (Dán vào Facebook Developers)</p>
+                      <div className="flex gap-2">
+                         <input 
+                            readOnly 
+                            value="https://app.dichvupro.net/api/facebook/webhook" 
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono font-bold text-indigo-600"
+                         />
+                         <button 
+                            onClick={() => {
+                                navigator.clipboard.writeText("https://app.dichvupro.net/api/facebook/webhook");
+                                addToast('Đã copy Webhook URL', 'success');
+                            }}
+                            className="p-2 bg-indigo-600 text-white rounded-xl"
+                         >
+                            <Copy size={16}/>
+                         </button>
+                      </div>
+                   </div>
+
+                   <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Verify Token (Sử dụng để xác thực Webhook)</p>
+                      <div className="flex gap-2">
+                         <input 
+                            readOnly 
+                            value={fbVerifyToken || 'Đang tải...'} 
+                            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono font-bold text-emerald-600"
+                         />
+                         <button 
+                            onClick={() => {
+                                navigator.clipboard.writeText(fbVerifyToken);
+                                addToast('Đã copy Verify Token', 'success');
+                            }}
+                            className="p-2 bg-emerald-600 text-white rounded-xl"
+                         >
+                            <Copy size={16}/>
+                         </button>
+                      </div>
+                      <p className="text-[9px] text-slate-400 mt-2 italic">Lưu ý: Bạn có thể thay đổi Token này tại tab "Cấu hình API"</p>
+                   </div>
+                </div>
+
+                {/* HƯỚNG DẪN BỌC THÉP */}
+                <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden">
+                   <div className="absolute -right-10 -bottom-10 opacity-10">
+                      <Lock size={200}/>
+                   </div>
+                   <div className="relative z-10">
+                      <h3 className="text-lg font-black text-indigo-400 mb-4 flex items-center gap-2 underline">
+                         <ShieldAlert size={20}/> TRẠNG THÁI BẢO MẬT
+                      </h3>
+                      <div className="space-y-4">
+                         <div className="flex items-center gap-3">
+                            <div className={cn("w-3 h-3 rounded-full", fbAppSecret ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" : "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]")}></div>
+                            <p className="text-xs font-bold uppercase tracking-tight">
+                               FB APP SECRET: {fbAppSecret ? "ĐÃ CẤU HÌNH (SAFE)" : "CHƯA CẤU HÌNH (UNSAFE)"}
+                            </p>
+                         </div>
+                         <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+                            <p className="text-[11px] leading-relaxed text-slate-300">
+                               Hệ thống hiện đang sử dụng cơ chế <span className="text-white font-bold">X-Hub-Signature-256</span> để xác thực tin nhắn. 
+                               Yêu cầu phải có App Secret để bot có thể trả lời khách hàng.
+                            </p>
+                         </div>
+                         {!fbAppSecret && (
+                            <button 
+                               onClick={() => setActiveTab('apikeys')}
+                               className="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl text-[10px] font-black uppercase transition-all"
+                            >
+                               Click để đi cấu hình ngay
+                            </button>
+                         )}
+                      </div>
+                   </div>
+                </div>
              </div>
           </div>
         </div>
