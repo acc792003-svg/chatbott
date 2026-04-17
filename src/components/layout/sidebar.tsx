@@ -11,7 +11,8 @@ import {
   CreditCard,
   Bot,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  Users
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -19,9 +20,10 @@ import { useRouter } from 'next/navigation';
 
 const menuItems = [
   { name: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Khách hàng', href: '/dashboard/leads', icon: Users },
+  { name: 'Cấu hình AI', href: '/dashboard/config', icon: Settings },
+  { name: 'Lịch sử Chat', href: '/dashboard/history', icon: History },
   { name: 'Chat Demo', href: '/dashboard/chat', icon: MessageSquare },
-  { name: 'Cấu hình Chatbot', href: '/dashboard/config', icon: Settings },
-  { name: 'Lịch sử', href: '/dashboard/history', icon: History },
   { name: 'Gói dịch vụ', href: '/dashboard/pricing', icon: CreditCard },
 ];
 

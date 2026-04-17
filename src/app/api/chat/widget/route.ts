@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import { supabaseAdmin } from '@/lib/supabase';
 import { callGeminiWithFallback, generateEmbedding } from '@/lib/gemini';
+import { detectAndSaveLead } from '@/lib/leads';
 
 // Memory cache đơn giản để chặn spam và quota ngày (IP-based)
 const rateLimitMap = new Map<string, { count: number, resetTime: number }>();
@@ -169,10 +170,16 @@ export async function POST(req: Request) {
         }
 
         const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
-        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế. Hãy thêm các icon (emoji) dễ thương vào mỗi câu trả lời để tạo sự thân thiện và thiện cảm với khách hàng.`;
+        let systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${voice}. Hôm nay: ${now}.\n${faqContext ? `TRI THỨC:\n${faqContext}\n\n` : ''}SHOP INFO: ${config?.product_info || ''}\n${insights}\nQUY TẮC: Trả lời lễ phép, dùng thông tin shop, không tự chế. Hãy thêm các icon (emoji) dễ thương vào mỗi câu trả lời để tạo sự thân thiện và thiện cảm với khách hàng. 
+Đặc biệt: Nếu khách hàng để lại số điện thoại hoặc yêu cầu tư vấn trực tiếp, hãy cảm ơn và hứa sẽ có nhân viên liên hệ lại sớm nhất.`;
         
         if (message === '[welcome]') {
             systemPrompt += "\nLƯU Ý: Đây là lời chào đầu tiên. Hãy chào hỏi khách hàng thật ngắn gọn, thân thiện và mời họ đặt câu hỏi. Tuyệt đối không liệt kê danh sách sản phẩm hay thông tin chi tiết lúc này.";
+        }
+
+        // --- 🔥 LEAD DETECTION (CHẠY NGẦM) ---
+        if (message && message !== '[welcome]' && shopId) {
+            detectAndSaveLead(message, shopId, clientId || `anon-${ip}`, config).catch(e => console.error('Silent Lead Error:', e));
         }
 
         const contents = [
