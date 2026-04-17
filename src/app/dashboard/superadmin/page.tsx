@@ -865,6 +865,11 @@ export default function SuperAdminPage() {
           </div>
       )}
       {activeTab === 'errors' && <div className="px-2 lg:px-0"><LogsView errorLogs={errorLogs} /></div>}
+      {activeTab === 'telegram' && (
+        <div className="px-2 lg:px-0">
+          <TelegramMonitor />
+        </div>
+      )}
       {activeTab === 'config' && <div className="px-2 lg:px-0"><SettingsView trialTemplateCode={trialTemplateCode} setTrialTemplateCode={setTrialTemplateCode} /></div>}
 
       {/* TOAST NOTIFICATIONS (PC/IPAD/MOBILE RESPONSIVE) */}
