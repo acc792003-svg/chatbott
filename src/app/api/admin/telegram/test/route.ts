@@ -6,12 +6,16 @@ export async function POST(req: Request) {
         const { chatId, botToken, shopName } = await req.json();
 
         // 0. BẢO MẬT: Kiểm tra quyền Super Admin
-        const { data: { user } } = await supabaseAdmin.auth.getUser(req.headers.get('Authorization')?.split(' ')[1] || '');
-        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const authHeader = req.headers.get('Authorization');
+        const tokenStr = authHeader?.split(' ')[1];
+        if (!tokenStr) return NextResponse.json({ error: 'Phiên đăng nhập hết hạn, vui lòng F5!' }, { status: 401 });
+
+        const { data: { user } } = await supabaseAdmin.auth.getUser(tokenStr);
+        if (!user) return NextResponse.json({ error: 'Lỗi xác thực người dùng' }, { status: 401 });
         
         const { data: userData } = await supabaseAdmin.from('users').select('role').eq('id', user.id).single();
         if (userData?.role !== 'super_admin') {
-            return NextResponse.json({ error: 'Chỉ Super Admin mới được dùng tính năng này' }, { status: 403 });
+            return NextResponse.json({ error: 'Quyền truy cập bị từ chối: Chỉ Super Admin mới được dùng' }, { status: 403 });
         }
 
         // 1. Tìm token để dùng

@@ -420,6 +420,7 @@ export default function SuperAdminPage() {
   const handleTestTelegram = async (shopId: string) => {
     addToast('⏳ Đang gửi tin nhắn thử nghiệm...', 'info');
     try {
+        const { data: { session } } = await supabase.auth.getSession();
         const { data: config } = await supabase.from('chatbot_configs').select('telegram_chat_id, telegram_bot_token, shop_name').eq('shop_id', shopId).single();
         if (!config?.telegram_chat_id) {
             addToast('❌ Shop chưa cấu hình Chat ID!', 'error');
@@ -428,6 +429,9 @@ export default function SuperAdminPage() {
 
         const res = await fetch('/api/admin/telegram/test', {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${session?.access_token}`
+            },
             body: JSON.stringify({
                 chatId: config.telegram_chat_id,
                 botToken: config.telegram_bot_token,
