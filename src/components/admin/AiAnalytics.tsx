@@ -28,7 +28,7 @@ export default function AiAnalytics() {
         .limit(1000);
 
       if (logs && logs.length > 0) {
-        const avgLatency = Math.round(logs.reduce((acc, curr) => acc + (curr.latency_ms || 0), 0) / logs.length);
+        const avgLatency = Math.round(logs.reduce((acc: number, curr: any) => acc + (curr.latency_ms || 0), 0) / logs.length);
         const faqCount = logs.filter(l => l.source === 'faq').length;
         const cacheCount = logs.filter(l => l.source === 'cache').length;
         const aiCount = logs.filter(l => l.source === 'ai').length;

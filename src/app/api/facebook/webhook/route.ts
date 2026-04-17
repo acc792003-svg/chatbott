@@ -1,162 +1,111 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { processChat } from '@/lib/chatbot-engine';
+import { sendFacebookMessage } from '@/lib/facebook';
 
-import { NextResponse } from 'next/server';
-import crypto from 'crypto';
-import { supabaseAdmin } from '@/lib/supabase';
-import { callGeminiWithFallback } from '@/lib/gemini';
+/**
+ * 🔒 FACEBOOK WEBHOOK HANDLER (Omnichannel Version)
+ */
 
-const APP_SECRET = process.env.FB_APP_SECRET || ''; 
-const GLOBAL_VERIFY_TOKEN = process.env.FB_VERIFY_TOKEN || 'chatbot_verify_token_2026';
-
-// 1. Xác thực Webhook (GET)
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get('hub.mode');
   const token = searchParams.get('hub.verify_token');
   const challenge = searchParams.get('hub.challenge');
 
-  if (mode === 'subscribe' && token === GLOBAL_VERIFY_TOKEN) {
-    return new Response(challenge, { status: 200 });
+  const { data: setting } = await supabaseAdmin
+    .from('system_settings')
+    .select('value')
+    .eq('key', 'fb_verify_token')
+    .single();
+
+  const VERIFY_TOKEN = setting?.value || 'antigravity_secret';
+
+  if (mode && token) {
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log('✅ Facebook Webhook Verified!');
+      return new Response(challenge, { status: 200 });
+    } else {
+      return new Response('Forbidden', { status: 403 });
+    }
   }
-  return new Response('Forbidden', { status: 403 });
 }
 
-// 2. Tiếp nhận và xử lý tin nhắn (POST)
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const rawBody = await req.text(); // Dùng raw text để verify signature chính xác nhất
-    const body = JSON.parse(rawBody);
-
-    // --- A. BẢO MẬT: VERIFY SIGNATURE (X-Hub-Signature-256) ---
-    if (APP_SECRET) {
-        const signature = req.headers.get('x-hub-signature-256');
-        if (!signature) return new Response('Unauthorized', { status: 401 });
-        
-        const hmac = crypto.createHmac('sha256', APP_SECRET);
-        const digest = 'sha256=' + hmac.update(rawBody, 'utf8').digest('hex');
-        
-        if (signature !== digest) {
-            console.error('[SECURITY_ALERT] Invalid HMAC Signature');
-            return new Response('Invalid Signature', { status: 401 });
-        }
-    }
+    const body = await req.json();
 
     if (body.object === 'page') {
       for (const entry of body.entry) {
-        const event = entry.messaging?.[0];
-        if (!event) continue;
+        if (!entry.messaging) continue;
+        
+        const webhook_event = entry.messaging[0];
+        const sender_id = webhook_event.sender.id;
+        const page_id = entry.id;
 
-        const senderPsid = event.sender.id;
-        const pageId = entry.id;
-        const message = event.message;
-
-        // --- B. CHỐNG LOOP (ANTI-LOOP): Bỏ qua tin nhắn do bot/app gửi ra ---
-        if (message?.is_echo || message?.app_id) {
-           continue; 
-        }
-
-        if (message?.text && message?.mid) {
-          // Xử lý background để trả 200 OK ngay lập tức (tránh Meta timeout)
-          processBackground(pageId, senderPsid, message.text, message.mid).catch(err => {
-             console.error('[BG_PROCESS_ERROR]', err);
-          });
+        if (webhook_event.message && webhook_event.message.text) {
+          const message_text = webhook_event.message.text;
+          
+          // Xử lý không đồng bộ để không block Facebook Webhook
+          handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
+            console.error('FB logic error:', e)
+          );
         }
       }
-      return new Response('EVENT_RECEIVED', { status: 200 });
+      return NextResponse.json({ status: 'EVENT_RECEIVED' });
+    } else {
+      return NextResponse.json({ status: 'NOT_A_PAGE_EVENT' }, { status: 404 });
     }
-  } catch (error) {
-    console.error('[WEBHOOK_CRASH]', error);
-    return new Response('Internal error', { status: 500 });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
 
-async function processBackground(pageId: string, senderPsid: string, userText: string, mid: string) {
-  if (!supabaseAdmin) return;
-
-  // 1. Tìm Shop & cấu hình (Dùng cache hoặc select nhanh)
+/**
+ * 🧠 LUỒNG XỬ LÝ TIN NHẮN FACEBOOK
+ */
+async function handleFacebookMessage(sender_id: string, page_id: string, text: string) {
+  // 1. Tìm shop tương ứng
   const { data: shop } = await supabaseAdmin
     .from('shops')
-    .select('id, fb_page_token, fb_enabled')
-    .eq('fb_page_id', pageId)
+    .select('id, name, plan, fb_page_access_token')
+    .eq('fb_page_id', page_id)
     .single();
 
-  if (!shop || !shop.fb_page_token || !shop.fb_enabled) return;
+  if (!shop || !shop.fb_page_access_token) {
+    console.warn(`⚠️ Page ${page_id} chưa cấu hình Access Token!`);
+    return;
+  }
 
-  // 2. CHỐNG TRÙNG TIN (Idempotency) - Kiểm tra MID đã tồn tại chưa
-  const { data: existing } = await supabaseAdmin
-    .from('messages')
-    .select('id')
-    .eq('shop_id', shop.id)
-    .contains('metadata', { mid: mid })
-    .single();
-
-  if (existing) return;
-
-  // 3. LOAD LỊCH SỬ HỘI THOẠI (Dùng PSID định danh cứng)
-  const { data: historyLogs } = await supabaseAdmin
+  // 2. Lấy lịch sử hội thoại (6 tin gần nhất)
+  const { data: history } = await supabaseAdmin
     .from('messages')
     .select('user_message, ai_response')
     .eq('shop_id', shop.id)
-    .eq('fb_psid', senderPsid)
+    .eq('external_user_id', sender_id)
+    .eq('platform', 'facebook')
     .order('created_at', { ascending: false })
-    .limit(3);
+    .limit(6);
 
-  // 4. LẤY CẤU HÌNH AI CỦA SHOP
-  const { data: config } = await supabaseAdmin
-    .from('chatbot_configs')
-    .select('shop_name, product_info, pricing_info, faq, customer_insights, brand_voice')
-    .eq('shop_id', shop.id)
-    .single();
+  const formattedHistory = (history || [])
+    .reverse()
+    .flatMap(m => [
+      { role: 'user', content: m.user_message },
+      { role: 'model', content: m.ai_response }
+    ]);
 
-  const systemPrompt = `BẠN LÀ Trợ lý ảo của fanpage "${config?.shop_name || 'Shop'}". Giọng: ${config?.brand_voice || 'thân thiện'}. 
-${config?.product_info ? `KIẾN THỨC: ${config.product_info}` : ''}
-${config?.pricing_info ? `GIÁ CẢ: ${config.pricing_info}` : ''}
-${config?.faq ? `HỎI ĐÁP: ${config.faq}` : ''}
-QUY TẮC: Trả lời ngắn nhất có thể, dùng icon 😊. Tuyệt đối không spam khách.`;
+  // 3. Gửi tới Bộ não xử lý (chatbot-engine)
+  const result = await processChat({
+    shopId: shop.id,
+    message: text,
+    history: formattedHistory,
+    externalUserId: sender_id,
+    platform: 'facebook',
+    isPro: shop.plan === 'pro'
+  });
 
-  const historyContents = (historyLogs || []).reverse().flatMap((h: any) => [
-    { role: 'user', parts: [{ text: h.user_message }] },
-    { role: 'model', parts: [{ text: h.ai_response }] }
-  ]);
-
-  const contents = [
-    { role: 'user', parts: [{ text: systemPrompt }] },
-    ...historyContents,
-    { role: 'user', parts: [{ text: userText }] }
-  ];
-
-  // 5. GỌI AI NHANH (Gemini Flash Lite)
-  const aiResponse = await callGeminiWithFallback(contents, { temperature: 0.7 }, shop.id, 'FB_MESSENGER');
-
-  // 6. TRẢ LỜI FACEBOOK
-  const success = await sendFbResponse(shop.fb_page_token, senderPsid, aiResponse);
+  // 4. Phản hồi cho người dùng Facebook
+  await sendFacebookMessage(sender_id, shop.fb_page_access_token, result.answer);
   
-  // 7. LƯU LẠI NHẬT KÝ
-  if (success) {
-      await supabaseAdmin.from('messages').insert({
-        shop_id: shop.id,
-        session_id: `fb-${senderPsid}`,
-        fb_psid: senderPsid,
-        user_message: userText,
-        ai_response: aiResponse,
-        metadata: { mid: mid, source: 'facebook' }
-      });
-  }
-}
-
-async function sendFbResponse(pageToken: string, recipientId: string, text: string) {
-  try {
-    const res = await fetch(`https://graph.facebook.com/v19.0/me/messages?access-token=${pageToken}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          recipient: { id: recipientId },
-          message: { text: text }
-        })
-    });
-    const result = await res.json();
-    return !result.error;
-  } catch (e) {
-    console.error('[SEND_FAILURE]', e);
-    return false;
-  }
+  console.log(`✅ FB Replied to ${sender_id}: ${result.answer.substring(0, 50)}... [Source: ${result.source}]`);
 }
