@@ -45,7 +45,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   try {
     const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
     const { data: shopConfig } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, is_active, industry')
+      .select('shop_name, product_info, pricing_info, faq, is_active, industry')
       .eq('shop_id', shopId)
       .maybeSingle();
     
@@ -117,8 +117,15 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        
        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
-       const aiResult = await callGeminiWithFallback([
-         { role: 'user', parts: [{ text: `BẠN LÀ Trợ lý shop "${shopData?.name || 'Shop'}". ${convData?.summary ? `TÓM TẮT TRƯỚC: ${convData.summary}` : ''}\nTRI THỨC: ${faqContext}\nTHÔNG TIN: ${shopConfig?.product_info || ''}` }] },
+        const systemPrompt = `BẠN LÀ Trợ lý shop "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
+${convData?.summary ? `TÓM TẮT TRƯỚC: ${convData.summary}` : ''}
+TRI THỨC VECTOR: ${faqContext}
+THÔNG TIN CHUNG: ${shopConfig?.product_info || ''}
+GIÁ CẢ: ${shopConfig?.pricing_info || ''}
+FAQ VĂN BẢN: ${shopConfig?.faq || ''}`;
+
+        const aiResult = await callGeminiWithFallback([
+          { role: 'user', parts: [{ text: systemPrompt }] },
          ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
          { role: 'user', parts: [{ text: message }] }
        ], { temperature: 0.7 }, shopId);
