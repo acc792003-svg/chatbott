@@ -67,6 +67,17 @@ export default function ConfigClient() {
         setTelegramChatId(config.telegram_chat_id || '');
         setTelegramBotToken(config.telegram_bot_token || '');
       }
+      
+      const { data: fbConfig } = await supabase.from('channel_configs')
+        .select('*')
+        .eq('shop_id', userData.shop_id)
+        .eq('channel_type', 'facebook')
+        .single();
+        
+      if (fbConfig) {
+        setFbPageId(fbConfig.provider_id || '');
+        setFbAccessToken(fbConfig.access_token || '');
+      }
     }
   };
 
@@ -118,6 +129,23 @@ export default function ConfigClient() {
       }, { onConflict: 'shop_id' });
       
       if (error) throw error;
+      
+      if (fbPageId.trim() || fbAccessToken.trim()) {
+        const { error: fbError } = await supabase.from('channel_configs').upsert({
+          shop_id: shopId,
+          channel_type: 'facebook',
+          provider_id: fbPageId.trim(),
+          access_token: fbAccessToken.trim()
+        }, { onConflict: 'channel_type, provider_id' });
+        
+        await supabase.from('shops').update({ 
+            fb_page_id: fbPageId.trim(), 
+            fb_page_token: fbAccessToken.trim() 
+        }).eq('id', shopId);
+
+        if (fbError && fbError.code !== '23505') throw fbError;
+      }
+
       alert('✅ Đã lưu cấu hình thành công!');
     } catch (err: any) {
       alert('❌ Lỗi: ' + err.message);
@@ -173,19 +201,40 @@ export default function ConfigClient() {
                <textarea rows={5} value={faq} onChange={e => setFaq(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
             </div>
 
-            <div className="pt-4 border-t border-dashed border-slate-200 space-y-4">
+            <div className="pt-4 border-t border-dashed border-slate-200 space-y-6">
                <div>
                   <h3 className="text-xs font-black uppercase text-blue-600 mb-3 flex items-center gap-2">
-                     <Send size={14} /> Telegram & Messenger Integration
+                     <Send size={14} /> Nhận khách qua Telegram (Tùy chọn)
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
                         <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Telegram Chat ID</label>
-                        <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono" />
+                        <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="-1001234567..." />
                      </div>
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Messenger Page ID</label>
-                        <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono" />
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Telegram Bot Token</label>
+                        <input type="text" value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="7123912:AAGF..." />
+                     </div>
+                  </div>
+               </div>
+
+               <div>
+                  <h3 className="text-xs font-black uppercase text-indigo-600 mb-3 flex items-center gap-2">
+                     <MessageSquare size={14} /> Tích hợp Facebook Messenger (Tùy chọn)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Facebook Page ID</label>
+                        <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-indigo-500" placeholder="1083921..." />
+                     </div>
+                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Page Access Token</label>
+                        <div className="relative">
+                            <input type={showToken ? "text" : "password"} value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 pr-10 text-sm font-mono outline-none focus:border-indigo-500" placeholder="EAA..." />
+                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
+                                {showToken ? <EyeOff size={16}/> : <Eye size={16}/>}
+                            </button>
+                        </div>
                      </div>
                   </div>
                </div>
