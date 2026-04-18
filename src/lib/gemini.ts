@@ -239,7 +239,10 @@ export async function callGeminiWithFallback(
           s.errorCount = Math.max(0, s.errorCount - 3);
           s.isDisabled = false;
           keyStatsMap.set(keyObj.value, s);
-          return data.candidates[0].content.parts[0].text;
+          return { 
+            text: data.candidates[0].content.parts[0].text, 
+            tokens: data.usageMetadata?.totalTokenCount || 0 
+          };
         }
 
         // XỬ LÝ LỖI
@@ -280,7 +283,10 @@ export async function callGeminiWithFallback(
                  s.lastUsedTime = Date.now();
                  s.errorCount = Math.max(0, s.errorCount - 3);
                  keyStatsMap.set(keyObj.value, s);
-                 return retryData.candidates[0].content.parts[0].text;
+                 return { 
+                    text: retryData.candidates[0].content.parts[0].text, 
+                    tokens: retryData.usageMetadata?.totalTokenCount || 0 
+                 };
                }
            }
 
@@ -313,7 +319,7 @@ export async function callGeminiWithFallback(
 
   // FALLBACK CUỐI CÙNG (An toàn, không để client dính Failed to fetch)
   console.log(`[GLOBAL_FINISH] Tổng thời gian xử lý: ${Date.now() - globalStart}ms`);
-  return "Hiện tại hệ thống đang kết nối hơi chậm, bạn vui lòng đợi vài giây và gửi lại tin nhắn nhé! 🙏";
+  return { text: "Hiện tại hệ thống đang kết nối hơi chậm, bạn vui lòng đợi vài giây và gửi lại tin nhắn nhé! 🙏", tokens: 0 };
 }
 
 /**
