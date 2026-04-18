@@ -105,9 +105,9 @@ export function LogsView({errorLogs}: any) {
                             <span className={cn(
                                 "px-2 py-1 rounded-md text-[9px] font-black uppercase whitespace-nowrap border",
                                 l.type === 'critical' ? "bg-red-600 text-white border-red-700" : 
-                                l.source === 'API_CHAT_WIDGET' ? "bg-amber-100 text-amber-600 border-amber-200" : "bg-indigo-100 text-indigo-600 border-indigo-200"
+                                (l.shops?.code || l.metadata?.shopCode) ? `bg-amber-100 text-amber-600 border-amber-200` : "bg-slate-100 text-slate-600 border-slate-200"
                             )}>
-                                {l.type === 'critical' ? 'CRITICAL' : (l.shops?.code ? `#${l.shops.code}` : 'Shop Widget')}
+                                {l.type === 'critical' ? 'CRITICAL' : (l.shops?.code ? `#${l.shops.code}` : (l.metadata?.shopCode ? `#${l.metadata.shopCode}` : 'Shop Widget'))}
                             </span>
                             
                             <div className="min-w-0">

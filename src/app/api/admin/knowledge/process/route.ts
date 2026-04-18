@@ -52,11 +52,12 @@ export async function POST(req: Request) {
           });
         } catch (err: any) {
           console.error(`Lỗi tạo embedding cho câu: ${item.q}`, err);
-          // Ghi log lỗi nhưng tiếp tục câu tiếp theo
-          await supabaseAdmin.from('error_logs').insert({
-            error_type: 'EMBEDDING_ERROR',
-            error_message: `Câu hỏi: ${item.q} - ${err.message || 'Lỗi không xác định'}`,
-            source: 'API_KNOWLEDGE_PROCESS'
+          // 🔥 BÁO CÁO RADAR: LỖI MÃ HÓA VECTOR TRI THỨC
+          await supabaseAdmin.from('system_errors').insert({
+            error_type: 'KNOWLEDGE_EMBEDDING_FAILED',
+            error_message: `Câu hỏi: ${item.q.substring(0, 50)}... - ${err.message}`,
+            file_source: 'api/admin/knowledge/process/route.ts',
+            metadata: { industry: industryName, package: packageName, fullQuestion: item.q }
           });
         }
       }
@@ -77,6 +78,17 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Knowledge Process Error:', error);
+    
+    // 🔥 BÁO CÁO RADAR CẤP ĐỘ HỆ THỐNG
+    if (supabaseAdmin) {
+      await supabaseAdmin.from('system_errors').insert({
+        error_type: 'KNOWLEDGE_SYSTEM_CRASH',
+        error_message: error.message,
+        file_source: 'api/admin/knowledge/process/route.ts',
+        metadata: { error: error.stack }
+      });
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

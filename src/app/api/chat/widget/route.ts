@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
 
 export async function POST(req: Request) {
+  let body: any = {};
   try {
-    const { message, code, history, clientId } = await req.json();
+    body = await req.json();
+    const { message, code, history, clientId } = body;
 
     if (!code || !message) {
       return NextResponse.json({ error: 'Thiếu mã Shop hoặc tin nhắn' }, { status: 400 });
@@ -12,7 +14,16 @@ export async function POST(req: Request) {
 
     // 1. Tìm shop_id từ code
     const { data: shop } = await supabase.from('shops').select('id, name').eq('code', code).single();
+    
     if (!shop) {
+      // 🔥 BÁO CÁO RADAR: SHOP KHÔNG TỒN TẠI
+      supabaseAdmin.from('system_errors').insert({
+        error_type: 'SHOP_NOT_FOUND',
+        error_message: `Mã shop không tồn tại trong hệ thống: ${code}`,
+        file_source: 'api/chat/widget/route.ts',
+        metadata: { shopCode: code, clientId: clientId || 'unknown' }
+      }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+
       return NextResponse.json({ error: 'Không tìm thấy Shop' }, { status: 404 });
     }
 
@@ -35,6 +46,16 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Widget API Error:', error);
+
+    // 🔥 BÁO CÁO RADAR: LỖI HỆ THỐNG CẤP ĐỘ API
+    supabaseAdmin.from('system_errors').insert({
+      shop_id: null,
+      error_type: 'WIDGET_API_CRASH',
+      error_message: error.message,
+      file_source: 'api/chat/widget/route.ts',
+      metadata: { shopCode: body?.code, error: error.stack }
+    }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+
     return NextResponse.json({ error: 'Hệ thống AI đang bận, vui lòng thử lại.' }, { status: 503 });
   }
 }

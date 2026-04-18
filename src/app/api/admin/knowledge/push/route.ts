@@ -60,6 +60,17 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error('Push Knowledge Error:', error);
+    
+    // 🔥 BÁO CÁO RADAR CẤP ĐỘ HỆ THỐNG
+    if (supabaseAdmin) {
+      supabaseAdmin.from('system_errors').insert({
+        error_type: 'KNOWLEDGE_PUSH_FAILED',
+        error_message: error.message,
+        file_source: 'api/admin/knowledge/push/route.ts',
+        metadata: { targetCodes: codes, error: error.stack }
+      }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+    }
+
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
