@@ -110,11 +110,11 @@ export function LogsView({errorLogs}: any) {
                     )}>
                         <div className="flex items-center gap-4 flex-1">
                             <span className={cn(
-                                "px-2 py-1 rounded-md text-[9px] font-black uppercase whitespace-nowrap border",
-                                l.type === 'critical' ? "bg-red-600 text-white border-red-700" : 
+                                "px-2 py-1 rounded-md text-[9px] font-black uppercase whitespace-nowrap border shadow-sm",
+                                l.type === 'critical' ? "bg-white text-red-600 border-red-200" : 
                                 (l.shops?.code || l.metadata?.shopCode) ? `bg-amber-100 text-amber-600 border-amber-200` : "bg-slate-100 text-slate-600 border-slate-200"
                             )}>
-                                {l.type === 'critical' ? 'CRITICAL' : (l.shops?.code ? `#${l.shops.code}` : (l.metadata?.shopCode ? `#${l.metadata.shopCode}` : 'Shop Widget'))}
+                                {l.shops?.code ? `#${l.shops.code}` : (l.metadata?.shopCode ? `#${l.metadata.shopCode}` : (l.type === 'critical' ? 'CRITICAL' : 'SYSTEM'))}
                             </span>
                             
                             <div className="min-w-0">

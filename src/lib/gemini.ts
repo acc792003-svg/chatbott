@@ -63,15 +63,16 @@ async function logError(shopId: string | null, errorType: string, errorMessage: 
   try {
     const client = supabaseAdmin || supabase;
     if (client) {
-      await client.from('error_logs').insert({
+      await client.from('system_errors').insert({
         shop_id: shopId,
         error_type: errorType,
         error_message: errorMessage,
-        source: source
+        file_source: 'gemini.ts',
+        metadata: { source }
       });
     }
   } catch (e) {
-    console.error('Lỗi khi ghi error_log:', e);
+    console.error('Lỗi khi ghi system_error:', e);
   }
 }
 

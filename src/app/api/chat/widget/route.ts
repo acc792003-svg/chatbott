@@ -12,8 +12,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Thiếu mã Shop hoặc tin nhắn' }, { status: 400 });
     }
 
-    // 1. Tìm shop_id từ code (Sử dụng maybeSingle cho an toàn)
-    const { data: shop } = await supabase.from('shops').select('id, name').eq('code', code).maybeSingle();
+    // 1. Tìm shop_id từ code (Làm sạch mã và tìm case-insensitive)
+    const cleanCode = (code || '').trim().replace(/^#/, '');
+    const { data: shop, error: shopError } = await supabase
+      .from('shops')
+      .select('id, name, code')
+      .ilike('code', cleanCode)
+      .maybeSingle();
     
     if (!shop) {
       // 🔥 BÁO CÁO RADAR: SHOP KHÔNG TỒN TẠI (Dùng AWAIT)
@@ -21,13 +26,13 @@ export async function POST(req: Request) {
         const client = supabaseAdmin || supabase;
         await client.from('system_errors').insert({
           error_type: 'SHOP_NOT_FOUND',
-          error_message: `Mã shop không tồn tại trong hệ thống: ${code}`,
+          error_message: `Mã shop không tồn tại trong hệ thống: ${code} (Làm sạch: ${cleanCode})`,
           file_source: 'api/chat/widget/route.ts',
-          metadata: { shopCode: code, clientId: clientId || 'unknown' }
+          metadata: { shopCode: code, cleanCode, clientId: clientId || 'unknown', dbError: shopError?.message }
         });
       }
 
-      return NextResponse.json({ error: 'Không tìm thấy Shop' }, { status: 404 });
+      return NextResponse.json({ error: 'Không tìm thấy Shop. Kiểm tra lại mã nhúng.' }, { status: 404 });
     }
 
     // 2. 🔥 GỌI BỘ NÃO PHASE 3 (Enterprise Engine)
