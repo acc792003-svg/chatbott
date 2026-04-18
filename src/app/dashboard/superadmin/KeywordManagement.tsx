@@ -62,7 +62,7 @@ export default function KeywordManagement() {
     const matched: string[] = [];
     const intentScores: Record<string, number> = {};
 
-    keywords.forEach(kw => {
+    keywords.forEach((kw: any) => {
       if (kw.is_active && normalized.includes(kw.keyword.toLowerCase())) {
         matched.push(kw.keyword);
         intentScores[kw.intent] = (intentScores[kw.intent] || 0) + (parseFloat(kw.weight) || 1);
@@ -181,7 +181,7 @@ export default function KeywordManagement() {
                  </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                 {keywords.map(kw => (
+                 {keywords.map((kw: any) => (
                     <tr key={kw.id} className="hover:bg-slate-50/50 transition-colors group">
                        <td className="p-4 font-black text-slate-700">{kw.keyword}</td>
                        <td className="p-4">

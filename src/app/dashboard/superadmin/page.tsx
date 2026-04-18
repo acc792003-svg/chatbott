@@ -645,7 +645,7 @@ export default function SuperAdminPage() {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
-                        {filteredShops.map((shop) => {
+                        {filteredShops.map((shop: any) => {
                             const expiryDate = shop.plan_expiry_date ? new Date(shop.plan_expiry_date) : null;
                             const today = new Date();
                             const diffTime = expiryDate ? expiryDate.getTime() - today.getTime() : 0;
@@ -1079,7 +1079,7 @@ export default function SuperAdminPage() {
 
       {/* TOAST NOTIFICATIONS (PC/IPAD/MOBILE RESPONSIVE) */}
       <div className="fixed top-4 right-4 md:top-6 md:right-6 z-[9999] flex flex-col gap-3 w-full max-w-[90%] md:max-w-xs pointer-events-none items-end">
-          {toasts.map(t => (
+          {toasts.map((t: any) => (
             <div key={t.id} className={cn(
                 "animate-in slide-in-from-right-10 duration-300 pointer-events-auto flex items-start gap-3 px-5 py-4 rounded-2xl shadow-2xl border-l-[6px] w-[90vw] md:w-[320px]",
                 t.type === 'error' ? "bg-white border-red-500 text-red-600" : 
