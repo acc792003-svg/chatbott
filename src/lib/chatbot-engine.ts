@@ -59,7 +59,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     let detectedIntent = 'unknown';
     if (keywords && keywords.length > 0) {
       const intentScores: Record<string, number> = {};
-      keywords.forEach(kw => {
+      keywords.forEach((kw: any) => {
         if (normalized.includes(kw.keyword.toLowerCase())) {
           intentScores[kw.intent] = (intentScores[kw.intent] || 0) + (Number(kw.weight) || 1);
         }
@@ -124,7 +124,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
        const shortHistory = (history || []).slice(-5);
        const aiResult = await callGeminiWithFallback([
          { role: 'user', parts: [{ text: systemPrompt }] },
-         ...shortHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
+         ...shortHistory.map((msg: any) => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
          { role: 'user', parts: [{ text: message }] }
        ], { temperature: 0.7 }, shopId);
 
@@ -198,7 +198,7 @@ async function saveLogs(shopId: string, message: string, answer: string, source:
 
 async function summarizeThread(shopId: string, externalUserId: string, fullHistory: any[]) {
   try {
-    const historyText = fullHistory.slice(-10).map(h => `${h.role}: ${h.content}`).join('\n');
+    const historyText = fullHistory.slice(-10).map((h: any) => `${h.role}: ${h.content}`).join('\n');
     const analysisPrompt = `Hãy phân tích đoạn hội thoại sau và trả về JSON:
 {
   "summary": "Tóm tắt ngắn gọn",
