@@ -103,13 +103,10 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
         .map((m: any) => m.name as string)
         .sort((a: string, b: string) => {
           const score = (name: string) => {
-            if (name.includes('3.1-flash')) return 130;
-            if (name.includes('flash-lite')) return 125; // Ưu tiên hàng đầu cho tốc độ widget
-            if (name.includes('3.0-flash')) return 110;
-            if (name.includes('3-flash')) return 105;
-            if (name.includes('2.5-flash')) return 95;
-            if (name.includes('2.0-flash')) return 90;
-            if (name.includes('1.5-flash')) return 80;
+            if (name.includes('2.0-flash')) return 150; // Priority for Latest Stable
+            if (name.includes('1.5-flash-8b')) return 140; // Extremely fast
+            if (name.includes('1.5-flash')) return 130;
+            if (name.includes('flash-lite')) return 125;
             return 10;
           };
           return score(b) - score(a);
@@ -328,17 +325,18 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
   const apiKey = keys[0].value;
-  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-04:embedContent?key=${apiKey}`;
+  // SỬA LỖI: Tên model chuẩn là text-embedding-004
+  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 3000); // Giảm xuống 3s cho Embedding
+  const timeoutId = setTimeout(() => controller.abort(), 5000); // Tăng lên 5s cho an toàn
 
   try {
     const response = await fetch(apiURL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "models/text-embedding-04",
+        model: "models/text-embedding-004",
         content: { parts: [{ text }] }
       }),
       signal: controller.signal
