@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send } from 'lucide-react';
 
 export default function ConfigClient() {
   const [activeTab, setActiveTab] = useState<'general' | 'ai_core'>('general');

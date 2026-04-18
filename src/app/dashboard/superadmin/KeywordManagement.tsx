@@ -23,14 +23,20 @@ export default function KeywordManagement() {
 
   const fetchKeywords = async () => {
     setLoading(true);
-    let query = supabase.from('keywords').select('*').order('created_at', { ascending: false });
-    
-    if (filterIndustry !== 'all') query = query.eq('industry', filterIndustry);
-    if (filterLevel !== 'all') query = query.eq('level', filterLevel);
+    try {
+      let query = supabase.from('keywords').select('*').order('created_at', { ascending: false });
+      
+      if (filterIndustry !== 'all') query = query.eq('industry', filterIndustry);
+      if (filterLevel !== 'all') query = query.eq('level', filterLevel);
 
-    const { data } = await query;
-    setKeywords(data || []);
-    setLoading(false);
+      const { data, error } = await query;
+      if (error) throw error;
+      setKeywords(data || []);
+    } catch (e) {
+      console.error('Lỗi tải từ khóa:', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleAdd = async () => {
