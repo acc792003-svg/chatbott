@@ -17,24 +17,61 @@ export default function ChatDemo() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [shopId, setShopId] = useState<string | null>(null);
-  const [shopPlan, setShopPlan] = useState<'free' | 'pro'>('free'); // Thêm state cho gói
-  const [sessionId] = useState(() => crypto.randomUUID()); // ID phiên chat duy nhất
+  const [shopPlan, setShopPlan] = useState<'free' | 'pro'>('free');
+  
+  // Lưu sessionId vào localStorage để khi F5 vẫn giữ được phiên người dùng đang test
+  const [sessionId] = useState(() => {
+     if (typeof window !== 'undefined') {
+        let sid = localStorage.getItem('chatbot_demo_client_session');
+        if (!sid) {
+           sid = crypto.randomUUID();
+           localStorage.setItem('chatbot_demo_client_session', sid);
+        }
+        return sid;
+     }
+     return crypto.randomUUID();
+  });
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-    fetchShopStatus(); // Lấy thông gói cước
   }, [messages]);
 
-  const fetchShopStatus = async () => {
+  useEffect(() => {
+    fetchShopStatusAndHistory();
+  }, []);
+
+  const fetchShopStatusAndHistory = async () => {
      const { data: { session } } = await supabase.auth.getSession();
      if (!session) return;
      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+     
      if (userData?.shop_id) {
+        setShopId(userData.shop_id);
         const { data: shop } = await supabase.from('shops').select('plan').eq('id', userData.shop_id).single();
         if (shop) setShopPlan(shop.plan as any);
+
+        // Fetch 3 đoạn hội thoại gần nhất của session này (để F5 vẫn còn)
+        const { data: recentMsgs } = await supabase
+           .from('messages')
+           .select('*')
+           .eq('shop_id', userData.shop_id)
+           .eq('session_id', sessionId)
+           .order('created_at', { ascending: false })
+           .limit(3);
+
+        if (recentMsgs && recentMsgs.length > 0) {
+           // Khôi phục lại mảng messages từ DB (đảo ngược lại thành chiều thời gian đúng)
+           const restored: Message[] = [{ role: 'assistant', content: 'Chào bạn! Tôi là trợ lý ảo của shop. Tôi có thể giúp gì cho bạn hôm nay?' }];
+           recentMsgs.reverse().forEach((row: any) => {
+              restored.push({ role: 'user', content: row.user_message });
+              restored.push({ role: 'assistant', content: row.ai_response });
+           });
+           setMessages(restored);
+        }
      }
   };
 
@@ -140,7 +177,12 @@ export default function ChatDemo() {
           </div>
         </div>
         <button 
-          onClick={() => setMessages([messages[0]])}
+          onClick={async () => {
+             setMessages([messages[0]]);
+             const newSessionId = crypto.randomUUID();
+             localStorage.setItem('chatbot_demo_client_session', newSessionId);
+             window.location.reload(); // Làm mới session hoàn toàn
+          }}
           className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
         >
           <Trash2 size={18} />
