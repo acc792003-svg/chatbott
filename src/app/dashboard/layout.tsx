@@ -14,6 +14,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('Admin Shop');
+  const [shopCode, setShopCode] = useState('');
+  const [shopPlan, setShopPlan] = useState<'free' | 'pro'>('free');
 
   useEffect(() => {
     const checkSession = async () => {
@@ -23,11 +25,15 @@ export default function DashboardLayout({
       } else {
         const { data: userRecord } = await supabase
           .from('users')
-          .select('full_name, email')
+          .select('full_name, email, shop_id, shops(code, plan)')
           .eq('id', session.user.id)
           .single();
         if (userRecord) {
-          setUserName(userRecord.full_name || userRecord.email || 'Admin Shop');
+          setUserName(userRecord.full_name || userRecord.email?.split('@')[0] || 'Admin Shop');
+          if (userRecord.shops) {
+            setShopCode((userRecord.shops as any).code || '');
+            setShopPlan((userRecord.shops as any).plan || 'free');
+          }
         }
         setLoading(false);
       }
@@ -62,12 +68,20 @@ export default function DashboardLayout({
               <Bell size={20} />
             </button>
             <div className="flex items-center gap-3 bg-white p-1.5 pr-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-200 transition-all cursor-pointer">
-              <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500">
+              <div className="w-9 h-9 bg-slate-100 rounded-xl flex items-center justify-center text-slate-500 overflow-hidden">
                 <User size={20} />
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-900 leading-none">Chào {userName}!</p>
-                <p className="text-[10px] text-slate-500 mt-1">Gói hoạt động</p>
+                <div className="flex items-center gap-1.5 mb-1">
+                   <p className="text-[11px] font-black text-slate-900 leading-none">{userName}</p>
+                   {shopCode && <span className="text-[9px] bg-slate-100 px-1 py-0.5 rounded font-bold text-slate-500">#{shopCode}</span>}
+                </div>
+                <div className="flex items-center gap-1">
+                   <div className={`w-1.5 h-1.5 rounded-full ${shopPlan === 'pro' ? 'bg-amber-400' : 'bg-slate-300'}`}></div>
+                   <p className={`text-[9px] font-black uppercase tracking-wider ${shopPlan === 'pro' ? 'text-amber-600' : 'text-slate-400'}`}>
+                      Plan: {shopPlan}
+                   </p>
+                </div>
               </div>
             </div>
           </div>
