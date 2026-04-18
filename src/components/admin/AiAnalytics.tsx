@@ -98,9 +98,9 @@ export default function AiAnalytics() {
         
         {/* Synthetic Health Score */}
         <div className={cn(
-            "md:col-span-2 p-8 rounded-[3rem] shadow-2xl relative overflow-hidden transition-all duration-700",
-            masterHealth > 85 ? "bg-slate-900 border-emerald-500/20" : 
-            masterHealth > 60 ? "bg-amber-900 border-amber-500/20" : "bg-red-950 border-red-500/40 border-4 animate-pulse"
+            "md:col-span-2 p-10 rounded-[3rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-700",
+            masterHealth > 85 ? "bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-900 border border-emerald-500/20" : 
+            masterHealth > 60 ? "bg-gradient-to-br from-amber-900 via-slate-900 to-slate-900 border border-amber-500/20" : "bg-gradient-to-br from-red-950 via-slate-900 to-slate-900 border border-red-500/40 animate-pulse"
         )}>
             <div className="absolute top-0 right-0 p-10 opacity-10">
                 <ShieldAlert size={160} className={masterHealth < 60 ? "text-red-500" : "text-white"} />
@@ -135,8 +135,8 @@ export default function AiAnalytics() {
 
         {/* Proactive Latency Alert */}
         <div className={cn(
-            "bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col justify-between transition-all",
-            latencyAlert && "border-amber-500 shadow-xl shadow-amber-50 ring-4 ring-amber-50"
+            "bg-white/80 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white flex flex-col justify-between transition-all shadow-xl shadow-slate-200/50",
+            latencyAlert && "border-amber-500 shadow-amber-100 ring-4 ring-amber-50"
         )}>
             <div className="flex justify-between items-start">
                <div>
@@ -144,7 +144,7 @@ export default function AiAnalytics() {
                      <Zap size={14} className={latencyAlert ? "text-amber-600 animate-bounce" : "text-slate-400"}/> AI Processing
                   </p>
                   <div className="flex items-end gap-1">
-                     <h3 className={cn("text-4xl font-black", latencyAlert ? "text-amber-600" : "text-slate-900")}>
+                     <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", latencyAlert ? "from-amber-500 to-amber-700" : "from-slate-800 to-slate-600")}>
                         {perfStats?.avgLatency || 0}
                      </h3>
                      <span className="text-[10px] font-bold text-slate-400 mb-1.5">ms</span>
@@ -164,8 +164,8 @@ export default function AiAnalytics() {
 
         {/* Proactive Delivery Alert */}
         <div className={cn(
-            "bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col justify-between transition-all",
-            deliveryAlert && "border-red-500 shadow-xl shadow-red-50 ring-4 ring-red-50"
+            "bg-white/80 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white flex flex-col justify-between transition-all shadow-xl shadow-slate-200/50",
+            deliveryAlert && "border-red-500 shadow-red-100 ring-4 ring-red-50"
         )}>
             <div className="flex justify-between items-start">
                <div>
@@ -173,7 +173,7 @@ export default function AiAnalytics() {
                      <Send size={14} className={deliveryAlert ? "text-red-600 animate-ping" : "text-slate-400"}/> Lead Delivery
                   </p>
                   <div className="flex items-end gap-1">
-                     <h3 className={cn("text-4xl font-black", deliveryAlert ? "text-red-600" : "text-slate-900")}>
+                     <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", deliveryAlert ? "from-red-500 to-red-700" : "from-indigo-600 to-blue-600")}>
                         {deliveryStats?.rate || 0}%
                      </h3>
                   </div>
@@ -193,11 +193,11 @@ export default function AiAnalytics() {
 
       {/* 📊 EFFICIENCY & TRENDS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm">
+         <div className="bg-white/80 backdrop-blur-2xl p-10 rounded-[3rem] border border-white shadow-2xl shadow-indigo-100/40">
             <div className="flex justify-between items-start mb-10">
                 <div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">ENGINE EFFICIENCY</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hiệu quả tiết kiệm tài nguyên</p>
+                    <h2 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">ENGINE EFFICIENCY</h2>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hiệu quả tiết kiệm tài nguyên</p>
                 </div>
                 <button onClick={fetchData} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all">
                     <RefreshCw size={20}/>
@@ -226,14 +226,14 @@ export default function AiAnalytics() {
             </div>
          </div>
 
-         <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl flex flex-col justify-center text-center">
-            <h3 className="text-2xl font-black text-white px-10 mb-4">TOTAL SAVINGS RATIO</h3>
-            <div className="inline-flex bg-emerald-500/10 text-emerald-400 p-10 rounded-full mx-auto my-6 border-4 border-emerald-500/20">
+         <div className="bg-gradient-to-br from-indigo-900 via-slate-900 to-blue-900 p-10 rounded-[3rem] shadow-[0_20px_50px_-15px_rgba(30,58,138,0.5)] border border-white/10 flex flex-col justify-center text-center">
+            <h3 className="text-2xl font-black text-white px-10 mb-4 tracking-wider">TOTAL SAVINGS RATIO</h3>
+            <div className="inline-flex bg-emerald-500/20 text-emerald-400 p-10 rounded-full mx-auto my-6 border-4 border-emerald-500/30 shadow-[0_0_50px_-10px_rgba(16,185,129,0.4)]">
                 <TrendingUp size={80} />
             </div>
-            <p className="text-slate-400 text-sm font-medium px-10 leading-relaxed mb-8">
-                Bằng cách xử lý <span className="text-white font-black">{(perfStats?.distribution.faq || 0) + (perfStats?.distribution.cache || 0)}%</span> yêu cầu thông qua FAQ & Cache, bạn đang chạy một hệ thống 
-                <span className="text-emerald-400 font-bold ml-1 uppercase">Hiệu quả nhất thị trường.</span>
+            <p className="text-indigo-200 text-sm font-medium px-4 leading-relaxed mb-4">
+                Bằng cách xử lý <span className="text-white font-black text-lg">{(perfStats?.distribution.faq || 0) + (perfStats?.distribution.cache || 0)}%</span> yêu cầu thông qua FAQ & Cache, bạn đang chạy một hệ thống 
+                <span className="text-emerald-400 font-bold ml-1 uppercase bg-emerald-950/50 px-2 py-1 rounded border border-emerald-500/30">Hiệu quả nhất thị trường.</span>
             </p>
          </div>
       </div>

@@ -13,8 +13,8 @@ export function ApiKeysView({
 }: any) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
-            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 h-fit">
-                <h2 className="text-sm font-black uppercase text-indigo-600 mb-8 flex items-center gap-2"><Brain size={16}/> AI Service Keys (Gemini)</h2>
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
+                <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
                 <div className="space-y-8">
                     {[
                         {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
@@ -49,9 +49,9 @@ export function ApiKeysView({
                 </div>
             </div>
 
-            <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 flex flex-col justify-between">
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white flex flex-col justify-between">
                 <div>
-                    <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2"><Lock size={16}/> Webhook & Security</h2>
+                    <h2 className="text-sm font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Lock size={16} className="text-slate-700"/> Webhook & Security</h2>
                     <div className="space-y-6">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center mb-1">
@@ -78,7 +78,7 @@ export function ApiKeysView({
                 </div>
                 
                 <div className="mt-8">
-                    <button onClick={onSave} className="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-indigo-700 transition-all text-sm uppercase flex items-center justify-center gap-3">
+                    <button onClick={onSave} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black py-5 rounded-3xl shadow-[0_10px_20px_-5px_rgba(79,70,229,0.5)] hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.8)] hover:scale-[1.01] transition-all text-sm uppercase flex items-center justify-center gap-3">
                         <Settings size={20}/> LƯU CẤU HÌNH API
                     </button>
                 </div>
@@ -89,10 +89,17 @@ export function ApiKeysView({
 
 export function LogsView({errorLogs}: any) {
     return (
-        <div className="bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 animate-in fade-in duration-500 min-h-[500px] mb-20">
-            <div className="flex items-center justify-between mb-8">
-                <h2 className="text-sm font-black uppercase text-slate-400 flex items-center gap-2"><AlertTriangle size={16}/> Chatbot Radar (Dấu vết hệ thống)</h2>
-                <span className="text-[10px] font-black bg-blue-50 text-blue-600 px-3 py-1 rounded-full uppercase">Realtime Monitor ON</span>
+        <div className="bg-white/80 backdrop-blur-2xl rounded-[3rem] p-10 shadow-2xl shadow-red-100/50 border border-white animate-in fade-in duration-500 min-h-[500px] mb-20 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-400/5 rounded-full blur-3xl -z-10"></div>
+            <div className="flex items-center justify-between mb-10">
+                <h2 className="text-lg font-black bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent uppercase flex items-center gap-3">
+                    <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg"><AlertTriangle size={18}/></div> 
+                    Chatbot Radar <span className="text-[10px] text-slate-400 font-bold ml-2 hidden md:inline">(System Traces)</span>
+                </h2>
+                <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                    <span className="text-[10px] font-black bg-red-50 text-red-600 border border-red-100 px-3 py-1.5 rounded-full uppercase shadow-sm">Tracking</span>
+                </div>
             </div>
             <div className="space-y-3">
                 {errorLogs.length === 0 && <p className="text-center py-10 text-slate-300 font-bold italic">Chưa có ghi nhận lỗi nào...</p>}
@@ -135,15 +142,22 @@ export function LogsView({errorLogs}: any) {
 
 export function SettingsView({trialTemplateCode, setTrialTemplateCode, onSave}: any) {
     return (
-        <div className="max-w-xl bg-white rounded-[2.5rem] p-10 shadow-xl border border-slate-100 mb-20">
-            <h2 className="text-sm font-black uppercase text-slate-400 mb-8 flex items-center gap-2"><Settings size={16}/> Global Config</h2>
-            <div className="space-y-6">
-                <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-500 uppercase">Shop Mẫu (Auto-Inherit)</label>
-                    <p className="text-[10px] text-slate-400 italic mb-2">Mã shop này sẽ được dùng làm khuôn mẫu tri thức cho các shop mới tạo.</p>
-                    <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 text-3xl font-black text-slate-900 uppercase focus:border-indigo-600 outline-none" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value)} />
+        <div className="max-w-xl bg-white/80 backdrop-blur-2xl rounded-[3rem] p-12 shadow-2xl shadow-indigo-100/50 border border-white mb-20 mx-auto">
+            <div className="flex items-center gap-4 mb-10">
+                <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 text-white flex items-center justify-center rounded-2xl shadow-lg"><Settings size={20}/></div>
+                <div>
+                   <h2 className="text-xl font-black text-slate-900 tracking-tight">GLOBAL CONFIG</h2>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hệ thống cốt lõi</p>
                 </div>
-                <button onClick={onSave} className="w-full bg-slate-900 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-indigo-600 transition-all text-sm uppercase">
+            </div>
+            
+            <div className="space-y-8">
+                <div className="space-y-4">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Shop Mẫu (Auto-Inherit)</label>
+                    <p className="text-[10px] text-slate-400 italic mb-2 pl-1">Mã shop này sẽ được dùng làm khuôn mẫu tri thức cho các shop mới tạo.</p>
+                    <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 text-3xl font-black text-slate-900 uppercase focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-inner text-center" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value)} placeholder="MÃ SHOP..." />
+                </div>
+                <button onClick={onSave} className="w-full bg-gradient-to-r from-slate-800 to-slate-900 text-white font-black py-5 rounded-[2rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all text-sm uppercase tracking-widest mt-4">
                     LƯU CÀI ĐẶT CHUNG
                 </button>
             </div>

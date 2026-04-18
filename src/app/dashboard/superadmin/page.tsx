@@ -844,12 +844,12 @@ export default function SuperAdminPage() {
           <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-right-4 duration-300 pb-20 px-2 lg:px-0">
             {/* Input Component */}
             <div className="lg:w-1/2 space-y-4">
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="p-4 bg-emerald-100 text-emerald-600 rounded-2xl"><BrainCircuit size={28}/></div>
+              <div className="bg-white/80 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 shadow-2xl shadow-indigo-100/50">
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-600 shadow-[0_10px_20px_-5px_rgba(16,185,129,0.5)] text-white rounded-3xl flex items-center justify-center transform transition-transform hover:scale-105 hover:-rotate-6"><BrainCircuit size={28}/></div>
                     <div>
-                        <h2 className="text-lg font-black text-slate-900 tracking-tight">LUYỆN TRI THỨC AI</h2>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Natural Language Processing</p>
+                        <h2 className="text-xl font-black bg-gradient-to-r from-emerald-600 to-teal-700 bg-clip-text text-transparent tracking-tight leading-none">LUYỆN TRI THỨC AI</h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">Natural Language Processing</p>
                     </div>
                 </div>
                 <div className="space-y-4">
@@ -888,8 +888,8 @@ export default function SuperAdminPage() {
                         onClick={handleProcessKnowledge} 
                         disabled={isProcessing || !bulkRawFaq.trim() || userRole !== 'super_admin'} 
                         className={cn(
-                            "w-full font-black py-4 rounded-2xl text-xs uppercase shadow-xl transition-all flex items-center justify-center gap-3",
-                            userRole === 'super_admin' ? "bg-slate-900 text-white hover:bg-indigo-600" : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                            "w-full font-black py-4 rounded-2xl text-xs uppercase shadow-[0_10px_30px_-10px_rgba(16,185,129,0.6)] transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98]",
+                            userRole === 'super_admin' ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700" : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                         )}
                     >
                         {userRole !== 'super_admin' ? 'BẠN KHÔNG CÓ QUYỀN LUYỆN AI' : (isProcessing ? 'Đang mã hóa tri thức hàng loạt...' : 'BẮT ĐẦU LUYỆN')}
@@ -905,9 +905,9 @@ export default function SuperAdminPage() {
 
             {/* Warehouse Component */}
             <div className="lg:w-1/2 space-y-4">
-              <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-100 flex flex-col min-h-[600px]">
-                <div className="flex items-center justify-between mb-8"><div className="flex items-center gap-3"><div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl"><Package size={28}/></div><div><h2 className="text-lg font-black text-slate-900 tracking-tight">KHO GÓI TRI THỨC</h2><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Compiled Knowledge Packages</p></div></div></div>
-                <div className="flex-1 overflow-y-auto max-h-[450px] space-y-2 pr-2 custom-scrollbar">
+              <div className="bg-white/80 backdrop-blur-2xl border border-white rounded-[2.5rem] p-8 shadow-2xl shadow-indigo-100/50 flex flex-col min-h-[600px]">
+                <div className="flex items-center justify-between mb-8"><div className="flex items-center gap-4"><div className="w-14 h-14 bg-gradient-to-br from-indigo-400 to-purple-600 shadow-[0_10px_20px_-5px_rgba(99,102,241,0.5)] text-white rounded-3xl flex items-center justify-center transform transition-transform hover:scale-105 hover:rotate-6"><Package size={28}/></div><div><h2 className="text-xl font-black bg-gradient-to-r from-indigo-600 to-purple-700 bg-clip-text text-transparent tracking-tight leading-none">KHO GÓI TRI THỨC</h2><p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">Compiled Knowledge Packages</p></div></div></div>
+                <div className="flex-1 overflow-y-auto max-h-[450px] space-y-3 pr-2 custom-scrollbar">
                     {knowledgePackages.map(p => (
                         <div key={p.id} className={cn("group p-4 rounded-2xl border-2 transition-all flex items-center justify-between", selectedPackageIds.includes(p.id) ? "bg-indigo-50 border-indigo-200 shadow-md" : "bg-white border-slate-50 hover:border-indigo-100 hover:shadow-sm")}>
                             <div className="flex items-center gap-3 flex-1" onClick={() => { if(selectedPackageIds.includes(p.id)) setSelectedPackageIds(selectedPackageIds.filter(id => id !== p.id)); else setSelectedPackageIds([...selectedPackageIds, p.id]); }}>
@@ -928,8 +928,8 @@ export default function SuperAdminPage() {
                             onClick={handlePushMultiKnowledge} 
                             disabled={pushingKnowledge || selectedPackageIds.length === 0 || userRole !== 'super_admin'} 
                             className={cn(
-                                "w-full font-black py-5 rounded-[2rem] text-sm uppercase shadow-2xl transition-all flex items-center justify-center gap-4 active:scale-95",
-                                userRole === 'super_admin' ? "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100" : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
+                                "w-full font-black py-5 rounded-[2rem] text-sm uppercase shadow-[0_15px_40px_-10px_rgba(79,70,229,0.5)] transition-all flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-[0.98]",
+                                userRole === 'super_admin' ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white" : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
                             )}
                         >
                             <Send size={24} className={pushingKnowledge ? "animate-ping" : ""}/>
@@ -987,15 +987,15 @@ export default function SuperAdminPage() {
         </div>
       )}
       {activeTab === 'facebook' && (
-        <div className="px-2 lg:px-0 space-y-6">
-          <div className="bg-white rounded-[2.5rem] p-10 border border-slate-200 shadow-sm">
-             <div className="flex items-center gap-4 mb-8">
-                <div className="p-4 bg-indigo-50 text-indigo-600 rounded-3xl animate-pulse">
+        <div className="px-2 lg:px-0 space-y-8 pb-20">
+          <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 border border-white shadow-2xl shadow-blue-100/50">
+             <div className="flex items-center gap-6 mb-10">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-3xl flex items-center justify-center shadow-[0_10px_20px_-5px_rgba(59,130,246,0.5)] transform transition-transform hover:scale-105">
                    <MessageCircle size={32} />
                 </div>
                 <div>
-                   <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Kênh Facebook Messenger</h2>
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cấu hình Webhook & Bảo mật hệ thống</p>
+                   <h2 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent uppercase tracking-tight leading-none">Kênh Facebook Messenger</h2>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2">Cấu hình Webhook & Bảo mật hệ thống FB Toàn Cục</p>
                 </div>
              </div>
 

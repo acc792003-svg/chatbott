@@ -97,58 +97,58 @@ export default function TelegramMonitor() {
       
       {/* 📊 TELEGRAM CHANNEL STATS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm relative overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 relative overflow-hidden transition-all hover:-translate-y-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Channel Health</p>
           <div className="flex items-end gap-2">
             <h3 className={cn(
-              "text-3xl font-black", 
-              healthScore > 80 ? "text-emerald-600" : healthScore > 50 ? "text-amber-500" : "text-red-600"
+              "text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br", 
+              healthScore > 80 ? "from-emerald-500 to-emerald-700" : healthScore > 50 ? "from-amber-400 to-amber-600" : "from-red-500 to-red-700"
             )}>
               {healthScore}
             </h3>
-            <span className="text-[10px] font-bold text-slate-400 mb-1">/ 100</span>
+            <span className="text-[10px] font-bold text-slate-400 mb-1.5">/ 100</span>
           </div>
           <div className={cn(
-            "absolute top-4 right-4 text-[10px] font-black px-2 py-0.5 rounded-full",
-            healthScore > 80 ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600 animate-pulse"
+            "absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm",
+            healthScore > 80 ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100 animate-pulse"
           )}>
             {healthScore > 80 ? 'STABLE' : 'CRITICAL'}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 transition-all hover:-translate-y-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery Rate</p>
           <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-black text-slate-900">{stats.successRate}%</h3>
+            <h3 className="text-4xl font-black text-slate-800">{stats?.successRate || 0}%</h3>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-4 overflow-hidden">
-             <div className="bg-indigo-500 h-full transition-all duration-1000" style={{ width: `${stats.successRate}%` }}></div>
+             <div className="bg-gradient-to-r from-indigo-500 to-blue-500 h-full transition-all duration-1000" style={{ width: `${stats?.successRate || 0}%` }}></div>
           </div>
         </div>
 
         {/* Failed counts specifically for Telegram */}
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm border-l-4 border-l-red-500">
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-red-100/50 border-l-4 border-l-red-500 transition-all hover:-translate-y-1">
           <p className="text-[10px] font-black text-red-500 uppercase tracking-widest mb-1">Failed Leads</p>
-          <div className="flex items-center gap-2">
-            <h3 className="text-3xl font-black text-red-600">{stats.failed}</h3>
-            {isKritical && <span className="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded animate-bounce">ISSUE</span>}
+          <div className="flex items-center gap-3">
+            <h3 className="text-4xl font-black text-red-600">{stats?.failed || 0}</h3>
+            {isKritical && <span className="text-[10px] font-black bg-gradient-to-r from-red-600 to-rose-600 text-white px-2 py-0.5 rounded shadow-lg animate-bounce">ISSUE</span>}
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+        <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 transition-all hover:-translate-y-1">
           <p className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-1">Total Notifications</p>
-          <h3 className="text-3xl font-black text-slate-900">{stats.total}</h3>
+          <h3 className="text-4xl font-black text-slate-800">{stats?.total || 0}</h3>
         </div>
       </div>
 
       {/* 🚨 CRITICAL ALERT */}
       {isKritical && (
-         <div className="bg-red-600 text-white p-6 rounded-[2.5rem] shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in-95">
+         <div className="bg-gradient-to-r from-red-600 to-rose-700 text-white p-8 rounded-[2.5rem] shadow-2xl shadow-red-500/30 flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in-95 border border-red-400/50">
             <div className="flex items-center gap-4">
-               <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center text-3xl animate-pulse">📢</div>
+               <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-3xl animate-pulse shadow-inner">📢</div>
                <div>
-                  <h3 className="text-lg font-black uppercase">Telegram Channel Issue</h3>
-                  <p className="text-xs font-bold text-white/80">Hệ thống gửi tin Telegram đang lỗi nhiều. Kiểm tra Bot Token tổng của hệ thống.</p>
+                  <h3 className="text-xl font-black uppercase tracking-tight">Telegram Channel Issue</h3>
+                  <p className="text-xs font-bold text-white/80 mt-1">Hệ thống gửi tin Telegram đang lỗi nhiều. Khẩn cấp kiểm tra Bot Token tổng của hệ thống.</p>
                </div>
             </div>
          </div>
@@ -185,12 +185,13 @@ export default function TelegramMonitor() {
 
         {/* 🚨 RECENT TELEGRAM ERRORS */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-[2.5rem] p-8 border border-slate-200 shadow-sm flex flex-col h-full">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-red-100 text-red-600 rounded-2xl"><ShieldAlert size={24}/></div>
+          <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-8 border border-white shadow-2xl shadow-slate-200/50 flex flex-col h-full relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-400/5 rounded-full blur-3xl -z-10 animate-pulse"></div>
+            <div className="flex items-center gap-4 mb-8">
+              <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-red-400 to-rose-600 text-white rounded-2xl shadow-[0_10px_20px_-5px_rgba(244,63,94,0.5)]"><ShieldAlert size={20}/></div>
               <div>
-                <h2 className="text-lg font-black text-slate-900 tracking-tight">NHẬT KÝ LỖI KÊNH</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">Telegram Specific Logs</p>
+                <h2 className="text-xl font-black bg-gradient-to-r from-red-600 to-rose-700 bg-clip-text text-transparent tracking-tight leading-none">NHẬT KÝ LỖI KÊNH</h2>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">Telegram Specific Logs</p>
               </div>
             </div>
 

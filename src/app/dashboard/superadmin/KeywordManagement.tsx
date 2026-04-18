@@ -79,17 +79,23 @@ export default function KeywordManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-         <h2 className="text-xl font-black flex items-center gap-2"><Globe className="text-blue-600" /> Hệ Thống Quản Trị Từ Khóa (3-Layer)</h2>
-         <div className="flex gap-2">
-            <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className="bg-white border rounded-lg px-3 py-1 text-xs font-bold">
+    <div className="space-y-8 pb-20">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+         <div>
+             <h2 className="text-2xl font-black bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent flex items-center gap-3 tracking-tight">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-200 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Globe size={20} /></div> 
+                Hệ Thống Quản Trị Từ Khóa (3-Layer)
+             </h2>
+             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Phân lớp hội thoại tự động</p>
+         </div>
+         <div className="flex gap-3">
+            <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className="bg-white/80 backdrop-blur-md border border-white rounded-xl px-4 py-2 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-100">
                <option value="all">Tất cả cấp độ</option>
                <option value="global">Global</option>
                <option value="industry">Industry</option>
                <option value="shop">Shop</option>
             </select>
-            <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} className="bg-white border rounded-lg px-3 py-1 text-xs font-bold">
+            <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} className="bg-white/80 backdrop-blur-md border border-white rounded-xl px-4 py-2 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-100">
                <option value="all">Tất cả ngành</option>
                <option value="spa">Spa / Beauty</option>
                <option value="fnb">F&B / Nhà hàng</option>
@@ -98,10 +104,10 @@ export default function KeywordManagement() {
          </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* CỘT 1: THÊM MỚI TỪ KHÓA */}
-        <div className="bg-white p-5 rounded-3xl border shadow-sm space-y-4 shadow-slate-200">
-           <h3 className="text-xs font-black uppercase text-slate-400 flex items-center gap-2"><Plus size={14}/> Thêm Tri Thức Mới</h3>
+        <div className="bg-white/80 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white shadow-2xl shadow-indigo-100/40 space-y-6 h-fit">
+           <h3 className="text-xs font-black uppercase text-indigo-500 tracking-widest flex items-center gap-2"><Plus size={16}/> Thêm Tri Thức Mới</h3>
            <div className="space-y-3">
               <input 
                 type="text" 
@@ -132,7 +138,7 @@ export default function KeywordManagement() {
                  </select>
                  <input type="number" step="0.1" value={newKw.weight} onChange={e => setNewKw({...newKw, weight: parseFloat(e.target.value)})} className="w-16 border border-slate-100 bg-slate-50/50 rounded-xl p-2 text-center text-xs" title="Weight Trọng số" />
               </div>
-              <button onClick={handleAdd} className="w-full bg-slate-900 text-white rounded-xl py-4 text-xs font-black hover:bg-blue-600 shadow-lg shadow-slate-200 transition-all uppercase tracking-widest">LƯU VÀO HỆ THỐNG</button>
+              <button onClick={handleAdd} className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl py-4 flex items-center justify-center text-xs font-black hover:scale-[1.02] shadow-[0_10px_20px_-5px_rgba(79,70,229,0.5)] transition-all uppercase tracking-widest mt-2">LƯU VÀO HỆ THỐNG</button>
            </div>
 
            <div className="pt-4 border-t border-dashed border-slate-200">
@@ -170,10 +176,11 @@ export default function KeywordManagement() {
         </div>
 
         {/* CỘT 2-3: DANH SÁCH TỪ KHÓA HIỆN CÓ */}
-        <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50 overflow-hidden min-h-[500px]">
-           <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-400 font-black uppercase border-b">
-                 <tr>
+        <div className="lg:col-span-2 bg-white/80 backdrop-blur-2xl rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50 overflow-hidden min-h-[600px] flex flex-col">
+           <div className="overflow-x-auto flex-1">
+             <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50/50 text-slate-400 font-black uppercase text-[10px] tracking-widest">
+                   <tr>
                     <th className="p-4">Keyword</th>
                     <th className="p-4">Intent</th>
                     <th className="p-4">Cấu hình tầng</th>
