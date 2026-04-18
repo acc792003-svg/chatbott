@@ -93,16 +93,26 @@ export default function SuperAdminPage() {
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'error_logs' },
-        () => fetchErrorLogs()
+        (payload: any) => {
+           fetchErrorLogs();
+           addToast(`📦 Log mới: ${payload.new.error_message?.substring(0, 30)}...`, 'info');
+        }
       )
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'system_errors' },
-        () => fetchErrorLogs()
+        (payload: any) => {
+           fetchErrorLogs();
+           addToast(`🚨 LỖI RADAR: ${payload.new.error_type} - ${payload.new.error_message?.substring(0, 50)}`, 'error');
+           
+           // 🔥 Phản xạ âm thanh (tùy chọn) hoặc rung nhẹ nếu cần ở đây
+        }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      supabase.removeChannel(channel); 
+    };
   }, []);
 
   const addToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
