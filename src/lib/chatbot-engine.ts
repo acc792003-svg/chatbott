@@ -60,11 +60,35 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     // Tạo embedding trước để dùng cho cả FAQ và Semantic Cache
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
-    // Tìm kiếm Vector trong FAQ
+    // --- 2. NHẬN DIỆN Ý ĐỊNH (Stage 1: Rule-based Intent Classifier) ---
+    const { data: keywords } = await supabaseAdmin
+      .from('keywords')
+      .select('*')
+      .eq('is_active', true)
+      .or(`level.eq.global,and(level.eq.industry,industry.eq.${shopConfig?.industry || 'general'}),and(level.eq.shop,shop_id.eq.${shopId})`);
+
+    let detectedIntent = 'unknown';
+    let intentConfidence = 0;
+    if (keywords && keywords.length > 0) {
+      const intentScores: Record<string, number> = {};
+      keywords.forEach(kw => {
+        if (normalized.includes(kw.keyword.toLowerCase())) {
+          intentScores[kw.intent] = (intentScores[kw.intent] || 0) + (Number(kw.weight) || 1);
+        }
+      });
+      const topIntent = Object.entries(intentScores).sort((a, b) => b[1] - a[1])[0];
+      if (topIntent) {
+        detectedIntent = topIntent[0];
+        intentConfidence = topIntent[1] > 2 ? 0.9 : 0.7; // Giả lập confidence dựa trên số từ khớp
+      }
+    }
+
+    // --- 3. VECTOR SEARCH (Lớp 1: FAQ & Cache với Intent Boost) ---
+    // Tìm kiếm trong FAQ có lọc theo Intent nếu độ tự tin cao
     const { data: vectorFaqs } = await supabaseAdmin.rpc('match_faqs', {
       query_embedding: queryEmbedding,
-      match_threshold: matchThreshold, 
-      match_count: 3,
+      match_threshold: dynamicThreshold,
+      match_count: 5,
       p_shop_id: shopId
     });
 

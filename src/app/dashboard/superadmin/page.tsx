@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import TelegramMonitor from '@/components/admin/TelegramMonitor';
 import AiAnalytics from '@/components/admin/AiAnalytics';
 import ChatHistoryMonitor from '@/components/admin/ChatHistoryMonitor';
+import KeywordManagement from './KeywordManagement';
 
 type Shop = {
   id: string;
@@ -50,7 +51,7 @@ export default function SuperAdminPage() {
   
   // UI States
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'apikeys' | 'errors' | 'config' | 'telegram' | 'analytics' | 'facebook'>('shops');
+  const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'keywords' | 'apikeys' | 'errors' | 'config' | 'telegram' | 'analytics' | 'facebook'>('shops');
   const [userRole, setUserRole] = useState<string>(''); // Lưu role thực tế (super_admin hoặc staff_admin)
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
 
@@ -538,6 +539,7 @@ export default function SuperAdminPage() {
             { id: 'telegram', label: 'Kênh Telegram', icon: <Send size={14}/>, adminOnly: true },
             { id: 'facebook', label: 'Kênh Facebook', icon: <MessageCircle size={14}/>, adminOnly: true },
             { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
+            { id: 'keywords', label: 'Từ khóa (Intent)', icon: <Layers size={14}/> },
             { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
             { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
             { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
@@ -925,6 +927,11 @@ export default function SuperAdminPage() {
               </div>
             </div>
           </div>
+        )}
+        {activeTab === 'keywords' && (
+           <div className="animate-in fade-in slide-in-from-right-4 duration-300 pb-20 px-2 lg:px-0">
+              <KeywordManagement />
+           </div>
         )}
 
         {/* MODAL EDIT PACKAGE */}
