@@ -197,7 +197,17 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
 
   } catch (error: any) {
     console.error('Core Engine Error:', error);
-    return { answer: "Shop đang bận một chút, bạn nhắn lại sau giây lát nhe! 🙏", source: 'ai', latency: 0 };
+    
+    // 🔥 BÁO CÁO LỖI VỀ RADAR SUPER ADMIN
+    supabaseAdmin.from('system_errors').insert({
+      shop_id: shopId,
+      error_type: 'ENGINE_CRASH',
+      error_message: error.message,
+      file_source: 'chatbot-engine.ts',
+      metadata: { platform, externalUserId, message: message.substring(0, 50) }
+    }).catch(() => {});
+
+    return { answer: "Dạ, hệ thống đang bận một chút, bạn chờ mình vài giây rồi nhắn lại nhe! 🙏", source: 'ai', latency: 0 };
   }
 }
 

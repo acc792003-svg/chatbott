@@ -83,7 +83,8 @@ export default function ChatDemo() {
         body: JSON.stringify({
           message: userMsg,
           history: conversationHistory,
-          shopConfig: shopConfig || { shop_name: 'Cửa hàng', product_info: '', faq: '' }
+          shopId: currentShopId, // 🔥 BỔ SUNG QUAN TRỌNG
+          sessionId: sessionId
         }),
       });
 
