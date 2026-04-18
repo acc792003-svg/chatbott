@@ -47,9 +47,14 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       .eq('shop_id', shopId)
       .single();
     
+    console.log(`[Engine] START chat for Shop: ${shopConfig?.shop_name || shopId}`);
+    
+    // 1. EMBEDDING
+    console.log(`[Engine] Lấy Embedding...`);
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
-    // --- 1. NHẬN DIỆN Ý ĐỊNH (Stage 1: Rule-based) ---
+    // 2. NHẬN DIỆN Ý ĐỊNH (Rule-based)
+    console.log(`[Engine] Kiểm tra Intent...`);
     const { data: keywords } = await supabaseAdmin
       .from('keywords')
       .select('*')
@@ -67,16 +72,21 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       const topIntent = Object.entries(intentScores).sort((a, b) => b[1] - a[1])[0];
       if (topIntent) detectedIntent = topIntent[0];
     }
+    console.log(`[Engine] Intent: ${detectedIntent}`);
 
-    // --- 2. VECTOR SEARCH (FAQ & Cache) ---
-    const { data: vectorFaqs } = await supabaseAdmin.rpc('match_faqs', {
+    // 3. VECTOR SEARCH
+    console.log(`[Engine] Gọi RPC match_faqs...`);
+    const { data: vectorFaqs, error: rpcError } = await supabaseAdmin.rpc('match_faqs', {
       query_embedding: queryEmbedding,
       match_threshold: matchThreshold,
       match_count: 5,
       p_shop_id: shopId
     });
+    
+    if (rpcError) console.error(`[Engine] RPC match_faqs ERROR:`, rpcError);
 
     if (vectorFaqs && vectorFaqs.length > 0) {
+      console.log(`[Engine] Found ${vectorFaqs.length} FAQs`);
       const scoredFaqs = vectorFaqs.map((f: any) => {
         const hasKeyword = f.question.toLowerCase().includes(normalized) ? 1 : 0;
         const hybridScore = (f.similarity * 0.7) + (hasKeyword * 0.3);
@@ -86,10 +96,12 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       if (scoredFaqs[0].hybridScore >= matchThreshold) {
         finalResponse = scoredFaqs[0].answer;
         resultSource = 'faq';
+        console.log(`[Engine] Ranker HIT: FAQ`);
       }
     }
 
     if (!finalResponse) {
+      console.log(`[Engine] Gọi RPC match_cache...`);
       const { data: cacheMatches } = await supabaseAdmin.rpc('match_cache', {
         query_embedding: queryEmbedding,
         match_threshold: 0.95,
@@ -99,11 +111,13 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       if (cacheMatches && cacheMatches.length > 0) {
         finalResponse = cacheMatches[0].answer;
         resultSource = 'cache';
+        console.log(`[Engine] Ranker HIT: Cache`);
       }
     }
 
-    // --- 3. AI INFERENCE ---
+    // 4. AI INFERENCE
     if (!finalResponse) {
+       console.log(`[Engine] AI Brain Inference starting...`);
        const { data: convData } = await supabaseAdmin.from('conversations')
           .select('id, summary')
           .eq('shop_id', shopId)
@@ -131,6 +145,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
        finalResponse = aiResult.text;
        totalUsageTokens = aiResult.tokens;
        resultSource = 'ai';
+       console.log(`[Engine] AI Brain finished. Tokens: ${totalUsageTokens}`);
 
        if (queryEmbedding && resultSource === 'ai' && finalResponse.length < 500) {
           await supabaseAdmin.from('cache_answers').insert({ 
@@ -139,7 +154,8 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
        }
     }
 
-    // --- 4. FUNNEL "TRIGGER-ACTION" (Lớp kiểm soát) ---
+    // 5. FUNNEL "TRIGGER-ACTION"
+    console.log(`[Engine] Applying Funnel rules...`);
     const isTechnical = /thành phần|quy trình|nguyên lý|kỹ thuật|tại sao|có tốt không/i.test(normalized);
     const { data: convInfo } = await supabaseAdmin.from('conversations')
       .select('id, triggered_actions, last_action_at')
@@ -164,17 +180,14 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
             triggered_actions: [...triggeredActions, { intent: detectedIntent, action_id: bestAction.id, at: now.toISOString() }],
             last_action_at: now.toISOString()
           }).eq('id', convInfo.id);
+          console.log(`[Engine] Funnel Triggered: ${bestAction.type}`);
         }
       }
     }
 
-    // Tự động tóm tắt mỗi 10 tin
-    const totalMsgs = (history?.length || 0) + 1;
-    if (totalMsgs > 0 && totalMsgs % 10 === 0) {
-       summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
-    }
-
     const latency = Date.now() - start;
+    console.log(`[Engine] DONE. Total Latency: ${latency}ms`);
+    
     saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens).catch(e => console.error('Log error:', e));
 
     return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
