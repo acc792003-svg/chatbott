@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from './supabase';
 import { callGeminiWithFallback, generateEmbedding } from './gemini';
+import { detectAndSaveLead } from './leads';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -45,7 +46,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   try {
     const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
     const { data: shopConfig } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active')
+      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_enabled, telegram_chat_id, telegram_bot_token')
       .eq('shop_id', shopId)
       .maybeSingle();
     
@@ -160,6 +161,12 @@ QUY TẮC PHẢN HỒI:
     const latency = Date.now() - start;
     await saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens);
     summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
+
+    // 🔥 PHÁT HIỆN VÀ LƯU LEAD (SĐT) TỪ TIN NHẮN KHÁCH HÀNG
+    // Gọi sau khi đã trả lời để không ảnh hưởng tốc độ phản hồi
+    detectAndSaveLead(message, shopId, externalUserId, shopConfig).catch(e => {
+      console.error('[Engine] detectAndSaveLead error:', e);
+    });
 
     return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
 
