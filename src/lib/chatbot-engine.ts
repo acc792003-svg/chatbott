@@ -50,13 +50,23 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       .maybeSingle();
     
     shopCode = shopData?.code || 'unknown';
+
+    // 🛡️ BẮT BUỘC VALIDATE CONFIG (1 dòng cứu cả hệ)
+    if (!shopConfig) {
+      console.error(`❌ chatbot_configs NULL cho shop: ${shopId} (#${shopCode})`);
+      return {
+        answer: "⚠️ Shop này chưa được cấu hình chatbot_configs. Vui lòng kiểm tra lại trong Dashboard Super Admin.",
+        source: 'faq',
+        latency: 0
+      };
+    }
     
-    // Kiểm tra hoạt động
-    if (shopConfig && shopConfig.is_active === false) {
+    // Kiểm tra trạng thái hoạt động
+    if (shopConfig.is_active === false) {
        return { answer: "Dạ, hiện tại chatbot đang tạm nghỉ bảo trì, bạn nhắn lại sau ít phút nhe! 🙏", source: 'faq', latency: 0 };
     }
 
-    console.log(`[Engine] START chat for Shop: ${shopData?.name || shopConfig?.shop_name || shopId} (#${shopCode})`);
+    console.log(`[Engine] START chat for Shop: ${shopData?.name || shopConfig.shop_name} (#${shopCode})`);
     
     // 1. EMBEDDING
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
