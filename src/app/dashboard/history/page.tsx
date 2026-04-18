@@ -103,8 +103,11 @@ export default function HistoryPage() {
                         <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xs shadow-md">
                           <UserIcon />
                         </div>
-                        <span className="font-bold text-xs text-slate-600 block w-24 truncate" title={h.session_id}>{h.session_id}</span>
+                        <span className="font-black text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg" title={h.session_id}>
+                          Phiên #{(h.session_id || '').replace(/-/g, '').substring(0, 8).toUpperCase()}
+                        </span>
                       </div>
+
                     </td>
                     <td className="px-8 py-5">
                       <p className="text-sm text-slate-900 font-bold line-clamp-2 leading-relaxed max-w-xs">{h.user_message}</p>
