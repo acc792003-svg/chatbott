@@ -23,15 +23,39 @@ export default function ConfigClient() {
       if (!session) return;
       const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
       if (userData?.shop_id) {
+        // 1. Fetch Basic Config & Telegram
         const { data: config } = await supabase.from('chatbot_configs').select('*').eq('shop_id', userData.shop_id).single();
         if (config) {
           setShopName(config.shop_name || '');
           setProductInfo(config.product_info || '');
           setFaq(config.faq || '');
-          setFbPageId(config.fb_page_id || '');
-          setFbAccessToken(config.fb_access_token || '');
           setTelegramChatId(config.telegram_chat_id || '');
           setTelegramBotToken(config.telegram_bot_token || '');
+        }
+
+        // 2. Fetch Facebook Config (from channel_configs - Newer architecture)
+        const { data: fbConfig } = await supabase.from('channel_configs')
+          .select('provider_id, access_token')
+          .eq('shop_id', userData.shop_id)
+          .eq('channel_type', 'facebook')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (fbConfig) {
+          setFbPageId(fbConfig.provider_id || '');
+          setFbAccessToken(fbConfig.access_token || '');
+        } else {
+          // Fallback to shops table if not found in channel_configs
+          const { data: shopData } = await supabase.from('shops')
+            .select('fb_page_id, fb_page_token')
+            .eq('id', userData.shop_id)
+            .single();
+          
+          if (shopData?.fb_page_id) {
+            setFbPageId(shopData.fb_page_id);
+            setFbAccessToken(shopData.fb_page_token || '');
+          }
         }
       }
     };
@@ -50,40 +74,44 @@ export default function ConfigClient() {
 
       const shopId = userData.shop_id;
 
-      // 1. Lưu cấu hình Chatbot cơ bản (FAQ/Info)
+      // 1. Lưu cấu hình Chatbot cơ bản & Telegram
       const { error: configError } = await supabase.from('chatbot_configs').upsert({
         shop_id: shopId,
-        shop_name: shopName,
-        product_info: productInfo,
-        faq: faq,
+        shop_name: shopName.trim(),
+        product_info: productInfo.trim(),
+        faq: faq.trim(),
         is_active: true,
-        telegram_chat_id: telegramChatId,
-        telegram_bot_token: telegramBotToken
+        telegram_chat_id: telegramChatId.trim(),
+        telegram_bot_token: telegramBotToken.trim()
       }, { onConflict: 'shop_id' });
 
       if (configError) throw configError;
 
-      // 2. Lưu cấu hình Facebook vào bảng channel_configs (Bọc thép SaaS)
-      if (fbPageId && fbAccessToken) {
+      // 2. Lưu cấu hình Facebook (Hệ thống Bọc thép SaaS)
+      if (fbPageId.trim() && fbAccessToken.trim()) {
+        const cleanPageId = fbPageId.trim();
+        const cleanAccessToken = fbAccessToken.trim();
+
+        // Lưu vào channel_configs (Dùng cho Webhook V3)
         const { error: fbError } = await supabase.from('channel_configs').upsert({
           shop_id: shopId,
           channel_type: 'facebook',
-          provider_id: fbPageId.trim(),
-          access_token: fbAccessToken.trim()
+          provider_id: cleanPageId,
+          access_token: cleanAccessToken
         }, { onConflict: 'channel_type, provider_id' });
         
         if (fbError) throw fbError;
 
-        // Cập nhật ngược lại bảng shops để đồng bộ UI
+        // Đồng bộ sang bảng shops (Dùng cho logic cũ/ngưỡng khác)
         await supabase.from('shops').update({ 
-          fb_page_id: fbPageId.trim(), 
-          fb_page_token: fbAccessToken.trim() 
+          fb_page_id: cleanPageId, 
+          fb_page_token: cleanAccessToken 
         }).eq('id', shopId);
       }
 
-      alert('Đã lưu cấu hình chatbot thành công!');
+      alert('🚀 Đã lưu cấu hình hệ thống thành công!\n\nLưu ý: Nếu mới cấu hình Facebook, hãy đảm bảo bạn đã điền đúng Page ID (dạng số) và đã Subscribe Webhook trong trang Developer.');
     } catch (err: any) {
-      alert('Lỗi: ' + err.message);
+      alert('❌ Lỗi: ' + err.message);
     } finally {
       setLoading(false);
     }
