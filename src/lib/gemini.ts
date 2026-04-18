@@ -119,7 +119,7 @@ async function getAvailableModels(apiKey: string): Promise<string[]> {
       }
     }
   } catch (e) {}
-  return ['models/gemini-2.0-flash', 'models/gemini-1.5-flash'];
+  return ['models/gemini-2.0-flash', 'models/gemini-1.5-flash', 'models/gemini-1.5-flash-8b'];
 }
 
 function delay(ms: number) {
@@ -131,7 +131,7 @@ export async function callGeminiWithFallback(
   generationConfig?: any,
   shopId?: string | null,
   source: string = "API_CHAT_WIDGET"
-): Promise<string> {
+): Promise<{ text: string, tokens: number }> {
   const globalStart = Date.now();
   const GLOBAL_TIMEOUT = 9000; // Giới hạn toàn bộ request trong 9s để tránh Vercel timeout (10s)
 

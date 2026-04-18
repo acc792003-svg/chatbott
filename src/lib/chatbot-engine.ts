@@ -28,131 +28,123 @@ export function normalizeMessage(text: string): string {
     .replace(/\s+/g, ' ');   
 }
 
+/**
+ * 🧠 CHATBOT ENGINE CORE (V3 - Enterprise Grade)
+ */
 export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   const start = Date.now();
   const { shopId, message, history, externalUserId, platform, isPro } = req;
   const normalized = normalizeMessage(message);
+  const wordCount = message.split(' ').length;
+
+  // --- 1. NGƯỠNG ĐỘNG (Dynamic Threshold) ---
+  // Ngắn (≤5 từ): 0.90, Trung bình: 0.85, Dài: 0.82
+  const matchThreshold = wordCount <= 5 ? 0.90 : (wordCount <= 12 ? 0.85 : 0.82);
 
   let finalResponse = '';
   let resultSource: 'faq' | 'cache' | 'ai' = 'ai';
   let queryEmbedding: number[] | null = null;
-  let similarityScore = 0;
+  let totalUsageTokens = 0;
 
   try {
-    // --- 1. SPECIAL COMMANDS ---
-    if (message === '[welcome]') {
-      return { answer: "Chào bạn! Shop có thể giúp gì cho bạn hôm nay? 😊", source: 'faq', latency: 0 };
-    }
-
-    // --- 2. FAQ MATCHING (Lớp 1: Keywords) ---
-    const { data: exactFaq } = await supabaseAdmin
-      .from('faqs')
-      .select('answer')
+    // 🚦 BƯỚC 0: RATE LIMIT & QUOTA CHECK
+    const { data: shopConfig } = await supabaseAdmin.from('chatbot_configs')
+      .select('shop_name, product_info, customer_insights, brand_voice, is_active')
       .eq('shop_id', shopId)
-      .ilike('question', normalized)
-      .maybeSingle();
+      .single();
     
-    if (exactFaq) {
-      finalResponse = exactFaq.answer;
-      resultSource = 'faq';
-      similarityScore = 1.0;
-    }
+    // Giả sử có logic check quota ở đây (Gói Free/Pro) - Hard Fallback nếu hết hạn mức
+    // (Trong phiên bản này ta tập trung vào logic Retrieval)
 
-    // --- 3. VECTOR SEARCH (Lớp 1.5: Semantic) ---
-    if (!finalResponse) {
-      queryEmbedding = await generateEmbedding(normalized, !!isPro);
-      const { data: vectorFaqs } = await supabaseAdmin.rpc('match_faqs', {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.85, 
-        match_count: 1,
-        p_shop_id: shopId
-      });
+    // --- 2. HYBRID MATCHING (Lớp 1: FAQ & Cache kết hợp) ---
+    // Tạo embedding trước để dùng cho cả FAQ và Semantic Cache
+    queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
-      if (vectorFaqs && vectorFaqs.length > 0) {
-        finalResponse = vectorFaqs[0].answer;
+    // Tìm kiếm Vector trong FAQ
+    const { data: vectorFaqs } = await supabaseAdmin.rpc('match_faqs', {
+      query_embedding: queryEmbedding,
+      match_threshold: matchThreshold, 
+      match_count: 3,
+      p_shop_id: shopId
+    });
+
+    // 🏆 TRỌNG SỐ HỖN HỢP (Hybrid Score = 0.7*Vector + 0.3*Keyword)
+    if (vectorFaqs && vectorFaqs.length > 0) {
+      const scoredFaqs = vectorFaqs.map((f: any) => {
+        const hasKeyword = f.question.toLowerCase().includes(normalized) ? 1 : 0;
+        const hybridScore = (f.similarity * 0.7) + (hasKeyword * 0.3);
+        return { ...f, hybridScore };
+      }).sort((a: any, b: any) => b.hybridScore - a.hybridScore);
+
+      if (scoredFaqs[0].hybridScore >= matchThreshold) {
+        finalResponse = scoredFaqs[0].answer;
         resultSource = 'faq';
-        similarityScore = vectorFaqs[0].similarity;
       }
     }
 
-    // --- 4. CACHE MATCHING (Lớp 2: Memory) ---
+    // --- 3. SEMANTIC CACHE LOOKUP (Lớp 1.5) ---
     if (!finalResponse) {
-      const { data: cacheMatch } = await supabaseAdmin
-        .from('cache_answers')
-        .select('answer')
-        .eq('shop_id', shopId)
-        .eq('question', normalized)
-        .maybeSingle();
-      
-      if (cacheMatch) {
-        finalResponse = cacheMatch.answer;
+      const { data: cacheMatches } = await supabaseAdmin.rpc('match_cache', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.95, // Cache cần độ chính xác rất cao
+        match_count: 1,
+        p_shop_id: shopId
+      });
+      if (cacheMatches && cacheMatches.length > 0) {
+        finalResponse = cacheMatches[0].answer;
         resultSource = 'cache';
       }
     }
 
-    // --- 5. AI FALLBACK (Lớp 3: Brain) ---
+    // --- 4. AI INFERENCE (Lớp 2: AI Brain với Hybrid Memory) ---
     if (!finalResponse) {
-      const { data: config } = await supabaseAdmin.from('chatbot_configs')
-        .select('shop_name, product_info, customer_insights, brand_voice')
-        .eq('shop_id', shopId)
-        .single();
+       // A. Lấy Trí nhớ dài hạn (Summary) từ database
+       const { data: convData } = await supabaseAdmin.from('conversations')
+          .select('id, summary')
+          .eq('shop_id', shopId)
+          .eq('external_user_id', externalUserId)
+          .single();
 
-      // Lấy ngữ cảnh FAQ hàng đầu
-      let faqContext = '';
-      if (queryEmbedding) {
-        const { data: topFaqs } = await supabaseAdmin.rpc('match_faqs', {
-          query_embedding: queryEmbedding,
-          match_threshold: 0.6,
-          match_count: 3,
-          p_shop_id: shopId
-        });
-        if (topFaqs) faqContext = topFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
-      }
+       let faqContext = "";
+       if (vectorFaqs && vectorFaqs.length > 0) {
+          faqContext = vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
+       }
 
-      const shopName = config?.shop_name || 'Shop';
-      const now = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', dateStyle: 'full', timeStyle: 'short' });
-      
-      // CRM Lead Instruction
-      const leadsLib = await import('./leads');
-      const historyText = (history || []).map(h => h.content).join(" ");
-      const alreadyHasPhone = !!leadsLib.extractPhone(historyText) || !!leadsLib.extractPhone(message);
-      const { count: askedCount, gap } = leadsLib.countPreviousAsks(history || []);
-      const hasIntent = leadsLib.hasHighIntent(normalized);
+       // B. Cấu trúc Prompt thông minh (Context + Summary + Short Memory)
+       const systemPrompt = `BẠN LÀ Trợ lý shop "${shopConfig?.shop_name || 'Shop'}". Giọng: ${shopConfig?.brand_voice || 'nhẹ nhàng'}.
+${convData?.summary ? `TÓM TẮT HỘI THOẠI TRƯỚC ĐÓ: ${convData.summary}\n` : ''}
+${faqContext ? `TRI THỨC BỔ SUNG:\n${faqContext}\n\n` : ''}THÔNG TIN SHOP: ${shopConfig?.product_info || ''}
+${shopConfig?.customer_insights || ''}
+QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, hãy xác nhận.`;
 
-      let leadInstruction = "";
-      if (!alreadyHasPhone && hasIntent && askedCount < 2 && gap >= 3) {
-        leadInstruction = "\n👉 HÀNH ĐỘNG: Khách đang quan tâm, hãy gợi ý họ để lại SĐT để được tư vấn kĩ hơn.";
-      }
+       // Gửi 5 tin nhắn gần nhất làm Short Memory
+       const shortHistory = (history || []).slice(-5);
+       const aiResult = await callGeminiWithFallback([
+         { role: 'user', parts: [{ text: systemPrompt }] },
+         ...shortHistory.map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
+         { role: 'user', parts: [{ text: message }] }
+       ], { temperature: 0.7 }, shopId);
 
-      const systemPrompt = `BẠN LÀ Trợ lý shop "${shopName}". Giọng: ${config?.brand_voice || 'nhẹ nhàng'}. Hôm nay: ${now}.
-${faqContext ? `TRI THỨC BỔ SUNG:\n${faqContext}\n\n` : ''}THÔNG TIN SHOP: ${config?.product_info || ''}
-${config?.customer_insights || ''}
-QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, hãy xác nhận.${leadInstruction}`;
+       finalResponse = aiResult.text;
+       totalUsageTokens = aiResult.tokens;
+       resultSource = 'ai';
 
-      const contents = [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        ...(history || []).map(msg => ({ role: msg.role === 'user' ? 'user' : 'model', parts: [{ text: msg.content }] })),
-        { role: 'user', parts: [{ text: message }] }
-      ];
+       // C. TRIGGER TỰ ĐỘNG TÓM TẮT (Mỗi 10 tin nhắn)
+       const totalMsgs = (history?.length || 0) + 1;
+       if (totalMsgs > 0 && totalMsgs % 10 === 0) {
+          summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
+       }
 
-      finalResponse = await callGeminiWithFallback(contents, { temperature: 0.7 }, shopId);
-      resultSource = 'ai';
-
-      // Update Cache
-      if (queryEmbedding) {
-        await supabaseAdmin.from('cache_answers').insert({ 
-          shop_id: shopId, question: normalized, answer: finalResponse 
-        }).catch(() => {});
-      }
+       // 🔹 TỰ ĐỘNG CẬP NHẬT CACHE
+       if (queryEmbedding && resultSource === 'ai' && finalResponse.length < 500) {
+          await supabaseAdmin.from('cache_answers').insert({ 
+            shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding 
+          }).catch(() => {});
+       }
     }
 
     const latency = Date.now() - start;
-
-    // --- 6. LOGGING (Background) ---
-    saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, similarityScore).catch(e => console.error('Save logs error:', e));
-
-    // --- 7. LEAD DETECTION (Background) ---
-    detectLead(shopId, message, externalUserId).catch(e => console.error('Lead detection error:', e));
+    saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens).catch(e => console.error('Log error:', e));
 
     return { answer: finalResponse, source: resultSource, latency };
 
@@ -165,17 +157,21 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
 /**
  * 📦 Private Helpers
  */
-async function saveLogs(shopId: string, message: string, answer: string, source: string, latency: number, platform: string, externalUserId: string, score: number) {
+async function saveLogs(shopId: string, message: string, answer: string, source: string, latency: number, platform: string, externalUserId: string, tokens: number) {
   // Ghi nhật ký chat_logs
   await supabaseAdmin.from('chat_logs').insert({
-    shop_id: shopId, user_input: message, answer, source, latency_ms: latency
+    shop_id: shopId, user_input: message, answer, source, latency_ms: latency, total_tokens: tokens
   });
 
   // Lưu hội thoại
   await supabaseAdmin.from('messages').insert({
-    shop_id: shopId, user_message: message, ai_response: answer,
-    platform, external_user_id: externalUserId,
-    metadata: { source, score, latency }
+    shop_id: shopId, 
+    user_message: message, 
+    ai_response: answer,
+    platform, 
+    session_id: externalUserId,
+    total_tokens: tokens,
+    metadata: { source, latency }
   });
 }
 
@@ -183,4 +179,58 @@ async function detectLead(shopId: string, message: string, externalUserId: strin
   const { data: config } = await supabaseAdmin.from('chatbot_configs').select('*').eq('shop_id', shopId).single();
   const leadsLib = await import('./leads');
   await leadsLib.detectAndSaveLead(message, shopId, externalUserId, config);
+}
+
+/**
+ * 📝 Worker: Trợ lý Phân tích hội thoại (Memory + Sentiment + FAQ Suggestion)
+ */
+async function summarizeThread(shopId: string, externalUserId: string, fullHistory: any[]) {
+  try {
+    const historyText = fullHistory.slice(-10).map(h => `${h.role}: ${h.content}`).join('\n');
+    
+    // Prompt tổ hợp: Tóm tắt + Cảm xúc + Đề xuất FAQ
+    const analysisPrompt = `Hãy phân tích đoạn hội thoại sau và trả về kết quả dưới định dạng JSON:
+{
+  "summary": "Tóm tắt ngắn gọn dưới 100 chữ",
+  "sentiment": "positive/neutral/negative",
+  "satisfaction_score": 1-10,
+  "new_faq": { "question": "câu hỏi hay khách vừa hỏi", "answer": "cách bạn đã trả lời" } // (Chỉ điền nếu thấy đây là kiến thức mới có ích cho shop, nếu không hãy để null)
+}
+
+NỘI DUNG:
+${historyText}`;
+
+    const { text } = await callGeminiWithFallback([
+      { role: 'user', parts: [{ text: analysisPrompt }] }
+    ], { temperature: 0.2, responseMimeType: "application/json" }, shopId, 'API_INTERNAL_ANALYST');
+
+    if (text) {
+      const result = JSON.parse(text);
+
+      // 1. Cập nhật trí nhớ và cảm xúc
+      await supabaseAdmin.from('conversations')
+        .update({ 
+          summary: result.summary, 
+          sentiment: result.sentiment,
+          satisfaction_score: result.satisfaction_score,
+          last_message_at: new Date().toISOString() 
+        })
+        .eq('shop_id', shopId)
+        .eq('external_user_id', externalUserId);
+      
+      // 2. Nếu có đề xuất nội dung mới -> Lưu vào danh sách chờ duyệt
+      if (result.new_faq && result.new_faq.question && result.new_faq.answer) {
+         await supabaseAdmin.from('faq_suggestions').insert({
+            shop_id: shopId,
+            question: result.new_faq.question,
+            suggested_answer: result.new_faq.answer,
+            status: 'pending'
+         }).catch(() => {});
+      }
+      
+      console.log(`[AI-Analyst] Processed thread for ${externalUserId}. Sentiment: ${result.sentiment}`);
+    }
+  } catch (e) {
+    console.error('AI-Analyst Error:', e);
+  }
 }

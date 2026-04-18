@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       .eq('shop_id', shop.id)
       .eq('session_id', clientId)
       .order('created_at', { ascending: false })
-      .limit(3);
+      .limit(5);
 
     if (error) throw error;
 
