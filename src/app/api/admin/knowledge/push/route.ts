@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
+  let body: any = {};
   try {
-    const { codes, templateIds, voice, requesterId } = await req.json();
+    body = await req.json();
+    const { codes, templateIds, voice, requesterId } = body;
 
     if (!supabaseAdmin) return NextResponse.json({ error: 'DB Connection Error' }, { status: 500 });
 
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
         error_type: 'KNOWLEDGE_PUSH_FAILED',
         error_message: error.message,
         file_source: 'api/admin/knowledge/push/route.ts',
-        metadata: { targetCodes: codes, error: error.stack }
+        metadata: { targetCodes: body?.codes, error: error.stack }
       }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
     }
 
