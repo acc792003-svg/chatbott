@@ -30,6 +30,21 @@ export function normalizeMessage(text: string): string {
     .replace(/\s+/g, ' ');   
 }
 
+/**
+ * Phát hiện chuỗi trông giống số điện thoại nhưng không đúng định dạng Việt Nam
+ * VD: "4455660909" (thiếu số 0 đầu), "12345" (quá ngắn), "999888777666" (quá dài)
+ */
+function detectNearPhone(message: string): { hasNearPhone: boolean; rawNumber: string } {
+  const validPhoneRegex = /(0|\+84)(3|5|7|8|9)[0-9]{8}/;
+  const nearPhoneRegex = /\b\d{8,11}\b/;
+  const nearMatch = message.match(nearPhoneRegex);
+  if (!nearMatch) return { hasNearPhone: false, rawNumber: '' };
+  const rawNumber = nearMatch[0];
+  // Nếu đã đúng định dạng -> không cần nhắc
+  if (validPhoneRegex.test(message)) return { hasNearPhone: false, rawNumber: '' };
+  return { hasNearPhone: true, rawNumber };
+}
+
 export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   const start = Date.now();
   const { shopId, message, history, externalUserId, platform, isPro } = req;
@@ -130,7 +145,13 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     // 4. AI INFERENCE
     if (!finalResponse) {
-       const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
+        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
+
+        // Phát hiện khách nhập số điện thoại sai định dạng
+        const { hasNearPhone, rawNumber } = detectNearPhone(message);
+        const phoneHint = hasNearPhone
+          ? `\n\n⚠️ CHÚ Ý ĐọC KỸ: Khách vừa nhập cỗ số "${rawNumber}" nhưng đây KHÔNG PHẢI số điện thoại Việt Nam hợp lệ (phải bắt đầu bằng 0 và có 10 số, VD: 0912345678). Hãy niềm nở nhập vai nhắc khách bổ sung lại đúng định dạng, đừng nói thẳng "số sai" mà hãy hỏi lại nhẹ nhàng: VD "Bạn ơi số điện thoại của bạn là 0xxx... đầy đủ được không ạ? để mình báo shop liên hệ bạn ngay nhe! 😊"`
+          : '';
 
         const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopConfig?.shop_name || shopData?.name || 'Shop'}". 
 GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
@@ -150,8 +171,7 @@ QUY TẮC PHẢN HỒI:
 - Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
 - Ưu tiên thông tin trong "Nguồn chính", kể cả khi "Tri thức Vector" nói khác.
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
-- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"`;
-
+- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"${phoneHint}`;
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }
