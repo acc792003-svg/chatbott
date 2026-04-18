@@ -123,7 +123,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     if (!finalResponse) {
        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
-        const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
+        const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopConfig?.shop_name || shopData?.name || 'Shop'}". 
 GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
 CHIẾN LƯỢC BÁN HÀNG & THẤU HIỂU KHÁCH HÀNG: ${shopConfig?.customer_insights || ''}
 
