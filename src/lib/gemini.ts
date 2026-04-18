@@ -154,7 +154,7 @@ export async function callGeminiWithFallback(
       if (!expiry || expiry > new Date()) shopPlan = 'pro';
       else {
         client.from('shops').update({ plan: 'free' }).eq('id', shopId)
-          .then(({error}) => { if(error) console.error('Downgrade error:', error.message) });
+          .then(({error}: any) => { if(error) console.error('Downgrade error:', error.message) });
       }
     }
   }

@@ -151,7 +151,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
           // Ghi đè cache thầm lặng, không làm gián đoạn luồng chính
           supabaseAdmin.from('cache_answers').insert({ 
             shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding 
-          }).then(({error}) => { if(error) console.error('Cache error:', error.message) });
+          }).then(({error}: any) => { if(error) console.error('Cache error:', error.message) });
        }
     }
 
@@ -206,7 +206,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
       error_message: error.message,
       file_source: 'chatbot-engine.ts',
       metadata: { platform, externalUserId, message: message.substring(0, 50) }
-    }).then(({error}) => { if(error) console.error('Radar report failed:', error.message) });
+    }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
 
     return { answer: "Dạ, hệ thống đang bận một chút, bạn chờ mình vài giây rồi nhắn lại nhe! 🙏", source: 'ai', latency: 0 };
   }
@@ -247,7 +247,7 @@ NỘI DUNG: ${historyText}`;
          supabaseAdmin.from('faq_suggestions').insert({
             shop_id: shopId, question: result.new_faq.question, 
             suggested_answer: result.new_faq.answer, status: 'pending'
-         }).then(({error}) => { if(error) console.error('FAQ suggestion failed:', error.message) });
+         }).then(({error}: any) => { if(error) console.error('FAQ suggestion failed:', error.message) });
       }
       
       if (result.satisfaction_score <= 4 || result.sentiment === 'negative') {
