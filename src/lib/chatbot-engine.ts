@@ -45,7 +45,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   try {
     const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
     const { data: shopConfig } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, pricing_info, faq, is_active, industry')
+      .select('shop_name, product_info, pricing_info, faq, is_active')
       .eq('shop_id', shopId)
       .maybeSingle();
     
@@ -76,7 +76,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       .from('keywords')
       .select('*')
       .eq('is_active', true)
-      .or(`level.eq.global,and(level.eq.industry,industry.eq.${shopConfig?.industry || 'general'}),and(level.eq.shop,shop_id.eq.${shopId})`);
+      .or(`level.eq.global,level.eq.industry,and(level.eq.shop,shop_id.eq.${shopId})`);
 
     let detectedIntent = 'unknown';
     if (keywords && keywords.length > 0) {
