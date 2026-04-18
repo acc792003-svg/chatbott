@@ -12,17 +12,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Thiếu mã Shop hoặc tin nhắn' }, { status: 400 });
     }
 
-    // 1. Tìm shop_id từ code
+    // 1. Tìm shop_id từ code (Sử dụng maybeSingle cho an toàn)
     const { data: shop } = await supabase.from('shops').select('id, name').eq('code', code).maybeSingle();
     
     if (!shop) {
-      // 🔥 BÁO CÁO RADAR: SHOP KHÔNG TỒN TẠI
-      supabaseAdmin.from('system_errors').insert({
-        error_type: 'SHOP_NOT_FOUND',
-        error_message: `Mã shop không tồn tại trong hệ thống: ${code}`,
-        file_source: 'api/chat/widget/route.ts',
-        metadata: { shopCode: code, clientId: clientId || 'unknown' }
-      }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+      // 🔥 BÁO CÁO RADAR: SHOP KHÔNG TỒN TẠI (Dùng AWAIT)
+      if (supabaseAdmin || supabase) {
+        const client = supabaseAdmin || supabase;
+        await client.from('system_errors').insert({
+          error_type: 'SHOP_NOT_FOUND',
+          error_message: `Mã shop không tồn tại trong hệ thống: ${code}`,
+          file_source: 'api/chat/widget/route.ts',
+          metadata: { shopCode: code, clientId: clientId || 'unknown' }
+        });
+      }
 
       return NextResponse.json({ error: 'Không tìm thấy Shop' }, { status: 404 });
     }
@@ -47,14 +50,17 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('Widget API Error:', error);
 
-    // 🔥 BÁO CÁO RADAR: LỖI HỆ THỐNG CẤP ĐỘ API
-    supabaseAdmin.from('system_errors').insert({
-      shop_id: null,
-      error_type: 'WIDGET_API_CRASH',
-      error_message: error.message,
-      file_source: 'api/chat/widget/route.ts',
-      metadata: { shopCode: body?.code, error: error.stack }
-    }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+    // 🔥 BÁO CÁO RADAR: LỖI HỆ THỐNG CẤP ĐỘ API (Dùng AWAIT)
+    const client = supabaseAdmin || supabase;
+    if (client) {
+        await client.from('system_errors').insert({
+          shop_id: null,
+          error_type: 'WIDGET_API_CRASH_STABLE',
+          error_message: error.message,
+          file_source: 'api/chat/widget/route.ts',
+          metadata: { shopCode: body?.code, stack: error.stack }
+        });
+    }
 
     return NextResponse.json({ error: 'Hệ thống AI đang bận, vui lòng thử lại.' }, { status: 503 });
   }

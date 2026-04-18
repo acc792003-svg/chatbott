@@ -334,18 +334,18 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
   const apiKey = keys[0].value;
-  // SỬA LỖI: Tên model chuẩn là text-embedding-004
-  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${apiKey}`;
+  // SỬA LỖI: Tên model chính xác từ Google là gemini-embedding-001
+  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); // Tăng lên 5s cho an toàn
+  const timeoutId = setTimeout(() => controller.abort(), 5000); 
 
   try {
     const response = await fetch(apiURL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: "models/text-embedding-004",
+        model: "models/gemini-embedding-001",
         content: { parts: [{ text }] }
       }),
       signal: controller.signal
