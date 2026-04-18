@@ -190,6 +190,9 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
     
     saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens).catch(e => console.error('Log error:', e));
 
+    // 🔥 KÍCH HOẠT PHÂN TÍCH HỘI THOẠI CHẠY NGẦM
+    summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]).catch(e => console.error('Summary error:', e));
+
     return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
 
   } catch (error: any) {
