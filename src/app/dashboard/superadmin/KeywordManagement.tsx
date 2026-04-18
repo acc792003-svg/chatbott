@@ -208,6 +208,7 @@ export default function KeywordManagement() {
                  ))}
               </tbody>
            </table>
+           </div>
            {keywords.length === 0 && (
               <div className="flex flex-col items-center justify-center py-20 opacity-30 grayscale">
                  <Globe size={48} className="mb-4" />
