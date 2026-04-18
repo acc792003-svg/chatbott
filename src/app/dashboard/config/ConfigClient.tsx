@@ -184,13 +184,13 @@ export default function ConfigClient() {
         <form onSubmit={handleSave} className="space-y-8 bg-white/70 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50">
           <div className="space-y-5">
             <div>
-              <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 ml-1">Tên cửa hàng</label>
+              <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Tên cửa hàng</label>
               <input type="text" value={shopName} onChange={e => setShopName(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 focus:ring-4 focus:ring-blue-50 transition-all font-bold text-slate-700" />
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 ml-1">Tri thức cơ bản</label>
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Tri thức cơ bản</label>
                 <textarea rows={6} value={productInfo} onChange={e => setProductInfo(e.target.value)} placeholder="Mô tả shop của bạn..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
               </div>
               <div>
@@ -200,7 +200,7 @@ export default function ConfigClient() {
             </div>
 
             <div>
-               <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 ml-1">Kiến thức FAQ</label>
+               <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Kiến thức FAQ</label>
                <textarea rows={5} value={faq} onChange={e => setFaq(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
             </div>
 
@@ -211,11 +211,11 @@ export default function ConfigClient() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Telegram Chat ID</label>
+                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Telegram Chat ID</label>
                         <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="-1001234567..." />
                      </div>
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Telegram Bot Token</label>
+                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Telegram Bot Token</label>
                         <input type="text" value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="7123912:AAGF..." />
                      </div>
                   </div>
@@ -227,14 +227,14 @@ export default function ConfigClient() {
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Facebook Page ID</label>
+                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Facebook Page ID</label>
                         <input type="text" value={fbPageId} onChange={e => setFbPageId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-indigo-500" placeholder="1083921..." />
                      </div>
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-400 uppercase mb-2">Page Access Token</label>
+                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Page Access Token</label>
                         <div className="relative">
                             <input type={showToken ? "text" : "password"} value={fbAccessToken} onChange={e => setFbAccessToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 pr-10 text-sm font-mono outline-none focus:border-indigo-500" placeholder="EAA..." />
-                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-indigo-600">
+                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-indigo-600">
                                 {showToken ? <EyeOff size={16}/> : <Eye size={16}/>}
                             </button>
                         </div>
@@ -254,17 +254,17 @@ export default function ConfigClient() {
            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-2"><CheckCircle size={20} /></div>
-                 <span className="text-[10px] font-bold text-slate-400 uppercase">Hài lòng</span>
+                 <span className="text-[10px] font-bold text-slate-600 uppercase">Hài lòng</span>
                  <span className="text-2xl font-black text-slate-800">{stats.avg_score}/10</span>
               </div>
               <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
                  <div className="w-10 h-10 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-2"><Heart size={20} /></div>
-                 <span className="text-[10px] font-bold text-slate-400 uppercase">Cảm xúc tích cực</span>
+                 <span className="text-[10px] font-bold text-slate-600 uppercase">Cảm xúc tích cực</span>
                  <span className="text-2xl font-black text-slate-800">{stats.positive}/{stats.total}</span>
               </div>
               <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center">
                  <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mb-2"><MessageSquare size={20} /></div>
-                 <span className="text-[10px] font-bold text-slate-400 uppercase">Hội thoại</span>
+                 <span className="text-[10px] font-bold text-slate-600 uppercase">Hội thoại</span>
                  <span className="text-2xl font-black text-slate-800">{stats.total}</span>
               </div>
            </div>
@@ -276,7 +276,7 @@ export default function ConfigClient() {
                     <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Settings size={20}/></div>
                     <div>
                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Cấu hình Hàng động Tự động</h3>
-                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Gắn link/voucher vào Ý định khách hàng</p>
+                       <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest leading-none mt-1">Gắn link/voucher vào Ý định khách hàng</p>
                     </div>
                  </div>
                  <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase">Funnel Mode ON</span>
@@ -314,7 +314,7 @@ export default function ConfigClient() {
                                 <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{action.type}</p>
                                 <span className="text-[8px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-bold">INTENT: {action.intent_binding}</span>
                              </div>
-                             <p className="text-[11px] text-slate-400 truncate w-48 mt-1 font-mono">{action.content}</p>
+                             <p className="text-[11px] text-slate-600 truncate w-48 mt-1 font-mono">{action.content}</p>
                           </div>
                        </div>
                        <button onClick={async () => { if(confirm('Xóa?')) { await supabase.from('shop_actions').delete().eq('id', action.id); fetchActions(); } }} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all">
@@ -322,7 +322,7 @@ export default function ConfigClient() {
                        </button>
                     </div>
                  ))}
-                 {actions.length === 0 && <div className="md:col-span-2 text-center py-6 text-slate-300 italic text-[11px]">Chưa có hành động bán hàng nào được cấu hình...</div>}
+                 {actions.length === 0 && <div className="md:col-span-2 text-center py-6 text-slate-500 italic text-[11px]">Chưa có hành động bán hàng nào được cấu hình...</div>}
               </div>
            </div>
 
@@ -333,7 +333,7 @@ export default function ConfigClient() {
                     <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
                        <Brain className="text-indigo-600" size={20} /> Xưởng Tri Thức AI
                     </h2>
-                    <p className="text-xs text-slate-400 font-medium">AI đề xuất thông tin mới dựa trên lịch sử chat thực tế</p>
+                    <p className="text-xs text-slate-600 font-medium">AI đề xuất thông tin mới dựa trên lịch sử chat thực tế</p>
                  </div>
                  <button onClick={fetchSuggestions} className="text-[10px] font-bold text-blue-600 hover:underline">Làm mới</button>
               </div>
@@ -350,7 +350,7 @@ export default function ConfigClient() {
                      <div key={s.id} className="group bg-slate-50 hover:bg-indigo-50/30 p-4 rounded-2xl border border-slate-100 transition-all">
                         <div className="flex gap-4">
                            <div className="flex-1 space-y-2">
-                              <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1">
+                              <p className="text-[10px] font-black text-slate-600 uppercase flex items-center gap-1">
                                  <span className="w-1 h-1 bg-slate-400 rounded-full"></span> Câu hỏi mới phát hiện
                               </p>
                               <p className="text-sm font-black text-slate-800 italic">"{s.question}"</p>

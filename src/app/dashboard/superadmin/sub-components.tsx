@@ -102,7 +102,7 @@ export function LogsView({errorLogs}: any) {
                 </div>
             </div>
             <div className="space-y-3">
-                {errorLogs.length === 0 && <p className="text-center py-10 text-slate-300 font-bold italic">Chưa có ghi nhận lỗi nào...</p>}
+                {errorLogs.length === 0 && <p className="text-center py-10 text-slate-500 font-bold italic">Chưa có ghi nhận lỗi nào...</p>}
                 {errorLogs.map((l: any) => (
                     <div key={l.id} className={cn(
                         "p-4 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all",
@@ -147,14 +147,14 @@ export function SettingsView({trialTemplateCode, setTrialTemplateCode, onSave}: 
                 <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 text-white flex items-center justify-center rounded-2xl shadow-lg"><Settings size={20}/></div>
                 <div>
                    <h2 className="text-xl font-black text-slate-900 tracking-tight">GLOBAL CONFIG</h2>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hệ thống cốt lõi</p>
+                   <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">Hệ thống cốt lõi</p>
                 </div>
             </div>
             
             <div className="space-y-8">
                 <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest pl-1">Shop Mẫu (Auto-Inherit)</label>
-                    <p className="text-[10px] text-slate-400 italic mb-2 pl-1">Mã shop này sẽ được dùng làm khuôn mẫu tri thức cho các shop mới tạo.</p>
+                    <label className="text-[10px] font-black text-slate-700 uppercase tracking-widest pl-1">Shop Mẫu (Auto-Inherit)</label>
+                    <p className="text-[10px] text-slate-500 italic mb-2 pl-1">Mã shop này sẽ được dùng làm khuôn mẫu tri thức cho các shop mới tạo.</p>
                     <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl p-6 text-3xl font-black text-slate-900 uppercase focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-inner text-center" value={trialTemplateCode} onChange={e => setTrialTemplateCode(e.target.value)} placeholder="MÃ SHOP..." />
                 </div>
                 <button onClick={onSave} className="w-full bg-gradient-to-r from-slate-800 to-slate-900 text-white font-black py-5 rounded-[2rem] shadow-xl hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-all text-sm uppercase tracking-widest mt-4">

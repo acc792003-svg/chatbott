@@ -747,7 +747,7 @@ export default function SuperAdminPage() {
                                     </td>
                                     <td className="p-4">
                                         {!expiryDate ? (
-                                            <span className="text-[10px] font-bold text-slate-300">Vô thời hạn</span>
+                                            <span className="text-[10px] font-bold text-slate-500">Vô thời hạn</span>
                                         ) : isExpired ? (
                                             <span className="text-[10px] font-black text-red-500 uppercase">Đã hết hạn 🛑</span>
                                         ) : (
@@ -957,7 +957,7 @@ export default function SuperAdminPage() {
                                 {selectedPackageIds.includes(p.id) ? <CheckSquare size={20} className="text-indigo-600 shrink-0"/> : <Square size={20} className="text-slate-200 group-hover:text-indigo-200 shrink-0"/>}
                                 <div className="min-w-0"><p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">{p.industry_name}</p><p className="text-xs font-black text-slate-800 truncate">{p.package_name}</p></div>
                             </div>
-                            <button onClick={() => setEditingPackage(p)} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"><Edit2 size={16}/></button>
+                            <button onClick={() => setEditingPackage(p)} className="p-2 text-slate-500 hover:text-indigo-600 transition-colors opacity-0 group-hover:opacity-100"><Edit2 size={16}/></button>
                         </div>
                     ))}
                 </div>
@@ -994,7 +994,7 @@ export default function SuperAdminPage() {
         {editingPackage && (
             <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
                 <div className="bg-white w-full max-w-4xl rounded-[3rem] p-10 shadow-2xl relative animate-in zoom-in-95 duration-200">
-                    <button onClick={() => setEditingPackage(null)} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900"><Trash2 size={24}/></button>
+                    <button onClick={() => setEditingPackage(null)} className="absolute top-8 right-8 text-slate-500 hover:text-slate-900"><Trash2 size={24}/></button>
                     <div className="flex items-center gap-4 mb-10"><div className="p-4 bg-indigo-100 text-indigo-600 rounded-2xl"><Edit2 size={28}/></div><div><h2 className="text-2xl font-black text-slate-900">CHỈNH SỬA GÓI TRI THỨC</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Cấu hình nội dung đã đóng gói</p></div></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10"><div className="space-y-6"><div><label className="text-[10px] font-black uppercase text-indigo-500 mb-2 block">Tên Gói</label><input type="text" className="w-full bg-slate-50 border border-slate-100 rounded-xl p-3 text-sm font-bold" value={editingPackage.package_name} onChange={e => setEditingPackage({...editingPackage, package_name: e.target.value})} /></div><div><label className="text-[10px] font-black uppercase text-indigo-500 mb-2 block">1. Mô tả sản phẩm</label><textarea rows={8} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold leading-relaxed" value={editingPackage.product_info} onChange={e => setEditingPackage({...editingPackage, product_info: e.target.value})}></textarea></div></div><div className="space-y-6"><div><label className="text-[10px] font-black uppercase text-emerald-500 mb-2 block">2. Câu hỏi thường gặp (FAQ)</label><textarea rows={12} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-bold leading-relaxed" value={editingPackage.faq} onChange={e => setEditingPackage({...editingPackage, faq: e.target.value})}></textarea></div></div></div>
                     <button onClick={handleUpdatePackage} className="w-full bg-indigo-600 text-white font-black py-5 rounded-3xl shadow-xl hover:bg-indigo-700 transition-all text-sm uppercase">CẬP NHẬT GÓI DỮ LIỆU</button>
@@ -1104,7 +1104,7 @@ export default function SuperAdminPage() {
                             </p>
                          </div>
                          <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                            <p className="text-[11px] leading-relaxed text-slate-300">
+                            <p className="text-[11px] leading-relaxed text-slate-500">
                                Hệ thống hiện đang sử dụng cơ chế <span className="text-white font-bold">X-Hub-Signature-256</span> để xác thực tin nhắn. 
                                Yêu cầu phải có App Secret để bot có thể trả lời khách hàng.
                             </p>

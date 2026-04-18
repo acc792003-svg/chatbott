@@ -86,7 +86,7 @@ export default function KeywordManagement() {
                 <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-200 text-blue-600 rounded-xl flex items-center justify-center shadow-inner"><Globe size={20} /></div> 
                 Hệ Thống Quản Trị Từ Khóa (3-Layer)
              </h2>
-             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Phân lớp hội thoại tự động</p>
+             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">Phân lớp hội thoại tự động</p>
          </div>
          <div className="flex gap-3">
             <select value={filterLevel} onChange={e => setFilterLevel(e.target.value)} className="bg-white/80 backdrop-blur-md border border-white rounded-xl px-4 py-2 text-xs font-bold shadow-sm outline-none focus:ring-2 focus:ring-indigo-100">
@@ -210,10 +210,10 @@ export default function KeywordManagement() {
            </table>
            </div>
            {keywords.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-20 opacity-30 grayscale">
-                 <Globe size={48} className="mb-4" />
-                 <p className="text-sm font-black uppercase">Chưa có dữ liệu từ khóa</p>
-                 <p className="text-xs">Bắt đầu xây dựng bộ tri thức mẫu tại cột bên trái</p>
+              <div className="flex flex-col items-center justify-center py-20 opacity-50 grayscale">
+                 <Globe size={48} className="mb-4 text-slate-600" />
+                 <p className="text-sm font-black uppercase text-slate-700">Chưa có dữ liệu từ khóa</p>
+                 <p className="text-xs text-slate-600">Bắt đầu xây dựng bộ tri thức mẫu tại cột bên trái</p>
               </div>
            )}
         </div>
