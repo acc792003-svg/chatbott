@@ -90,7 +90,7 @@ export default function TelegramMonitor() {
   const healthScore = getHealthScore();
   const isKritical = stats && (stats.failed / stats.total) > 0.3;
 
-  if (loading) return <div className="p-8 text-xs font-bold text-slate-400 animate-pulse uppercase tracking-widest">📡 Đang kiểm tra đường truyền Telegram...</div>;
+  if (loading) return <div className="p-8 text-xs font-bold text-slate-500 animate-pulse uppercase tracking-widest">📡 Đang kiểm tra đường truyền Telegram...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
@@ -98,7 +98,7 @@ export default function TelegramMonitor() {
       {/* 📊 TELEGRAM CHANNEL STATS */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 relative overflow-hidden transition-all hover:-translate-y-1">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Channel Health</p>
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Channel Health</p>
           <div className="flex items-end gap-2">
             <h3 className={cn(
               "text-4xl font-black bg-clip-text text-transparent bg-gradient-to-br", 
@@ -106,7 +106,7 @@ export default function TelegramMonitor() {
             )}>
               {healthScore}
             </h3>
-            <span className="text-[10px] font-bold text-slate-400 mb-1.5">/ 100</span>
+            <span className="text-[10px] font-bold text-slate-500 mb-1.5">/ 100</span>
           </div>
           <div className={cn(
             "absolute top-4 right-4 text-[10px] font-black px-2.5 py-1 rounded-full shadow-sm",
@@ -117,7 +117,7 @@ export default function TelegramMonitor() {
         </div>
 
         <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-xl shadow-slate-200/50 transition-all hover:-translate-y-1">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery Rate</p>
+          <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">Delivery Rate</p>
           <div className="flex items-end gap-2">
             <h3 className="text-4xl font-black text-slate-800">{stats?.successRate || 0}%</h3>
           </div>
@@ -191,13 +191,13 @@ export default function TelegramMonitor() {
               <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-red-400 to-rose-600 text-white rounded-2xl shadow-[0_10px_20px_-5px_rgba(244,63,94,0.5)]"><ShieldAlert size={20}/></div>
               <div>
                 <h2 className="text-xl font-black bg-gradient-to-r from-red-600 to-rose-700 bg-clip-text text-transparent tracking-tight leading-none">NHẬT KÝ LỖI KÊNH</h2>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1.5">Telegram Specific Logs</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-1.5">Telegram Specific Logs</p>
               </div>
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar max-h-[500px]">
               {recentFails.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-2 opacity-50">
+                <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 opacity-60">
                    <BarChart3 size={48} />
                    <p className="text-[10px] font-black uppercase tracking-widest">Đường truyền Telegram thông suốt</p>
                 </div>
@@ -208,7 +208,7 @@ export default function TelegramMonitor() {
                      <div className="flex-1">
                         <div className="flex justify-between items-start mb-1">
                           <p className="text-[10px] font-black text-red-600 uppercase">Gửi tin thất bại</p>
-                          <span className="text-[9px] font-bold text-slate-400 italic">
+                          <span className="text-[9px] font-bold text-slate-500 italic">
                             {new Date(fail.created_at).toLocaleTimeString()}
                           </span>
                         </div>

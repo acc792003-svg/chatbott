@@ -88,7 +88,7 @@ export default function AiAnalytics() {
   const latencyAlert = perfStats && perfStats.avgLatency > 3000;
   const deliveryAlert = deliveryStats && deliveryStats.rate < 80;
 
-  if (loading) return <div className="p-8 text-xs font-bold text-slate-400 animate-pulse uppercase tracking-widest">📡 Đang giải mã dữ liệu nơ-ron...</div>;
+  if (loading) return <div className="p-8 text-xs font-bold text-slate-500 animate-pulse uppercase tracking-widest">📡 Đang giải mã dữ liệu nơ-ron...</div>;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
@@ -122,7 +122,7 @@ export default function AiAnalytics() {
                 <div className="flex items-end gap-3 mt-8">
                     <h3 className="text-7xl font-black text-white">{masterHealth}</h3>
                     <div className="mb-3">
-                        <p className="text-xs font-black text-white/40 uppercase">/ 100</p>
+                        <p className="text-xs font-black text-white/60 uppercase">/ 100</p>
                         <div className="flex gap-1 mt-1">
                             {[1,2,3,4,5].map(i => (
                                 <div key={i} className={cn("w-3 h-1.5 rounded-full", (masterHealth >= i * 20) ? "bg-emerald-500" : "bg-white/10")}></div>
@@ -140,14 +140,14 @@ export default function AiAnalytics() {
         )}>
             <div className="flex justify-between items-start">
                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                     <Zap size={14} className={latencyAlert ? "text-amber-600 animate-bounce" : "text-slate-400"}/> AI Processing
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2">
+                     <Zap size={14} className={latencyAlert ? "text-amber-600 animate-bounce" : "text-slate-500"}/> AI Processing
                   </p>
                   <div className="flex items-end gap-1">
                      <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", latencyAlert ? "from-amber-500 to-amber-700" : "from-slate-800 to-slate-600")}>
                         {perfStats?.avgLatency || 0}
                      </h3>
-                     <span className="text-[10px] font-bold text-slate-400 mb-1.5">ms</span>
+                     <span className="text-[10px] font-bold text-slate-500 mb-1.5">ms</span>
                   </div>
                </div>
                {latencyAlert && <AlertTriangle size={24} className="text-amber-600 animate-pulse" />}
@@ -169,8 +169,8 @@ export default function AiAnalytics() {
         )}>
             <div className="flex justify-between items-start">
                <div>
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
-                     <Send size={14} className={deliveryAlert ? "text-red-600 animate-ping" : "text-slate-400"}/> Lead Delivery
+                  <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2">
+                     <Send size={14} className={deliveryAlert ? "text-red-600 animate-ping" : "text-slate-500"}/> Lead Delivery
                   </p>
                   <div className="flex items-end gap-1">
                      <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", deliveryAlert ? "from-red-500 to-red-700" : "from-indigo-600 to-blue-600")}>
@@ -197,7 +197,7 @@ export default function AiAnalytics() {
             <div className="flex justify-between items-start mb-10">
                 <div>
                     <h2 className="text-2xl font-black bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent tracking-tight">ENGINE EFFICIENCY</h2>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hiệu quả tiết kiệm tài nguyên</p>
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest mt-1">Hiệu quả tiết kiệm tài nguyên</p>
                 </div>
                 <button onClick={fetchData} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-indigo-600 transition-all">
                     <RefreshCw size={20}/>
