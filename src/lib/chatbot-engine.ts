@@ -41,13 +41,16 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   let queryEmbedding: number[] | null = null;
   let totalUsageTokens = 0;
 
+  let shopCode = 'unknown';
   try {
+    const { data: shopData } = await supabaseAdmin.from('shops').select('name, code').eq('id', shopId).maybeSingle();
     const { data: shopConfig } = await supabaseAdmin.from('chatbot_configs')
       .select('shop_name, product_info, customer_insights, brand_voice, is_active, industry')
       .eq('shop_id', shopId)
-      .single();
+      .maybeSingle();
     
-    console.log(`[Engine] START chat for Shop: ${shopConfig?.shop_name || shopId}`);
+    shopCode = shopData?.code || 'unknown';
+    console.log(`[Engine] START chat for Shop: ${shopData?.name || shopConfig?.shop_name || shopId} (#${shopCode})`);
     
     // 1. EMBEDDING
     console.log(`[Engine] Lấy Embedding...`);
@@ -122,7 +125,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
           .select('id, summary')
           .eq('shop_id', shopId)
           .eq('external_user_id', externalUserId)
-          .single();
+          .maybeSingle();
 
        let faqContext = "";
        if (vectorFaqs && vectorFaqs.length > 0) {
@@ -162,7 +165,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
       .select('id, triggered_actions, last_action_at')
       .eq('shop_id', shopId)
       .eq('external_user_id', externalUserId)
-      .single();
+      .maybeSingle();
 
     if (convInfo && !isTechnical && detectedIntent !== 'unknown') {
       const triggeredActions = convInfo.triggered_actions || [];
@@ -205,7 +208,7 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
       error_type: 'ENGINE_CRASH',
       error_message: error.message,
       file_source: 'chatbot-engine.ts',
-      metadata: { platform, externalUserId, message: message.substring(0, 50) }
+      metadata: { shopCode: shopCode, platform, externalUserId, message: message.substring(0, 50) }
     }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
 
     return { answer: "Dạ, hệ thống đang bận một chút, bạn chờ mình vài giây rồi nhắn lại nhe! 🙏", source: 'ai', latency: 0 };

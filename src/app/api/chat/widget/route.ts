@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     // 1. Tìm shop_id từ code
-    const { data: shop } = await supabase.from('shops').select('id, name').eq('code', code).single();
+    const { data: shop } = await supabase.from('shops').select('id, name').eq('code', code).maybeSingle();
     
     if (!shop) {
       // 🔥 BÁO CÁO RADAR: SHOP KHÔNG TỒN TẠI
