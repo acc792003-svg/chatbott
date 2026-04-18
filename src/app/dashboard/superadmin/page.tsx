@@ -544,26 +544,69 @@ export default function SuperAdminPage() {
           </div>
         </div>
 
-        {/* TABS */}
-        <div className="flex flex-wrap gap-1.5 bg-white/70 backdrop-blur-xl p-2 rounded-2xl shadow-xl shadow-slate-200/40 border border-white mb-8 w-fit mx-2 ring-1 ring-slate-100">
-          {[
-            { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
-            { id: 'analytics', label: 'Phân tích AI', icon: <Brain size={14}/> },
-            { id: 'telegram', label: 'Kênh Telegram', icon: <Send size={14}/>, adminOnly: true },
-            { id: 'facebook', label: 'Kênh Facebook', icon: <MessageCircle size={14}/>, adminOnly: true },
-            { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
-            { id: 'keywords', label: 'Từ khóa (Intent)', icon: <Layers size={14}/> },
-            { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
-            { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
-            { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
-          ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
-            <button 
-              key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-              className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 transition-all hover:-translate-y-0.5", activeTab === tab.id ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-200 ring-2 ring-white" : "text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm")}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+        {/* TABS GROUPED */}
+        <div className="flex flex-col xl:flex-row gap-4 mb-10 w-full px-2 lg:px-0">
+          
+          {/* Group 1: Hệ thống lõi */}
+          <div className="bg-white/80 backdrop-blur-2xl p-3 rounded-[2rem] shadow-xl shadow-indigo-100/40 border border-white flex-1 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl -z-10"></div>
+             <div className="text-[10px] font-black uppercase text-indigo-500 mb-3 px-3 tracking-widest flex items-center gap-1.5"><Settings size={14}/> HỆ THỐNG LÕI (CORE)</div>
+             <div className="flex flex-wrap gap-2">
+               {[
+                 { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
+                 { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
+                 { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
+               ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
+                 <button 
+                   key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                   className={cn("px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 transition-all outline-none", activeTab === tab.id ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-indigo-200/50 scale-105 z-10" : "text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-indigo-600 hover:scale-[1.02]")}
+                 >
+                   {tab.icon} {tab.label}
+                 </button>
+               ))}
+             </div>
+          </div>
+
+          {/* Group 2: Tri Thức AI */}
+          <div className="bg-white/80 backdrop-blur-2xl p-3 rounded-[2rem] shadow-xl shadow-emerald-100/40 border border-white flex-1 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -z-10"></div>
+             <div className="text-[10px] font-black uppercase text-emerald-600 mb-3 px-3 tracking-widest flex items-center gap-1.5"><BrainCircuit size={14}/> TRÍ NÃO (AI KNOWLEDGE)</div>
+             <div className="flex flex-wrap gap-2">
+               {[
+                 { id: 'analytics', label: 'Phân tích AI', icon: <Brain size={14}/> },
+                 { id: 'knowledge', label: 'Xưởng Tri Thức', icon: <BrainCircuit size={14}/> },
+                 { id: 'keywords', label: 'Từ khóa (Intent)', icon: <Layers size={14}/> },
+               ].map((tab) => (
+                 <button 
+                   key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                   className={cn("px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 transition-all outline-none", activeTab === tab.id ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-200/50 scale-105 z-10" : "text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-emerald-600 hover:scale-[1.02]")}
+                 >
+                   {tab.icon} {tab.label}
+                 </button>
+               ))}
+             </div>
+          </div>
+
+          {/* Group 3: Kênh Giao Tiếp & Giám Sát */}
+          <div className="bg-white/80 backdrop-blur-2xl p-3 rounded-[2rem] shadow-xl shadow-rose-100/40 border border-white flex-1 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl -z-10"></div>
+             <div className="text-[10px] font-black uppercase text-rose-600 mb-3 px-3 tracking-widest flex items-center gap-1.5"><Send size={14}/> KÊNH PHÂN PHỐI & GIÁM SÁT</div>
+             <div className="flex flex-wrap gap-2">
+               {[
+                 { id: 'telegram', label: 'Kênh Telegram', icon: <Send size={14}/>, adminOnly: true },
+                 { id: 'facebook', label: 'Kênh Facebook', icon: <MessageCircle size={14}/>, adminOnly: true },
+                 { id: 'errors', label: 'Nhật ký lỗi', icon: <AlertTriangle size={14}/> },
+               ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
+                 <button 
+                   key={tab.id} onClick={() => setActiveTab(tab.id as any)}
+                   className={cn("px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 transition-all outline-none", activeTab === tab.id ? "bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-lg shadow-rose-200/50 scale-105 z-10" : "text-slate-500 bg-slate-50/50 hover:bg-slate-100 hover:text-rose-600 hover:scale-[1.02]")}
+                 >
+                   {tab.icon} {tab.label}
+                 </button>
+               ))}
+             </div>
+          </div>
+
         </div>
 
         {/* --- SYSTEM RADAR (QUICK INSIGHTS) --- */}
