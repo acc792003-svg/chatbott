@@ -69,7 +69,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
           intentScores[kw.intent] = (intentScores[kw.intent] || 0) + (Number(kw.weight) || 1);
         }
       });
-      const topIntent = Object.entries(intentScores).sort((a, b) => b[1] - a[1])[0];
+      const topIntent = Object.entries(intentScores).sort((a: any, b: any) => b[1] - a[1])[0];
       if (topIntent) detectedIntent = topIntent[0];
     }
     console.log(`[Engine] Intent: ${detectedIntent}`);
@@ -148,9 +148,10 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
        console.log(`[Engine] AI Brain finished. Tokens: ${totalUsageTokens}`);
 
        if (queryEmbedding && resultSource === 'ai' && finalResponse.length < 500) {
-          await supabaseAdmin.from('cache_answers').insert({ 
+          // Ghi đè cache thầm lặng, không làm gián đoạn luồng chính
+          supabaseAdmin.from('cache_answers').insert({ 
             shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding 
-          }).catch(() => {});
+          }).then(({error}) => { if(error) console.error('Cache error:', error.message) });
        }
     }
 
@@ -198,14 +199,14 @@ QUY TẮC: Trả lời lễ phép, dùng emoji. Nếu khách để lại SĐT, h
   } catch (error: any) {
     console.error('Core Engine Error:', error);
     
-    // 🔥 BÁO CÁO LỖI VỀ RADAR SUPER ADMIN
+    // 🔥 BÁO CÁO LỖI VỀ RADAR SUPER ADMIN (Chạy thầm lặng)
     supabaseAdmin.from('system_errors').insert({
       shop_id: shopId,
       error_type: 'ENGINE_CRASH',
       error_message: error.message,
       file_source: 'chatbot-engine.ts',
       metadata: { platform, externalUserId, message: message.substring(0, 50) }
-    }).catch(() => {});
+    }).then(({error}) => { if(error) console.error('Radar report failed:', error.message) });
 
     return { answer: "Dạ, hệ thống đang bận một chút, bạn chờ mình vài giây rồi nhắn lại nhe! 🙏", source: 'ai', latency: 0 };
   }
@@ -243,10 +244,10 @@ NỘI DUNG: ${historyText}`;
       }).eq('shop_id', shopId).eq('external_user_id', externalUserId);
       
       if (result.new_faq && result.satisfaction_score >= 8) {
-         await supabaseAdmin.from('faq_suggestions').insert({
+         supabaseAdmin.from('faq_suggestions').insert({
             shop_id: shopId, question: result.new_faq.question, 
             suggested_answer: result.new_faq.answer, status: 'pending'
-         }).catch(() => {});
+         }).then(({error}) => { if(error) console.error('FAQ suggestion failed:', error.message) });
       }
       
       if (result.satisfaction_score <= 4 || result.sentiment === 'negative') {
