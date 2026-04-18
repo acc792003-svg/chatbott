@@ -151,7 +151,7 @@ export default function LeadsClient() {
                     }`}
                    >
                      {updatingId === lead.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                     {lead.status === 'done' ? 'Đánh dấu chưa xử lý' : 'Đã liên hệ'}
+                     {lead.status === 'done' ? 'Hoàn tác (Chưa gọi)' : 'Xác nhận đã gọi'}
                    </button>
                    
                    <a 
