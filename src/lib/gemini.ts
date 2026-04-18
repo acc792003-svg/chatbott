@@ -168,7 +168,7 @@ export async function callGeminiWithFallback(
   }
   
   if (keysToTry.length === 0) {
-    return "Hệ thống đang bảo trì dịch vụ AI, bạn vui lòng quay lại sau ít phút nhé! 🙏";
+    return { text: "Hệ thống đang bảo trì dịch vụ AI, bạn vui lòng quay lại sau ít phút nhé! 🙏", tokens: 0 };
   }
 
   const config = generationConfig || { temperature: 0.8, maxOutputTokens: 1000 };
