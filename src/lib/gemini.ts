@@ -130,7 +130,8 @@ export async function callGeminiWithFallback(
   contents: any[],
   generationConfig?: any,
   shopId?: string | null,
-  source: string = "API_CHAT_WIDGET"
+  source: string = "API_CHAT_WIDGET",
+  systemInstruction?: string
 ): Promise<{ text: string, tokens: number }> {
   const globalStart = Date.now();
   const GLOBAL_TIMEOUT = 9000; // Giới hạn toàn bộ request trong 9s để tránh Vercel timeout (10s)
@@ -218,10 +219,15 @@ export async function callGeminiWithFallback(
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout 8s/key
 
+        const body: any = { contents: normalizedContents, generationConfig: config };
+        if (systemInstruction) {
+            body.system_instruction = { parts: [{ text: systemInstruction }] };
+        }
+
         const response = await fetch(apiURL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: normalizedContents, generationConfig: config }),
+          body: JSON.stringify(body),
           signal: controller.signal
         });
         clearTimeout(timeoutId);

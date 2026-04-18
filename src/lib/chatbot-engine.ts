@@ -113,22 +113,24 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     // 4. AI INFERENCE
     if (!finalResponse) {
-       const { data: convData } = await client.from('conversations').select('summary').eq('shop_id', shopId).eq('external_user_id', externalUserId).maybeSingle();
-       
        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
-        const systemPrompt = `BẠN LÀ Trợ lý shop "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
-${convData?.summary ? `TÓM TẮT TRƯỚC: ${convData.summary}` : ''}
-TRI THỨC VECTOR: ${faqContext}
-THÔNG TIN CHUNG: ${shopConfig?.product_info || ''}
-GIÁ CẢ: ${shopConfig?.pricing_info || ''}
-FAQ VĂN BẢN: ${shopConfig?.faq || ''}`;
+        const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
+HÃY SỬ DỤNG CÁC THÔNG TIN DƯỚI ĐÂY ĐỂ TRẢ LỜI KHÁCH HÀNG MỘT CÁCH TỰ NHIÊN. ĐỪNG LIỆT KÊ TÊN CÁC ĐẦU MỤC (NHƯ TRI THỨC VECTOR, GIÁ CẢ...).
+
+TRI THỨC VECTOR (KẾT QUẢ TÌM KIẾM): ${faqContext}
+THÔNG TIN CHĂM SÓC: ${shopConfig?.product_info || ''}
+BẢNG GIÁ: ${shopConfig?.pricing_info || ''}
+CÁC CÂU HỎI THƯỜNG GẶP: ${shopConfig?.faq || ''}
+
+QUY TẮC: 
+1. Nếu không có thông tin trong các mục trên, hãy trả lời lịch sự là "Dạ mình chưa có thông tin về vấn đề này, mình sẽ báo quản lý hỗ trợ bạn sớm nhe!".
+2. Luôn xưng hô thân thiện, dùng emoji phù hợp.`;
 
         const aiResult = await callGeminiWithFallback([
-          { role: 'user', parts: [{ text: systemPrompt }] },
-         ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
-         { role: 'user', parts: [{ text: message }] }
-       ], { temperature: 0.7 }, shopId);
+          ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+          { role: 'user', parts: [{ text: message }] }
+        ], { temperature: 0.7 }, shopId, 'API_CHAT_WIDGET', systemPrompt);
 
        finalResponse = aiResult.text;
        totalUsageTokens = aiResult.tokens;
