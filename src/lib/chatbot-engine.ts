@@ -45,7 +45,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   try {
     const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
     const { data: shopConfig } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, pricing_info, faq, is_active')
+      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active')
       .eq('shop_id', shopId)
       .maybeSingle();
     
@@ -124,21 +124,24 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
         const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
+GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
+CHIẾN LƯỢC BÁN HÀNG & THẤU HIỂU KHÁCH HÀNG: ${shopConfig?.customer_insights || ''}
 
 HÃY TUÂN THỦ THỨ TỰ ƯU TIÊN DỮ LIỆU SAU:
 1. 🥇 ƯU TIÊN 1 (TỐI CAO): Các thông tin trong "THÔNG TIN CHUNG", "GIÁ CẢ" và "FAQ VĂN BẢN" bên dưới.
 2. 🥈 ƯU TIÊN 2: Dữ liệu từ "TRI THỨC VECTOR" (dùng để bổ trợ nếu Ưu tiên 1 không có).
 
-THÔNG TIN CHUNG (Nguồn chính): ${shopConfig?.product_info || 'Không có'}
-GIÁ CẢ (Nguồn chính): ${shopConfig?.pricing_info || 'Không có'}
-FAQ VĂN BẢN (Nguồn chính): ${shopConfig?.faq || 'Không có'}
+THÔNG TIN CHUNG (Nguồn chính): ${shopConfig?.product_info || ''}
+GIÁ CẢ (Nguồn chính): ${shopConfig?.pricing_info || ''}
+FAQ VĂN BẢN (Nguồn chính): ${shopConfig?.faq || ''}
 
 TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
 
 QUY TẮC PHẢN HỒI:
-- Nếu thông tin trong "Nguồn chính" có, hãy dùng nó để trả lời ngay, kể cả khi "Tri thức Vector" nói khác.
+- Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
+- Ưu tiên thông tin trong "Nguồn chính", kể cả khi "Tri thức Vector" nói khác.
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
-- Nếu không có bất kỳ thông tin nào ở cả 2 nguồn, hãy trả lời: "Dạ hiện tại mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"`;
+- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"`;
 
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
