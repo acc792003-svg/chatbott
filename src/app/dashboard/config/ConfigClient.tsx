@@ -76,8 +76,8 @@ export default function ConfigClient() {
 
     const { data: convs } = await supabase.from('conversations').select('satisfaction_score, sentiment').eq('shop_id', shopId);
     if (convs && convs.length > 0) {
-       const sum = convs.reduce((acc, c) => acc + (c.satisfaction_score || 0), 0);
-       const pos = convs.filter(c => c.sentiment === 'positive').length;
+       const sum = convs.reduce((acc: number, c: any) => acc + (c.satisfaction_score || 0), 0);
+       const pos = convs.filter((c: any) => c.sentiment === 'positive').length;
        setStats({ avg_score: Math.round(sum / convs.length), positive: pos, total: convs.length });
     }
   };
