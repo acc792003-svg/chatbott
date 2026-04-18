@@ -158,8 +158,11 @@ export default function ConfigClient() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
-      <div className="flex items-center justify-between px-4 sm:px-0">
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Quản Lý Shop</h1>
+      <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-0 mb-4">
+        <div>
+           <h1 className="text-3xl font-black bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent tracking-tight">Cấu Hình Shop</h1>
+           <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Quản lý Tri thức & Tích hợp Mạng xã hội</p>
+        </div>
         <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
            <button 
              onClick={() => setActiveTab('general')}
@@ -178,7 +181,7 @@ export default function ConfigClient() {
       </div>
 
       {activeTab === 'general' ? (
-        <form onSubmit={handleSave} className="space-y-6 bg-white p-6 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/50">
+        <form onSubmit={handleSave} className="space-y-8 bg-white/70 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white shadow-2xl shadow-slate-200/50">
           <div className="space-y-5">
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 mb-1.5 ml-1">Tên cửa hàng</label>
@@ -241,8 +244,8 @@ export default function ConfigClient() {
             </div>
           </div>
 
-          <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-200 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2">
-            {loading ? 'Đang cập nhật...' : 'Xác nhận Lưu cấu hình'}
+          <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-700 hover:to-violet-700 text-white font-black py-4 rounded-2xl shadow-[0_10px_40px_-10px_rgba(79,70,229,0.7)] hover:shadow-[0_10px_40px_-5px_rgba(79,70,229,0.9)] hover:scale-[1.01] active:scale-[0.99] transition-all uppercase tracking-widest text-sm flex items-center justify-center gap-2 mt-8">
+            {loading ? 'Đang Thiết Lập...' : 'Xác Nhận Lưu Cấu Hình'}
           </button>
         </form>
       ) : (

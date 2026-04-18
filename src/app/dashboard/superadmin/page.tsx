@@ -523,29 +523,29 @@ export default function SuperAdminPage() {
   if (loading) return <div className="p-8 text-xs font-bold text-slate-400">SYNCING ADMIN CORE...</div>;
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] text-slate-800 p-2 md:p-6 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#F0F2F5] to-indigo-50/30 text-slate-800 p-2 md:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto focus-within:outline-none">
         
         {/* HEADER */}
-        <div className="flex items-center justify-between mb-4 px-2">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><Settings size={18}/></div>
+        <div className="flex items-center justify-between mb-8 px-2 mt-2">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center text-white shadow-[0_10px_20px_-5px_rgba(99,102,241,0.5)] transform transition-transform hover:scale-105 hover:rotate-3"><Settings size={22}/></div>
             <div>
-              <h1 className="text-base font-black tracking-tight text-slate-900 leading-none">SUPER CONTROL</h1>
-              <p className="text-[9px] text-slate-400 font-bold uppercase mt-1 tracking-wider text-xs">Enterprise Management</p>
+              <h1 className="text-2xl font-black bg-gradient-to-r from-slate-900 via-indigo-900 to-slate-800 bg-clip-text text-transparent leading-none tracking-tight">SUPER CONTROL</h1>
+              <p className="text-[10px] text-indigo-500 font-bold uppercase mt-1.5 tracking-[0.2em] bg-indigo-50 w-fit px-2.5 py-0.5 rounded-full border border-indigo-100/50">Enterprise Management</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5 bg-white/60 backdrop-blur-md border border-white p-2.5 pr-4 rounded-3xl shadow-sm">
+              <div className="w-10 h-10 bg-gradient-to-tr from-slate-900 to-slate-700 text-white rounded-full flex items-center justify-center font-black text-xs shadow-inner">SA</div>
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase leading-none">Nodes</p>
-                <p className="text-sm font-black text-slate-900">{shops.length}</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Nodes</p>
+                <p className="text-base font-black text-slate-900 leading-none">{shops.length}</p>
               </div>
-              <div className="w-9 h-9 bg-slate-900 text-white rounded-full flex items-center justify-center font-black text-xs">SA</div>
           </div>
         </div>
 
         {/* TABS */}
-        <div className="flex flex-wrap gap-1 bg-white p-1 rounded-xl shadow-sm border border-slate-200 mb-6 w-fit mx-2">
+        <div className="flex flex-wrap gap-1.5 bg-white/70 backdrop-blur-xl p-2 rounded-2xl shadow-xl shadow-slate-200/40 border border-white mb-8 w-fit mx-2 ring-1 ring-slate-100">
           {[
             { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
             { id: 'analytics', label: 'Phân tích AI', icon: <Brain size={14}/> },
@@ -559,7 +559,7 @@ export default function SuperAdminPage() {
           ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
             <button 
               key={tab.id} onClick={() => setActiveTab(tab.id as any)}
-              className={cn("px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-2 transition-all", activeTab === tab.id ? "bg-indigo-600 text-white shadow-md ring-2 ring-indigo-100" : "text-slate-500 hover:bg-slate-50")}
+              className={cn("px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2.5 transition-all hover:-translate-y-0.5", activeTab === tab.id ? "bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-lg shadow-indigo-200 ring-2 ring-white" : "text-slate-500 hover:bg-white hover:text-indigo-600 hover:shadow-sm")}
             >
               {tab.icon} {tab.label}
             </button>
