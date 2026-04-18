@@ -211,7 +211,7 @@ export default function SuperAdminPage() {
     const combined = [
         ...(oldLogs || []).map(l => ({ ...l, type: 'legacy' })),
         ...(newLogs || []).map(l => ({ ...l, type: 'critical' }))
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    ].sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     setErrorLogs(combined);
   };
