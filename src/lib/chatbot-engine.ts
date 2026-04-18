@@ -93,8 +93,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
                                    .sort((a: any, b: any) => b.hybridScore - a.hybridScore);
 
       if (scoredFaqs[0].hybridScore >= 0.85) {
-        finalResponse = scoredFaqs[0].answer;
-        resultSource = 'faq';
+        console.log(`[Engine] FAQ Match (Hybrid: ${scoredFaqs[0].hybridScore.toFixed(2)}), passing to AI to ensure Config priority.`);
       }
     }
 
@@ -106,8 +105,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         p_shop_id: shopId
       });
       if (cacheMatches && cacheMatches.length > 0) {
-        finalResponse = cacheMatches[0].answer;
-        resultSource = 'cache';
+        console.log(`[Engine] Cache Match (0.95+), but passing to AI to ensure Config priority.`);
       }
     }
 
@@ -116,16 +114,21 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
         const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopData?.name || shopConfig?.shop_name || 'Shop'}". 
-HÃY SỬ DỤNG CÁC THÔNG TIN DƯỚI ĐÂY ĐỂ TRẢ LỜI KHÁCH HÀNG MỘT CÁCH TỰ NHIÊN. ĐỪNG LIỆT KÊ TÊN CÁC ĐẦU MỤC (NHƯ TRI THỨC VECTOR, GIÁ CẢ...).
 
-TRI THỨC VECTOR (KẾT QUẢ TÌM KIẾM): ${faqContext}
-THÔNG TIN CHĂM SÓC: ${shopConfig?.product_info || ''}
-BẢNG GIÁ: ${shopConfig?.pricing_info || ''}
-CÁC CÂU HỎI THƯỜNG GẶP: ${shopConfig?.faq || ''}
+HÃY TUÂN THỦ THỨ TỰ ƯU TIÊN DỮ LIỆU SAU:
+1. 🥇 ƯU TIÊN 1 (TỐI CAO): Các thông tin trong "THÔNG TIN CHUNG", "GIÁ CẢ" và "FAQ VĂN BẢN" bên dưới.
+2. 🥈 ƯU TIÊN 2: Dữ liệu từ "TRI THỨC VECTOR" (dùng để bổ trợ nếu Ưu tiên 1 không có).
 
-QUY TẮC: 
-1. Nếu không có thông tin trong các mục trên, hãy trả lời lịch sự là "Dạ mình chưa có thông tin về vấn đề này, mình sẽ báo quản lý hỗ trợ bạn sớm nhe!".
-2. Luôn xưng hô thân thiện, dùng emoji phù hợp.`;
+THÔNG TIN CHUNG (Nguồn chính): ${shopConfig?.product_info || 'Không có'}
+GIÁ CẢ (Nguồn chính): ${shopConfig?.pricing_info || 'Không có'}
+FAQ VĂN BẢN (Nguồn chính): ${shopConfig?.faq || 'Không có'}
+
+TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
+
+QUY TẮC PHẢN HỒI:
+- Nếu thông tin trong "Nguồn chính" có, hãy dùng nó để trả lời ngay, kể cả khi "Tri thức Vector" nói khác.
+- Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
+- Nếu không có bất kỳ thông tin nào ở cả 2 nguồn, hãy trả lời: "Dạ hiện tại mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"`;
 
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
