@@ -33,8 +33,24 @@ export default function ConfigClient() {
   useEffect(() => {
     if (activeTab === 'ai_core' && shopId) {
       fetchSuggestions();
+      fetchActions();
     }
   }, [activeTab, shopId]);
+
+  const [actions, setActions] = useState<any[]>([]);
+  const [newAction, setNewAction] = useState({ type: 'menu', content: '', intent_binding: 'pricing' });
+
+  const fetchActions = async () => {
+     const { data } = await supabase.from('shop_actions').select('*').eq('shop_id', shopId).order('priority', { ascending: false });
+     setActions(data || []);
+  };
+
+  const handleAddAction = async () => {
+     if (!newAction.content) return;
+     await supabase.from('shop_actions').insert([{ ...newAction, shop_id: shopId }]);
+     setNewAction({ ...newAction, content: '' });
+     fetchActions();
+  };
 
   const fetchConfig = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -201,7 +217,64 @@ export default function ConfigClient() {
               </div>
            </div>
 
-           {/* FAQ Suggestions */}
+           {/* VÙNG 2: ACTION MANAGER (Công cụ chốt đơn tự động) */}
+           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/50">
+              <div className="flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-3">
+                    <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><Settings size={20}/></div>
+                    <div>
+                       <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Cấu hình Hàng động Tự động</h3>
+                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">Gắn link/voucher vào Ý định khách hàng</p>
+                    </div>
+                 </div>
+                 <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full uppercase">Funnel Mode ON</span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-8">
+                 <select value={newAction.type} onChange={e => setNewAction({...newAction, type: e.target.value})} className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-600">
+                    <option value="menu">Bảng giá / Menu</option>
+                    <option value="booking_link">Link đặt lịch</option>
+                    <option value="coupon">Mã giảm giá</option>
+                    <option value="testimonial">Lời chứng thực</option>
+                 </select>
+                 <select value={newAction.intent_binding} onChange={e => setNewAction({...newAction, intent_binding: e.target.value})} className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold text-slate-600">
+                    <option value="pricing">Khi khách hỏi giá</option>
+                    <option value="booking">Khi khách đặt lịch</option>
+                    <option value="info">Khi khách hỏi thông tin</option>
+                 </select>
+                 <input 
+                    type="text" 
+                    placeholder="Dán Link hoặc Voucher nội dung..." 
+                    value={newAction.content} 
+                    onChange={e => setNewAction({...newAction, content: e.target.value})} 
+                    className="md:col-span-1 bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs font-bold focus:ring-4 focus:ring-blue-50 transition-all" 
+                 />
+                 <button onClick={handleAddAction} className="bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase hover:bg-blue-600 shadow-lg shadow-slate-200 transition-all py-3">KÍCH HOẠT ACTION</button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                 {actions.map(action => (
+                    <div key={action.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group hover:border-blue-200 transition-all">
+                       <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-lg">⚡</div>
+                          <div className="min-w-0">
+                             <div className="flex items-center gap-2">
+                                <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{action.type}</p>
+                                <span className="text-[8px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full font-bold">INTENT: {action.intent_binding}</span>
+                             </div>
+                             <p className="text-[11px] text-slate-400 truncate w-48 mt-1 font-mono">{action.content}</p>
+                          </div>
+                       </div>
+                       <button onClick={async () => { if(confirm('Xóa?')) { await supabase.from('shop_actions').delete().eq('id', action.id); fetchActions(); } }} className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all">
+                          <XCircle size={14}/>
+                       </button>
+                    </div>
+                 ))}
+                 {actions.length === 0 && <div className="md:col-span-2 text-center py-6 text-slate-300 italic text-[11px]">Chưa có hành động bán hàng nào được cấu hình...</div>}
+              </div>
+           </div>
+
+           {/* VÙNG 3: ĐỀ XUẤT FAQ TỪ AI (EXISTING) */}
            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl">
               <div className="flex items-center justify-between mb-6">
                  <div>
