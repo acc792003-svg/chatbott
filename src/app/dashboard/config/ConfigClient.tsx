@@ -30,10 +30,6 @@ export default function ConfigClient() {
   const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [stats, setStats] = useState({ avg_score: 0, positive: 0, total: 0 });
 
-  useEffect(() => {
-    setMounted(true);
-    fetchConfig();
-  }, []);
 
   useEffect(() => {
     if (activeTab === 'ai_core' && shopId) {
@@ -63,7 +59,61 @@ export default function ConfigClient() {
      fetchActions();
   };
 
-  const fetchConfig = async () => {
+  const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isCheckingPin, setIsCheckingPin] = useState(true);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState('');
+
+  const checkPinFirst = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+    if (userData?.shop_id) {
+       setShopId(userData.shop_id);
+       
+       try {
+           const res = await fetch('/api/config/check-pin', {
+               method: 'POST', body: JSON.stringify({ shopId: userData.shop_id, pin: '' })
+           });
+           const verify = await res.json();
+           if (!verify.requiresPin) {
+               // No pin required
+               setIsUnlocked(true);
+               fetchConfigData(userData.shop_id);
+           }
+       } catch (e) {
+           console.error('Lỗi kiểm tra PIN', e);
+       } finally {
+           setIsCheckingPin(false);
+       }
+    }
+  };
+
+  const handleUnlock = async (e: any) => {
+      e.preventDefault();
+      setPinError('');
+      try {
+          const res = await fetch('/api/config/check-pin', {
+              method: 'POST', body: JSON.stringify({ shopId, pin: pinInput })
+          });
+          const verify = await res.json();
+          if (verify.success) {
+              setIsUnlocked(true);
+              fetchConfigData(shopId);
+          } else {
+              setPinError(verify.error || 'Sai mã PIN');
+          }
+      } catch (e) {
+          setPinError('Lỗi máy chủ');
+      }
+  };
+
+  useEffect(() => {
+    setMounted(true);
+    checkPinFirst();
+  }, []);
+
+  const fetchConfigData = async (targetShopId: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
@@ -227,7 +277,34 @@ export default function ConfigClient() {
     }
   };
 
-  if (!mounted) return <div className="p-8">Đang tải...</div>;
+  if (!mounted || isCheckingPin) return <div className="flex flex-col items-center justify-center p-20 opacity-50"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xs font-bold font-mono">Đang kiểm tra an ninh...</p></div>;
+
+  if (!isUnlocked) {
+      return (
+          <div className="max-w-md mx-auto mt-20 p-8 bg-white border border-slate-100 shadow-2xl rounded-3xl animate-in fade-in zoom-in duration-300 relative overflow-hidden">
+             <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><Settings size={150}/></div>
+             <div className="relative z-10 text-center">
+                 <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                 </div>
+                 <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Khu Vực Bảo Mật</h2>
+                 <p className="text-xs text-slate-500 mb-8 font-medium">Bạn cần nhập mã PIN để xem và chỉnh sửa cấu hình Shop. Liên hệ SuperAdmin nếu quên mã.</p>
+                 <form onSubmit={handleUnlock}>
+                    <input 
+                       type="password" 
+                       value={pinInput} 
+                       onChange={e => setPinInput(e.target.value)} 
+                       className="w-full text-center text-2xl tracking-[0.5em] font-black bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:outline-none focus:border-rose-500 transition-all mb-2"
+                       placeholder="••••"
+                       autoFocus
+                    />
+                    {pinError && <p className="text-[10px] text-rose-500 font-bold mb-4">{pinError}</p>}
+                    <button type="submit" className="w-full mt-4 bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-slate-200">MỞ KHÓA CONFIG</button>
+                 </form>
+             </div>
+          </div>
+      );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -297,7 +374,12 @@ export default function ConfigClient() {
                      </div>
                      <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
                         <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Telegram Bot Token</label>
-                        <input type="text" value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="7123912:AAGF..." />
+                        <div className="relative">
+                            <input type={showToken ? "text" : "password"} value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 pr-10 text-sm font-mono outline-none focus:border-blue-500" placeholder="7123912:AAGF..." />
+                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-blue-600">
+                                {showToken ? <EyeOff size={16}/> : <Eye size={16}/>}
+                            </button>
+                        </div>
                      </div>
                   </div>
                </div>

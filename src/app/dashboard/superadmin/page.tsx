@@ -765,7 +765,7 @@ export default function SuperAdminPage() {
                                 {openShopId === shop.id && (
                                     <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
                                         <td colSpan={4} className="p-6 pl-16 border-l-4 border-indigo-600 relative">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
                                                 {/* ICON CONFIG */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><ImageIcon size={12}/> Hình đại diện (Icon Bot)</p>
@@ -805,7 +805,7 @@ export default function SuperAdminPage() {
 
                                                 {/* FACEBOOK CONFIG (NEW) */}
                                                 <div>
-                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-indigo-400"><MessageCircle size={12}/> Cấu hình Facebook Messenger</p>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-indigo-400"><MessageCircle size={12}/> Cấu hình Facebook</p>
                                                     <div className="space-y-4">
                                                         <div>
                                                             <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page ID</label>
@@ -829,17 +829,47 @@ export default function SuperAdminPage() {
                                                         </div>
                                                         <button 
                                                             onClick={() => {
-                                                                const id = (document.getElementById(`fbp-id-${shop.id}`) as HTMLInputElement).value;
+                                                                const pageId = (document.getElementById(`fbp-id-${shop.id}`) as HTMLInputElement).value;
                                                                 const token = (document.getElementById(`fbp-token-${shop.id}`) as HTMLInputElement).value;
-                                                                handleUpdateFBConfig(shop.id, id, token);
+                                                                handleUpdateFBConfig(shop.id, pageId, token);
                                                             }}
-                                                            className="w-full bg-indigo-600/20 hover:bg-indigo-600 text-indigo-400 hover:text-white py-2 rounded-xl text-[9px] font-black uppercase transition-all"
+                                                            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
                                                         >
-                                                            Lưu cấu hình Messenger
+                                                            Lưu Cấu Hình FB
                                                         </button>
                                                     </div>
                                                 </div>
 
+                                                {/* PIN CONFIG (SECURITY) */}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-rose-400"><Lock size={12}/> Khóa an toàn Config</p>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Thiết lập mã / Để trống để bỏ khóa</label>
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="Nhập PIN (VD: 1234)..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-rose-500"
+                                                                id={`pin-${shop.id}`}
+                                                            />
+                                                        </div>
+                                                        <button 
+                                                            onClick={async () => {
+                                                                const newPin = (document.getElementById(`pin-${shop.id}`) as HTMLInputElement).value;
+                                                                try {
+                                                                    const res = await fetch('/api/config/reset-pin', {
+                                                                        method: 'POST', body: JSON.stringify({ shopId: shop.id, newPin, requesterId: currentUserId })
+                                                                    });
+                                                                    if (res.ok) alert('Đã cập nhật mã PIN cấu hình thành công!');
+                                                                    else alert('Lỗi hệ thống!');
+                                                                } catch(e) { }
+                                                            }}
+                                                            className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
+                                                        >
+                                                            Lưu Khóa Config
+                                                        </button>
+                                                    </div>
+                                                </div>
                                                 {/* ACCOUNT CONFIG */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><Mail size={12}/> Tài khoản & Mật khẩu</p>
