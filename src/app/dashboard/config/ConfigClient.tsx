@@ -14,7 +14,9 @@ export default function ConfigClient() {
   // States cho Cấu hình chung
   const [shopName, setShopName] = useState('');
   const [productInfo, setProductInfo] = useState('');
+  const [pricingInfo, setPricingInfo] = useState('');
   const [customerInsights, setCustomerInsights] = useState('');
+  const [brandVoice, setBrandVoice] = useState('');
   const [faq, setFaq] = useState('');
   const [fbPageId, setFbPageId] = useState('');
   const [fbAccessToken, setFbAccessToken] = useState('');
@@ -62,7 +64,9 @@ export default function ConfigClient() {
       if (config) {
         setShopName(config.shop_name || '');
         setProductInfo(config.product_info || '');
+        setPricingInfo(config.pricing_info || '');
         setCustomerInsights(config.customer_insights || '');
+        setBrandVoice(config.brand_voice || '');
         setFaq(config.faq || '');
         setTelegramChatId(config.telegram_chat_id || '');
         setTelegramBotToken(config.telegram_bot_token || '');
@@ -121,7 +125,9 @@ export default function ConfigClient() {
         shop_id: shopId,
         shop_name: shopName.trim(),
         product_info: productInfo.trim(),
+        pricing_info: pricingInfo.trim(),
         customer_insights: customerInsights.trim(),
+        brand_voice: brandVoice.trim(),
         faq: faq.trim(),
         is_active: true,
         telegram_chat_id: telegramChatId.trim(),
@@ -190,12 +196,23 @@ export default function ConfigClient() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Tri thức cơ bản</label>
-                <textarea rows={6} value={productInfo} onChange={e => setProductInfo(e.target.value)} placeholder="Mô tả shop của bạn..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
+                <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Thông tin chung</label>
+                <textarea rows={6} value={productInfo} onChange={e => setProductInfo(e.target.value)} placeholder="- Tên thương hiệu: ...&#10;- Địa chỉ: ...&#10;- Hotline: ..." className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
               </div>
               <div>
-                <label className="block text-[10px] font-black uppercase text-indigo-400 mb-1.5 ml-1 flex items-center gap-1">Kịch bản Sales & Giọng điệu <span className="text-xs">✨</span></label>
-                <textarea rows={6} value={customerInsights} onChange={e => setCustomerInsights(e.target.value)} placeholder="Dán luồng tư vấn tại đây..." className="w-full bg-indigo-50/20 border border-indigo-100/50 rounded-2xl p-3.5 text-sm italic" />
+                <label className="block text-[10px] font-black uppercase text-emerald-600 mb-1.5 ml-1">Thông tin Giá Cả</label>
+                <textarea rows={6} value={pricingInfo} onChange={e => setPricingInfo(e.target.value)} placeholder="- Gói Cơ bản: 199k&#10;- Gói VIP: 299k..." className="w-full bg-emerald-50/20 border border-emerald-100/50 rounded-2xl p-3.5 text-sm" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-[10px] font-black uppercase text-indigo-400 mb-1.5 ml-1 flex items-center gap-1">Chiến lược Bán hàng <span className="text-xs">✨</span></label>
+                <textarea rows={6} value={customerInsights} onChange={e => setCustomerInsights(e.target.value)} placeholder="- Khi khách hỏi giá, báo giá xong BẮT BUỘC hỏi..." className="w-full bg-indigo-50/20 border border-indigo-100/50 rounded-2xl p-3.5 text-sm italic" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black uppercase text-blue-600 mb-1.5 ml-1 flex items-center gap-1">Giọng điệu Chatbot</label>
+                <textarea rows={6} value={brandVoice} onChange={e => setBrandVoice(e.target.value)} placeholder="Nhẹ nhàng, lễ phép, xưng 'dạ/vâng'..." className="w-full bg-blue-50/20 border border-blue-100/50 rounded-2xl p-3.5 text-sm italic" />
               </div>
             </div>
 
