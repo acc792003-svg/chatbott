@@ -218,8 +218,8 @@ export async function detectAndSaveLead(message: string, shopId: string, session
     if (error) throw error;
 
     if (shopConfig?.telegram_enabled !== false && shopConfig?.telegram_chat_id) {
-       // Không đợi (AWAIT) quá lâu trong stream, nhưng xử lý retry bên trong hàm
-       sendTelegramNotification({
+       // BẮT BUỘC AWAIT trên môi trường Serverless để tránh bị giết vòng lặp
+       await sendTelegramNotification({
          botToken: shopConfig.telegram_bot_token,
          chatId: shopConfig.telegram_chat_id,
          phone: cleanPhone,
