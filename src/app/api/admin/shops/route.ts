@@ -46,6 +46,9 @@ export async function GET(req: NextRequest) {
         plan_expiry_date, 
         created_at, 
         slug,
+        pin_hash,
+        fb_page_id,
+        fb_page_token,
         users (email, id)
       `)
       .order('created_at', { ascending: false });

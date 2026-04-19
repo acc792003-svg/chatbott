@@ -88,36 +88,30 @@ export default function HistoryPage() {
           ) : (
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-indigo-50/50 text-[10px] font-black text-indigo-500 uppercase tracking-widest">
-                  <th className="px-8 py-4">Khách hàng / Session</th>
-                  <th className="px-8 py-4">Câu hỏi (User)</th>
-                  <th className="px-8 py-4">AI Trả lời</th>
-                  <th className="px-8 py-4">Thời gian</th>
+                <tr className="bg-indigo-50/50 text-[9px] font-black text-indigo-500 uppercase tracking-wide">
+                  <th className="px-4 py-2.5 w-32">Session</th>
+                  <th className="px-4 py-2.5 w-1/3">User Msg</th>
+                  <th className="px-4 py-2.5 w-1/2">AI Response</th>
+                  <th className="px-4 py-2.5 w-24">Time</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h) => (
                   <tr key={h.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-8 py-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl flex items-center justify-center font-bold text-xs shadow-md">
-                          <UserIcon />
-                        </div>
-                        <span className="font-black text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg" title={h.session_id}>
-                          Phiên #{(h.session_id || '').replace(/-/g, '').substring(0, 8).toUpperCase()}
+                    <td className="px-4 py-2 align-top">
+                        <span className="font-bold text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded" title={h.session_id}>
+                          #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
                         </span>
-                      </div>
-
                     </td>
-                    <td className="px-8 py-5">
-                      <p className="text-sm text-slate-900 font-bold line-clamp-2 leading-relaxed max-w-xs">{h.user_message}</p>
+                    <td className="px-4 py-2 align-top">
+                      <p className="text-[11px] text-slate-800 font-medium whitespace-pre-wrap leading-tight">{h.user_message}</p>
                     </td>
-                    <td className="px-8 py-5">
-                      <p className="text-xs text-emerald-700 bg-emerald-50 p-3 rounded-2xl line-clamp-2 max-w-md shadow-inner">{h.ai_response}</p>
+                    <td className="px-4 py-2 align-top">
+                      <p className="text-[10px] text-emerald-800 bg-emerald-50/50 p-2 rounded-lg whitespace-pre-wrap leading-tight">{h.ai_response}</p>
                     </td>
-                    <td className="px-8 py-5 whitespace-nowrap">
-                      <p className="text-sm font-black text-slate-900">{new Date(h.created_at).toLocaleTimeString()}</p>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase">{new Date(h.created_at).toLocaleDateString()}</p>
+                    <td className="px-4 py-2 whitespace-nowrap align-top text-right">
+                      <p className="text-[11px] font-bold text-slate-700">{new Date(h.created_at).toLocaleTimeString()}</p>
+                      <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(h.created_at).toLocaleDateString()}</p>
                     </td>
                   </tr>
                 ))}

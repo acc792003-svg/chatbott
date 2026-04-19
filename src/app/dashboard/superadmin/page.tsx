@@ -884,7 +884,10 @@ export default function SuperAdminPage() {
 
                                                 {/* PIN CONFIG (SECURITY) */}
                                                 <div>
-                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-rose-400"><Lock size={12}/> Khóa an toàn Config</p>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-rose-400">
+                                                        <Lock size={12}/> Khóa an toàn Config
+                                                        {shop.pin_hash && <span className="ml-2 bg-rose-500 text-white px-1.5 py-0.5 rounded-md text-[8px]">ĐÃ KHÓA</span>}
+                                                    </p>
                                                     <div className="space-y-4">
                                                         <div>
                                                             <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Thiết lập mã / Để trống để bỏ khóa</label>
