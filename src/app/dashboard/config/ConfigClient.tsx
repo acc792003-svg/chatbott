@@ -25,6 +25,7 @@ export default function ConfigClient() {
 
   // States cho Smart AI Core
   const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [vectorFaqs, setVectorFaqs] = useState<any[]>([]);
   const [stats, setStats] = useState({ avg_score: 0, positive: 0, total: 0 });
 
   useEffect(() => {
@@ -36,11 +37,17 @@ export default function ConfigClient() {
     if (activeTab === 'ai_core' && shopId) {
       fetchSuggestions();
       fetchActions();
+      fetchVectorFaqs();
     }
   }, [activeTab, shopId]);
 
   const [actions, setActions] = useState<any[]>([]);
   const [newAction, setNewAction] = useState({ type: 'menu', content: '', intent_binding: 'pricing' });
+
+  const fetchVectorFaqs = async () => {
+     const { data } = await supabase.from('faqs').select('id, question, answer').eq('shop_id', shopId).order('created_at', { ascending: false });
+     setVectorFaqs(data || []);
+  };
 
   const fetchActions = async () => {
      const { data } = await supabase.from('shop_actions').select('*').eq('shop_id', shopId).order('priority', { ascending: false });
@@ -411,8 +418,47 @@ export default function ConfigClient() {
                    ))}
                 </div>
               )}
-           </div>
-        </div>
+            {/* VÙNG 4: KHO TRI THỨC ĐÃ LƯU (VECTOR DB) */}
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl mt-6">
+               <div className="flex items-center justify-between mb-6">
+                  <div>
+                     <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                        <CheckCircle className="text-emerald-500" size={20} /> Kho Tri Thức Riêng (Vector DB)
+                     </h2>
+                     <p className="text-xs text-slate-600 font-medium">Danh sách các câu hỏi đã được nhúng thuật toán và đang hoạt động</p>
+                  </div>
+                  <button onClick={fetchVectorFaqs} className="text-[10px] font-bold text-blue-600 hover:underline">Làm mới</button>
+               </div>
+
+               {vectorFaqs.length === 0 ? (
+                 <div className="py-6 text-center opacity-50">
+                    <p className="text-xs font-bold">Chưa có tri thức nào được vector hóa.</p>
+                 </div>
+               ) : (
+                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                    {vectorFaqs.map((f: any) => (
+                      <div key={f.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between gap-4 group hover:border-emerald-200 transition-all">
+                         <div className="flex-1">
+                            <p className="text-[11px] font-black text-slate-800 mb-1">Q: {f.question}</p>
+                            <p className="text-[11px] text-slate-600">A: {f.answer}</p>
+                         </div>
+                         <button 
+                           onClick={async () => {
+                             if(confirm('Bạn có chắc muốn xóa tri thức này? AI sẽ không dùng nó nữa.')) {
+                               await supabase.from('faqs').delete().eq('id', f.id);
+                               fetchVectorFaqs();
+                             }
+                           }}
+                           className="w-8 h-8 rounded-lg bg-white border border-slate-100 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all shrink-0"
+                         >
+                           <XCircle size={14}/>
+                         </button>
+                      </div>
+                    ))}
+                 </div>
+               )}
+            </div>
+         </div>
       )}
     </div>
   );
