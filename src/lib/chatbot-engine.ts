@@ -137,7 +137,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     let faqContext = "";
     const { data: vectorFaqs } = await client.rpc('match_faqs', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.80, // Lấy tới mức 0.80 (để phân loại 3 mức độ)
+      match_threshold: 0.60, // Lower threshold to allow routing logic (0.6 - 0.9)
       match_count: 3,
       p_shop_id: shopId
     });
@@ -154,16 +154,23 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         finalResponse = scoredFaqs[0].answer;
         resultSource = 'faq';
       } 
-      // 🥈 MỨC 2: 0.80 - 0.89 -> Gom context 2-3 câu FAQ nạp vào AI
+      // 🥈 MỨC 2: 0.80 - 0.89 -> Inject Vector only
       else if (topScore >= 0.80) {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.80~0.89) - Gửi AI nhào nặn`);
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.80~0.89) - Lazy Inject: Vector Only`);
          const validFaqs = scoredFaqs.filter((f: any) => f.hybridScore >= 0.80);
          faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
-      // 🥉 MỨC 3: < 0.80 -> Quá lệch, KHÔNG lấy FAQ làm context để tránh nhiễu AI
-      else {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.80) - Quá lệch, KHÔNG nạp FAQ`);
+      // 🥉 MỨC 3: 0.60 - 0.80 -> Inject Vector + partial Fallback
+      else if (topScore >= 0.60) {
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.60~0.80) - Lazy Inject: Vector + Partial`);
+         const validFaqs = scoredFaqs.filter((f: any) => f.hybridScore >= 0.60);
+         faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
+      else {
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.60) - FULL FALLBACK MODE`);
+      }
+    } else {
+        console.log(`[Engine] No Vector Match - FULL FALLBACK MODE`);
     }
 
     if (!finalResponse) {
@@ -174,7 +181,9 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         p_shop_id: shopId
       });
       if (cacheMatches && cacheMatches.length > 0) {
-        console.log(`[Engine] Cache Match (0.95+), but passing to AI to ensure Config priority.`);
+        console.log(`[Engine] Cache Match (0.95+) - FAST PATH, SKIP AI!`);
+        finalResponse = cacheMatches[0].answer;
+        resultSource = 'cache';
       }
     }
 
@@ -184,8 +193,22 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         // Phát hiện khách nhập số điện thoại sai định dạng
         const { hasNearPhone, rawNumber } = detectNearPhone(message);
         const phoneHint = hasNearPhone
-          ? `\n\n⚠️ CHÚ Ý ĐọC KỸ: Khách vừa nhập cỗ số "${rawNumber}" nhưng đây KHÔNG PHẢI số điện thoại Việt Nam hợp lệ (phải bắt đầu bằng 0 và có 10 số, VD: 0912345678). Hãy niềm nở nhập vai nhắc khách bổ sung lại đúng định dạng, đừng nói thẳng "số sai" mà hãy hỏi lại nhẹ nhàng: VD "Bạn ơi số điện thoại của bạn là 0xxx... đầy đủ được không ạ? để mình báo shop liên hệ bạn ngay nhe! 😊"`
+          ? `\n\n⚠️ CHÚ Ý ĐọC KỸ: Khách vừa nhập cỗ số "${rawNumber}" nhưng đây KHÔNG PHẢI số điện thoại Việt Nam hợp lệ. Hãy nhẹ nhàng hỏi lại khách bổ sung thành định dạng chuẩn.`
           : '';
+
+        // Tối ưu Payload: Nếu Vector Match đủ tốt (>0.80), cắt bỏ globalFaq (tuyệt chiêu Context Layering)
+        let injectedGlobalFaq = globalFaq;
+        let injectedGlobalProduct = globalProductInfo;
+        const currentTopScore = (vectorFaqs && vectorFaqs.length > 0) 
+             ? ((vectorFaqs[0].similarity * 0.7) + (vectorFaqs[0].question.toLowerCase().includes(normalized) ? 0.3 : 0))
+             : 0;
+
+        if (currentTopScore >= 0.80) {
+             injectedGlobalFaq = ''; // Bỏ hoàn toàn rác FAQ thô vì Vector đã lo
+        } else if (currentTopScore >= 0.60) {
+             // Giữ nguyên product info, nhưng FAQ thô vẫn kìm bớt
+             injectedGlobalFaq = injectedGlobalFaq ? "--- Ghi chú: Hãy tra trong TRI THỨC VECTOR là chính ---" : '';
+        }
 
         const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopConfig?.shop_name || shopData?.name || 'Shop'}". 
 GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
@@ -197,23 +220,23 @@ HÃY TUÂN THỦ THỨ TỰ ƯU TIÊN DỮ LIỆU SAU:
 2. 🥈 ƯU TIÊN 2: Dữ liệu từ "TRI THỨC VECTOR" (dùng để bổ trợ nếu Ưu tiên 1 không có).
 
 THÔNG TIN CHUNG (Nguồn chính):
-${globalProductInfo}
+${injectedGlobalProduct}
 ${shopConfig?.product_info || ''}
 
 GIÁ CẢ (Nguồn chính):
 ${shopConfig?.pricing_info || ''}
 
 FAQ VĂN BẢN (Nguồn chính):
-${globalFaq}
+${injectedGlobalFaq}
 ${shopConfig?.faq || ''}
 
 TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
 
 QUY TẮC PHẢN HỒI:
 - Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
-- Ưu tiên thông tin trong "Nguồn chính", kể cả khi "Tri thức Vector" nói khác.
+- Ưu tiên lệnh tại Shop Config hơn Global Config.
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
-- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"${phoneHint}`;
+- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác, mình xin phép báo quản lý hỗ trợ bạn ngay nhe!"${phoneHint}`;
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }

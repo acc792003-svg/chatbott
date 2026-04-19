@@ -257,36 +257,26 @@ export default function ConfigClient() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.from('chatbot_configs').upsert({
-        shop_id: shopId,
-        shop_name: shopName.trim(),
-        product_info: productInfo.trim(),
-        pricing_info: pricingInfo.trim(),
-        customer_insights: customerInsights.trim(),
-        brand_voice: brandVoice.trim(),
-        faq: faq.trim(),
-        is_active: true,
-        telegram_chat_id: telegramChatId.trim(),
-        telegram_bot_token: telegramBotToken.trim()
-      }, { onConflict: 'shop_id' });
-      
-      if (error) throw error;
-      
-      if (fbPageId.trim() || fbAccessToken.trim()) {
-        const { error: fbError } = await supabase.from('channel_configs').upsert({
-          shop_id: shopId,
-          channel_type: 'facebook',
-          provider_id: fbPageId.trim(),
-          access_token: fbAccessToken.trim()
-        }, { onConflict: 'channel_type, provider_id' });
-        
-        await supabase.from('shops').update({ 
-            fb_page_id: fbPageId.trim(), 
-            fb_page_token: fbAccessToken.trim() 
-        }).eq('id', shopId);
+      const res = await fetch('/api/config/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+              shopId,
+              shopName: shopName.trim(),
+              productInfo: productInfo.trim(),
+              pricingInfo: pricingInfo.trim(),
+              customerInsights: customerInsights.trim(),
+              brandVoice: brandVoice.trim(),
+              faq: faq.trim(),
+              telegramChatId: telegramChatId.trim(),
+              telegramBotToken: telegramBotToken.trim(),
+              fbPageId: fbPageId.trim(),
+              fbAccessToken: fbAccessToken.trim()
+          })
+      });
 
-        if (fbError && fbError.code !== '23505') throw fbError;
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi lưu cấu hình');
 
       alert('✅ Đã lưu cấu hình thành công!');
     } catch (err: any) {
