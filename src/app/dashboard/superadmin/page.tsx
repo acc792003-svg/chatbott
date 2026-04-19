@@ -360,8 +360,16 @@ export default function SuperAdminPage() {
 
   // ==================== KNOWLEDGE WORKSHOP ACTIONS ====================
   const handleProcessKnowledge = async () => {
-    if (!bulkRawFaq.trim() || !industryName.trim() || !packageName.trim()) {
-        setProcessStatus('❌ Thiếu thông tin nạp liệu!');
+    if (!industryName.trim()) {
+        addToast('Lỗi: Bạn chưa nhập thông tin Ngành Hàng (1)', 'error');
+        return;
+    }
+    if (!packageName.trim()) {
+        addToast('Lỗi: Bạn chưa nhập Tên Gói Tri Thức (2)', 'error');
+        return;
+    }
+    if (!bulkRawFaq.trim()) {
+        addToast('Lỗi: Bạn chưa dán nội dung Tri Thức (3)', 'error');
         return;
     }
 
@@ -374,14 +382,15 @@ export default function SuperAdminPage() {
 
     lines.forEach(line => {
         const cleanLine = line.trim();
-        if (cleanLine.toUpperCase().startsWith('Q:')) {
+        const upperLine = cleanLine.toUpperCase();
+        if (upperLine.startsWith('Q:') || upperLine.startsWith('QUESTION:') || upperLine.startsWith('HỎI:')) {
             if (currentQ && currentA) faqList.push({ q: currentQ, a: currentA });
-            currentQ = cleanLine.replace(/^Q:\s*/i, '');
+            currentQ = cleanLine.replace(/^(Q:|QUESTION:|HỎI:)\s*/i, '');
             currentA = '';
-        } else if (cleanLine.toUpperCase().startsWith('A:')) {
-            currentA = cleanLine.replace(/^A:\s*/i, '');
+        } else if (upperLine.startsWith('A:') || upperLine.startsWith('ANSWER:') || upperLine.startsWith('ĐÁP:') || upperLine.startsWith('TRẢ LỜI:')) {
+            currentA = cleanLine.replace(/^(A:|ANSWER:|ĐÁP:|TRẢ LỜI:)\s*/i, '');
         } else if (cleanLine && currentA) {
-            currentA += ' ' + cleanLine; // Hỗ trợ câu trả lời nhiều dòng
+            currentA += '\n' + cleanLine; // Hỗ trợ câu trả lời nhiều dòng bằng newline
         }
     });
     if (currentQ && currentA) faqList.push({ q: currentQ, a: currentA });
@@ -971,7 +980,7 @@ export default function SuperAdminPage() {
                     
                     <button 
                         onClick={handleProcessKnowledge} 
-                        disabled={isProcessing || !bulkRawFaq.trim() || userRole !== 'super_admin'} 
+                        disabled={isProcessing || userRole !== 'super_admin'} 
                         className={cn(
                             "w-full font-black py-4 rounded-2xl text-xs uppercase shadow-[0_10px_30px_-10px_rgba(16,185,129,0.6)] transition-all flex items-center justify-center gap-3 hover:scale-[1.02] active:scale-[0.98]",
                             userRole === 'super_admin' ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700" : "bg-slate-100 text-slate-400 cursor-not-allowed shadow-none"
