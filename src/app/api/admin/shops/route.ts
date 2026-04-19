@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
     const enrichedShops = shops.map((shop: any) => {
         const pkgs = mappings?.filter((m: any) => m.shop_id === shop.id).map((m: any) => {
             const template = templates?.find((t: any) => t.id === m.template_id);
-            return template ? template.package_name : null;
+            return template ? { id: template.id, name: template.package_name } : null;
         }).filter(Boolean) || [];
         return { ...shop, packages: pkgs };
     });

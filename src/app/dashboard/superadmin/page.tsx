@@ -317,6 +317,18 @@ export default function SuperAdminPage() {
     } catch (e: any) { alert(e.message); }
   };
 
+  const handleRemovePackage = async (shopId: string, templateId: string) => {
+    if (!confirm('Bạn có chắc muốn gỡ bỏ Gói Tri Thức này khỏi shop?')) return;
+    try {
+        const { error } = await supabase.from('shop_templates').delete().match({ shop_id: shopId, template_id: templateId });
+        if (error) throw error;
+        addToast('Đã gỡ bỏ gói tri thức khỏi shop!', 'success');
+        fetchShops();
+    } catch (e: any) {
+        addToast('Lỗi khi gỡ gói: ' + e.message, 'error');
+    }
+  };
+
   const handleResetPassword = async (shopId: string) => {
     const pass = prompt('Mật khẩu mới:');
     if (!pass) return;
@@ -455,7 +467,7 @@ export default function SuperAdminPage() {
   };
 
   const handlePushMultiKnowledge = async () => {
-    const codeList = targetCodes.trim().split(/\s+/).filter(c => c.length > 0);
+    const codeList = targetCodes.trim().toUpperCase().split(/\s+/).filter(c => c.length > 0);
     if (selectedPackageIds.length === 0 || codeList.length === 0) return alert('Chưa chọn mã shop!');
     setPushingKnowledge(true);
     try {
@@ -745,7 +757,7 @@ export default function SuperAdminPage() {
                                                 <p className="text-xs font-black text-slate-900 leading-none mb-1.5">{shop.name}</p>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-1 rounded-lg leading-none">/{shop.slug}</span>}
-                                                    {shopPackages[shop.id]?.[0] && <span className="text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100 truncate max-w-[100px]" title={shopPackages[shop.id].join(', ')}>{shopPackages[shop.id][0]}</span>}
+                                                    {shopPackages[shop.id]?.[0] && <span className="text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100 truncate max-w-[100px]" title={shopPackages[shop.id].map((p: any) => p.name).join(', ')}>{shopPackages[shop.id][0].name}</span>}
                                                     {shopPackages[shop.id]?.length > 1 && <span className="text-[9px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100">+{shopPackages[shop.id].length - 1}</span>}
                                                     <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-100 p-1 rounded-lg shadow-sm">
                                                         <Settings size={13}/>
@@ -795,7 +807,7 @@ export default function SuperAdminPage() {
                                 {openShopId === shop.id && (
                                     <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
                                         <td colSpan={4} className="p-6 pl-16 border-l-4 border-indigo-600 relative">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+                                            <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
                                                 {/* ICON CONFIG */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><ImageIcon size={12}/> Hình đại diện (Icon Bot)</p>
@@ -878,7 +890,7 @@ export default function SuperAdminPage() {
                                                             <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Thiết lập mã / Để trống để bỏ khóa</label>
                                                             <input 
                                                                 type="text" 
-                                                                placeholder="Nhập PIN (VD: 1234)..."
+                                                                placeholder="Nhập mã bí mật..."
                                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-rose-500"
                                                                 id={`pin-${shop.id}`}
                                                             />
@@ -890,14 +902,38 @@ export default function SuperAdminPage() {
                                                                     const res = await fetch('/api/config/reset-pin', {
                                                                         method: 'POST', body: JSON.stringify({ shopId: shop.id, newPin, requesterId: currentUserId })
                                                                     });
-                                                                    if (res.ok) alert('Đã cập nhật mã PIN cấu hình thành công!');
-                                                                    else alert('Lỗi hệ thống!');
-                                                                } catch(e) { }
+                                                                    const verify = await res.json();
+                                                                    if (verify.success) addToast(newPin ? 'Đã kích hoạt MÃ PIN an toàn!' : 'Đã gỡ MÃ PIN cho shop!', 'success');
+                                                                    else addToast('Lỗi: ' + verify.error, 'error');
+                                                                } catch (e) { addToast('Lỗi máy chủ', 'error'); }
                                                             }}
                                                             className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
                                                         >
-                                                            Lưu Khóa Config
+                                                            Lưu Mã Khóa
                                                         </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* MANAGE PACKAGES */}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-emerald-400"><BrainCircuit size={12}/> Quản lý Gói Tri Thức</p>
+                                                    <div className="space-y-2">
+                                                        {!shopPackages[shop.id] || shopPackages[shop.id].length === 0 ? (
+                                                            <p className="text-[10px] text-slate-500">Chưa nạp gói nào.</p>
+                                                        ) : (
+                                                            shopPackages[shop.id].map((pkg: any) => (
+                                                                <div key={pkg.id} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-2 group transition-all hover:bg-white/10">
+                                                                    <span className="text-[10px] font-bold text-slate-300 truncate pr-2">{pkg.name}</span>
+                                                                    <button 
+                                                                        onClick={() => handleRemovePackage(shop.id, pkg.id)}
+                                                                        className="text-slate-500 hover:text-red-400 p-1 rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
+                                                                        title="Gỡ gói này"
+                                                                    >
+                                                                        <Trash2 size={12}/>
+                                                                    </button>
+                                                                </div>
+                                                            ))
+                                                        )}
                                                     </div>
                                                 </div>
                                                 {/* ACCOUNT CONFIG */}
