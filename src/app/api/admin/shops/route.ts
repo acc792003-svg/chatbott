@@ -52,7 +52,20 @@ export async function GET(req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(shops);
+    // 4. BỔ SUNG GÓI TRI THỨC (NẾU CÓ)
+    const shopIds = shops.map((s: any) => s.id);
+    const { data: mappings } = await supabaseAdmin.from('shop_templates').select('shop_id, template_id').in('shop_id', shopIds);
+    const { data: templates } = await supabaseAdmin.from('knowledge_templates').select('id, package_name');
+    
+    const enrichedShops = shops.map((shop: any) => {
+        const pkgs = mappings?.filter((m: any) => m.shop_id === shop.id).map((m: any) => {
+            const template = templates?.find((t: any) => t.id === m.template_id);
+            return template ? template.package_name : null;
+        }).filter(Boolean) || [];
+        return { ...shop, packages: pkgs };
+    });
+
+    return NextResponse.json(enrichedShops);
   } catch (error: any) {
     console.error('Secure Fetch Shops API Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -191,19 +191,12 @@ export default function SuperAdminPage() {
             configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
             setActiveIcons(iconMap);
 
-            // Fetch package mappings
-            const { data: mappings } = await supabase.from('shop_templates').select('shop_id, template_id');
-            const { data: templates } = await supabase.from('knowledge_templates').select('id, package_name');
             const pkgMap: any = {};
-            if (mappings && templates) {
-                mappings.forEach((m: any) => {
-                    const template = templates.find((t: any) => t.id === m.template_id);
-                    if (template) {
-                        if (!pkgMap[m.shop_id]) pkgMap[m.shop_id] = [];
-                        pkgMap[m.shop_id].push(template.package_name);
-                    }
-                });
-            }
+            data.forEach((s: any) => {
+                if (s.packages && s.packages.length > 0) {
+                    pkgMap[s.id] = s.packages;
+                }
+            });
             setShopPackages(pkgMap);
         } else if (data.error) {
             console.error('API Error:', data.error);

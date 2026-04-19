@@ -36,13 +36,15 @@ export default function ConfigClient() {
   const [globalPackages, setGlobalPackages] = useState<any[]>([]);
 
   const fetchGlobalPackages = async () => {
-     const { data: mappings } = await supabase.from('shop_templates').select('template_id').eq('shop_id', shopId);
-     if (mappings && mappings.length > 0) {
-         const tIds = mappings.map((m: any) => m.template_id);
-         const { data: pkgs } = await supabase.from('knowledge_templates').select('id, package_name, industry_name').in('id', tIds);
-         setGlobalPackages(pkgs || []);
-     } else {
-         setGlobalPackages([]);
+     try {
+        const res = await fetch('/api/config/global-packages', {
+            method: 'POST',
+            body: JSON.stringify({ shopId })
+        });
+        const data = await res.json();
+        setGlobalPackages(data.packages || []);
+     } catch (e) {
+        setGlobalPackages([]);
      }
   };
 
