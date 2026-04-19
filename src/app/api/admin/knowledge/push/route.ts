@@ -43,8 +43,11 @@ export async function POST(req: Request) {
         });
 
         // Xóa mapping cũ (nếu muốn thay thế hoàn toàn) và nạp mới
-        await supabaseAdmin.from('shop_templates').delete().in('shop_id', shopIds);
-        await supabaseAdmin.from('shop_templates').insert(mappingRows);
+        const { error: delErr } = await supabaseAdmin.from('shop_templates').delete().in('shop_id', shopIds);
+        if (delErr) throw new Error('Delete old mapping error: ' + delErr.message);
+        
+        const { error: insErr } = await supabaseAdmin.from('shop_templates').insert(mappingRows);
+        if (insErr) throw new Error('Insert new mapping error: ' + insErr.message);
     }
 
     // 4. CẬP NHẬT NHẸ CẤU HÌNH (Chỉ cập nhật Brand Voice nếu có yêu cầu)
