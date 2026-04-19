@@ -43,6 +43,13 @@ export async function POST(req: NextRequest) {
     // 1. VERIFY SIGNATURE (Bảo vệ khỏi hacker)
     if (!await verifySignature(rawBody, signature)) {
       console.error('❌ Invalid Webhook Signature!');
+      await supabaseAdmin.from('system_errors').insert({
+          shop_id: '1075624b-8941-418e-a0e9-ca8344379cc1', // Fallback ID or null
+          error_type: 'FB_WEBHOOK_INVALID_SIGNATURE',
+          error_message: 'Khớp chữ ký thất bại. rawBody snippet: ' + rawBody.substring(0, 50),
+          file_source: 'fb_webhook',
+          metadata: { signature }
+      });
       return NextResponse.json({ error: 'Invalid Signature' }, { status: 401 });
     }
 
@@ -138,6 +145,12 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
 
   if (!config || !config.access_token) {
     console.warn(`⚠️ Page ${page_id} chưa được gán cho bất kỳ Shop nào!`);
+    await supabaseAdmin.from('system_errors').insert({
+        shop_id: '1075624b-8941-418e-a0e9-ca8344379cc1', // fallback
+        error_type: 'FB_WEBHOOK_PAGE_NOT_FOUND',
+        error_message: `Page ${page_id} gửi tin nhưng chưa Shop nào gán Facebook Page ID này.`,
+        file_source: 'fb_webhook'
+    });
     return;
   }
 
