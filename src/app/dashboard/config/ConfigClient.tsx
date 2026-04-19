@@ -26,6 +26,8 @@ export default function ConfigClient() {
   // States cho Smart AI Core
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [vectorFaqs, setVectorFaqs] = useState<any[]>([]);
+  const [bulkFaqInput, setBulkFaqInput] = useState('');
+  const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [stats, setStats] = useState({ avg_score: 0, positive: 0, total: 0 });
 
   useEffect(() => {
@@ -131,6 +133,55 @@ export default function ConfigClient() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBulkAddManual = async () => {
+     if (!bulkFaqInput.trim()) return alert('Vui lòng nhập nội dung!');
+     
+     // Parse nội dung dòng chữ thành array
+     const lines = bulkFaqInput.split('\n');
+     const faqsToPush = [];
+     let currentQ = '';
+     let currentA = '';
+     
+     for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.toLowerCase().startsWith('q:')) {
+           if (currentQ && currentA) {
+              faqsToPush.push({ question: currentQ, answer: currentA, type: 'info' });
+              currentA = ''; 
+           }
+           currentQ = line.substring(2).trim();
+        } else if (line.toLowerCase().startsWith('a:')) {
+           currentA = line.substring(2).trim();
+        } else if (line !== '') {
+           if (currentQ && !currentA) currentQ += ' ' + line;
+           else if (currentQ && currentA) currentA += ' ' + line;
+        }
+     }
+     if (currentQ && currentA) {
+        faqsToPush.push({ question: currentQ, answer: currentA, type: 'info' });
+     }
+
+     if (faqsToPush.length === 0) return alert('Không nhận diện được câu hỏi nào. Vui lòng nhập theo định dạng Q: ... A: ...');
+
+     setIsBulkAdding(true);
+     try {
+         const res = await fetch('/api/faqs/bulk-add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ shop_id: shopId, faqs: faqsToPush })
+         });
+         const data = await res.json();
+         if (!res.ok) throw new Error(data.error || 'Lỗi Vector');
+         alert('✅ ' + data.message);
+         setBulkFaqInput('');
+         fetchVectorFaqs();
+     } catch (e: any) {
+         alert('Lỗi: ' + e.message);
+     } finally {
+         setIsBulkAdding(false);
+     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -429,6 +480,26 @@ export default function ConfigClient() {
                      <p className="text-xs text-slate-600 font-medium">Danh sách các câu hỏi đã được nhúng thuật toán và đang hoạt động</p>
                   </div>
                   <button onClick={fetchVectorFaqs} className="text-[10px] font-bold text-blue-600 hover:underline">Làm mới</button>
+               </div>
+
+               {/* Công cụ nhập liệu hàng loạt */}
+               <div className="mb-6 bg-slate-50 p-4 rounded-2xl border border-dashed border-slate-300">
+                  <label className="block text-xs font-black text-slate-700 uppercase mb-2">Thêm nhanh hàng loạt (Q&A)</label>
+                  <p className="text-[10px] text-slate-500 mb-3">Nhập theo định dạng: <br/><b>Q:</b> Câu hỏi của khách<br/><b>A:</b> Câu trả lời của shop</p>
+                  <textarea 
+                     rows={4}
+                     value={bulkFaqInput}
+                     onChange={e => setBulkFaqInput(e.target.value)}
+                     placeholder="Q: Shop ở đâu vậy?&#10;A: Dạ shop ở 123 Nguyễn Văn Linh ạ.&#10;&#10;Q: Có chỗ đậu ô tô không?&#10;A: Dạ bãi xe rỗng rãi thoải mái ạ."
+                     className="w-full bg-white border border-slate-200 rounded-xl p-3 text-sm mb-3 focus:outline-none focus:border-blue-400"
+                  />
+                  <button 
+                     onClick={handleBulkAddManual}
+                     disabled={isBulkAdding}
+                     className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50"
+                  >
+                     {isBulkAdding ? 'Đang nhúng Vector...' : 'Nạp vào Vector DB'}
+                  </button>
                </div>
 
                {vectorFaqs.length === 0 ? (
