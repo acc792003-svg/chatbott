@@ -476,6 +476,10 @@ export default function SuperAdminPage() {
             }) 
         });
         const data = await res.json();
+        if (!res.ok || data.error) {
+            addToast(`Lỗi xuất xưởng: ${data.error || 'Server Error'}`, 'error');
+            return;
+        }
         addToast(`🚀 Đã xuất xưởng thành công cho ${data.count} shop!`, 'success');
         setSelectedPackageIds([]); setTargetCodes('');
     } catch (e) { 
