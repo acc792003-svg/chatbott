@@ -60,8 +60,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
   try {
     const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
-    const { data: shopConfig } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_enabled, telegram_chat_id, telegram_bot_token')
+    const { data: shopConfig, error: configError } = await client.from('chatbot_configs')
+      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token')
       .eq('shop_id', shopId)
       .maybeSingle();
     
@@ -71,13 +71,16 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     if (!shopConfig) {
       console.error(`❌ chatbot_configs NULL cho shop: ${shopId} (#${shopCode})`);
       // Ghi lỗi vào Radar để admin biết, KHÔNG lộ lỗi kỹ thuật ra ngoài cho khách
-      await client.from('system_errors').insert({
-        shop_id: shopId,
-        error_type: 'CHATBOT_CONFIG_MISSING',
-        error_message: `Shop #${shopCode} chưa có chatbot_configs. Khách hàng đang không được phục vụ.`,
-        file_source: 'chatbot-engine.ts',
-        metadata: { shopId, shopCode }
-      }).catch(() => {});
+      try {
+        await client.from('system_errors').insert({
+          shop_id: shopId,
+          error_type: 'CHATBOT_CONFIG_MISSING',
+          error_message: `Shop #${shopCode} chưa có chatbot_configs. Khách hàng đang không được phục vụ.`,
+          file_source: 'chatbot-engine.ts',
+          metadata: { shopId, shopCode }
+        });
+      } catch (e) {}
+
       return {
         answer: "Dạ xin lỗi bạn, hiện tại hệ thống đang bảo trì và sẽ sớm hoạt động trở lại. Bạn vui lòng liên hệ lại sau ít phút hoặc nhắn tin trực tiếp để được hỗ trợ nhé! 🙏",
         source: 'faq',
