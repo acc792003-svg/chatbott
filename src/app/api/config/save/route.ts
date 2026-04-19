@@ -27,19 +27,29 @@ export async function POST(req: Request) {
 
     if (configsErr) throw new Error('Lỗi cấu hình cơ bản: ' + configsErr.message);
 
-    // 2. Update/Insert channel_configs (Facebook)
-    if (fbPageId || fbAccessToken) {
-        const { error: fbErr } = await supabaseAdmin.from('channel_configs').upsert({
-            shop_id: shopId,
-            channel_type: 'facebook',
-            provider_id: fbPageId,
-            access_token: fbAccessToken
-        }, { onConflict: 'channel_type, provider_id' });
+    // 2. Update or Delete channel_configs (Facebook)
+    if (fbPageId !== undefined && fbAccessToken !== undefined) {
+        if (fbPageId.trim() === '' && fbAccessToken.trim() === '') {
+            // User wants to clear Facebook config
+            await supabaseAdmin.from('channel_configs')
+                 .delete()
+                 .eq('shop_id', shopId)
+                 .eq('channel_type', 'facebook');
+                 
+            await supabaseAdmin.from('shops').update({ fb_page_id: null, fb_page_token: null }).eq('id', shopId);
+        } else {
+            // User wants to update Facebook config
+            const { error: fbErr } = await supabaseAdmin.from('channel_configs').upsert({
+                shop_id: shopId,
+                channel_type: 'facebook',
+                provider_id: fbPageId,
+                access_token: fbAccessToken
+            }, { onConflict: 'channel_type, provider_id' });
 
-        if (fbErr) throw new Error('Lỗi cấu hình Facebook: ' + fbErr.message);
-        
-        // Update both fb_page_id/token onto shops for fast fallback
-        await supabaseAdmin.from('shops').update({ fb_page_id: fbPageId, fb_page_token: fbAccessToken }).eq('id', shopId);
+            if (fbErr) throw new Error('Lỗi cấu hình Facebook: ' + fbErr.message);
+            
+            await supabaseAdmin.from('shops').update({ fb_page_id: fbPageId, fb_page_token: fbAccessToken }).eq('id', shopId);
+        }
     }
 
     return NextResponse.json({ success: true });
