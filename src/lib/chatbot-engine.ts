@@ -236,6 +236,7 @@ QUY TẮC PHẢN HỒI:
 - Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
 - Ưu tiên lệnh tại Shop Config hơn Global Config.
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
+- NẾU khách hàng vừa để lại hoặc cung cấp SỐ ĐIỆN THOẠI, BẮT BUỘC TRONG CÂU TRẢ LỜI PHẢI CÓ LỜI CẢM ƠN và xác nhận sẽ có nhân viên liên hệ tư vấn sớm nhất cho khách.
 - Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác, mình xin phép báo quản lý hỗ trợ bạn ngay nhe!"${phoneHint}`;
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
@@ -256,10 +257,12 @@ QUY TẮC PHẢN HỒI:
     summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
 
     // 🔥 PHÁT HIỆN VÀ LƯU LEAD (SĐT) TỪ TIN NHẮN KHÁCH HÀNG
-    // Gọi sau khi đã trả lời để không ảnh hưởng tốc độ phản hồi
-    detectAndSaveLead(message, shopId, externalUserId, shopConfig).catch(e => {
-      console.error('[Engine] detectAndSaveLead error:', e);
-    });
+    // PHẢI AWAIT để tránh bị Vercel Serverless đóng băng (giết tiến trình) trước khi gửi Telegram!
+    try {
+       await detectAndSaveLead(message, shopId, externalUserId, shopConfig);
+    } catch (e) {
+       console.error('[Engine] detectAndSaveLead error:', e);
+    }
 
     return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
 
