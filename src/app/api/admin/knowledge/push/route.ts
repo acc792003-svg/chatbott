@@ -35,19 +35,24 @@ export async function POST(req: Request) {
     // 3. THIẾT LẬP "LIÊN KẾT KÝ ỨC" (Bảng shop_templates)
     // Chỉ cập nhật bảng này để Shop được quyền truy cập các Vector tri thức chung
     if (templateIds && Array.isArray(templateIds)) {
-        const mappingRows: any[] = [];
+        // Bỏ logic xóa cũ. Cập nhật logic: Fetch hiện tại và chỉ thêm những gì chưa có
+        const { data: existingMappings } = await supabaseAdmin.from('shop_templates').select('shop_id, template_id').in('shop_id', shopIds);
+        
+        const existingSet = new Set(existingMappings?.map((m: any) => `${m.shop_id}_${m.template_id}`) || []);
+        
+        const newMappingRows: any[] = [];
         shopIds.forEach((shopId: any) => {
             templateIds.forEach((tId: any) => {
-                mappingRows.push({ shop_id: shopId, template_id: tId });
+                if (!existingSet.has(`${shopId}_${tId}`)) {
+                    newMappingRows.push({ shop_id: shopId, template_id: tId });
+                }
             });
         });
 
-        // Xóa mapping cũ (nếu muốn thay thế hoàn toàn) và nạp mới
-        const { error: delErr } = await supabaseAdmin.from('shop_templates').delete().in('shop_id', shopIds);
-        if (delErr) throw new Error('Delete old mapping error: ' + delErr.message);
-        
-        const { error: insErr } = await supabaseAdmin.from('shop_templates').insert(mappingRows);
-        if (insErr) throw new Error('Insert new mapping error: ' + insErr.message);
+        if (newMappingRows.length > 0) {
+            const { error: insErr } = await supabaseAdmin.from('shop_templates').insert(newMappingRows);
+            if (insErr) throw new Error('Insert new mapping error: ' + insErr.message);
+        }
     }
 
     // 4. CẬP NHẬT NHẸ CẤU HÌNH (Chỉ cập nhật Brand Voice nếu có yêu cầu)
