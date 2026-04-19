@@ -23,7 +23,7 @@ export default function AiAnalytics() {
       // 1. THỐNG KÊ HIỆU SUẤT AI (Từ chat_logs)
       const { data: logs } = await supabase
         .from('chat_logs')
-        .select('source, latency_ms, created_at')
+        .select('source, latency_ms, total_tokens, created_at')
         .order('created_at', { ascending: false })
         .limit(1000);
 
@@ -32,10 +32,13 @@ export default function AiAnalytics() {
         const faqCount = logs.filter((l: any) => l.source === 'faq').length;
         const cacheCount = logs.filter((l: any) => l.source === 'cache').length;
         const aiCount = logs.filter((l: any) => l.source === 'ai').length;
+        const totalTokens = logs.reduce((acc: number, curr: any) => acc + (curr.total_tokens || 0), 0);
 
         setPerfStats({
           avgLatency,
           total: logs.length,
+          totalTokens,
+          estimatedCostUsd: (totalTokens / 1000000) * 0.15, // Cost estimation: ~$0.15 / 1M tokens average
           distribution: {
             faq: Math.round((faqCount / logs.length) * 100),
             cache: Math.round((cacheCount / logs.length) * 100),
@@ -236,6 +239,38 @@ export default function AiAnalytics() {
                 <span className="text-emerald-400 font-bold ml-1 uppercase bg-emerald-950/50 px-2 py-1 rounded border border-emerald-500/30">Hiệu quả nhất thị trường.</span>
             </p>
          </div>
+      </div>
+
+      {/* 💰 TÀI CHÍNH & TOKEN COST */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 relative z-10">
+          <div className="bg-slate-900 border border-slate-700/50 p-10 rounded-[3rem] shadow-2xl flex flex-col justify-center">
+              <h2 className="text-xl font-black text-white flex items-center gap-2 tracking-tight mb-8">
+                  <Database className="text-indigo-400" size={24} /> THỐNG KÊ TOKEN (1000 requests)
+              </h2>
+              <div className="space-y-6">
+                  <div className="bg-slate-800/50 p-6 rounded-3xl border border-slate-700">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tổng Input/Output Tokens</p>
+                      <h3 className="text-5xl font-black text-indigo-400 tracking-tighter">
+                          {perfStats?.totalTokens ? (perfStats.totalTokens / 1000).toFixed(1) + 'K' : '0'} 
+                          <span className="text-sm text-slate-500 font-bold ml-2">Tokens</span>
+                      </h3>
+                  </div>
+              </div>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-900 via-teal-900 to-slate-900 border border-emerald-700/50 p-10 rounded-[3rem] shadow-2xl flex flex-col justify-center">
+              <h2 className="text-xl font-black text-emerald-400 flex items-center gap-2 tracking-tight mb-8">
+                  <Activity size={24} /> ƯỚC TÍNH CHI PHÍ API
+              </h2>
+              <div className="bg-emerald-950/50 p-6 rounded-3xl border border-emerald-800/50 flex flex-col items-center text-center">
+                  <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest mb-2">Chi phí tạm tính (Dựa trên Gemini 1.5 Flash - $0.15/1M)</p>
+                  <h3 className="text-6xl font-black text-emerald-300 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)] tracking-tighter">
+                      ${perfStats?.estimatedCostUsd ? perfStats.estimatedCostUsd.toFixed(4) : '0.0000'}
+                  </h3>
+                  <p className="text-xs font-bold text-emerald-500 mt-4 px-4">
+                      Chi phí siêu rẻ minh chứng cho thành công của chiến lược Vector RAG!
+                  </p>
+              </div>
+          </div>
       </div>
 
     </div>
