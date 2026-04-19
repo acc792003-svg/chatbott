@@ -16,9 +16,9 @@ export async function POST(req: Request) {
 
     // Nếu có PIN, phải so khớp
     if (data.value === pin) {
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, requiresPin: false });
     } else {
-        return NextResponse.json({ success: false, error: 'Mật khẩu cấu hình không đúng' });
+        return NextResponse.json({ success: false, requiresPin: true, error: 'Mật khẩu cấu hình không đúng' });
     }
 
   } catch (error) {

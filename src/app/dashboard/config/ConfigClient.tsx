@@ -76,7 +76,7 @@ export default function ConfigClient() {
                method: 'POST', body: JSON.stringify({ shopId: userData.shop_id, pin: '' })
            });
            const verify = await res.json();
-           if (!verify.requiresPin) {
+           if (verify.requiresPin === false) {
                // No pin required
                setIsUnlocked(true);
                fetchConfigData(userData.shop_id);
