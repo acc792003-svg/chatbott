@@ -418,6 +418,7 @@ export default function ConfigClient() {
                    ))}
                 </div>
               )}
+            </div>
             {/* VÙNG 4: KHO TRI THỨC ĐÃ LƯU (VECTOR DB) */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl mt-6">
                <div className="flex items-center justify-between mb-6">
