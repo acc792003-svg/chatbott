@@ -283,10 +283,7 @@ export default function ConfigClient() {
               </div>
             </div>
 
-            <div>
-               <label className="block text-[10px] font-black uppercase text-slate-600 mb-1.5 ml-1">Kiến thức FAQ</label>
-               <textarea rows={5} value={faq} onChange={e => setFaq(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-3.5 text-sm" />
-            </div>
+
 
             <div className="pt-4 border-t border-dashed border-slate-200 space-y-6">
                <div>
