@@ -138,8 +138,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       // 🥈 MỨC 2: 0.80 - 0.89 -> Gom context 2-3 câu FAQ nạp vào AI
       else if (topScore >= 0.80) {
          console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.80~0.89) - Gửi AI nhào nặn`);
-         const validFaqs = scoredFaqs.filter(f => f.hybridScore >= 0.80);
-         faqContext = validFaqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
+         const validFaqs = scoredFaqs.filter((f: any) => f.hybridScore >= 0.80);
+         faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
       // 🥉 MỨC 3: < 0.80 -> Quá lệch, KHÔNG lấy FAQ làm context để tránh nhiễu AI
       else {
