@@ -34,6 +34,7 @@ export default function ConfigClient() {
   const [actions, setActions] = useState<any[]>([]);
   const [newAction, setNewAction] = useState({ type: 'menu', content: '', intent_binding: 'pricing' });
   const [globalPackages, setGlobalPackages] = useState<any[]>([]);
+  const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
 
   const fetchGlobalPackages = async () => {
      try {
@@ -585,18 +586,39 @@ export default function ConfigClient() {
                   <div className="flex items-center gap-3 mb-6 relative z-10">
                      <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><CheckCircle size={20}/></div>
                      <div>
-                        <h2 className="text-lg font-black text-indigo-900">Trí Não Kế Thừa (Global)</h2>
-                        <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Được cấp phát từ SuperAdmin</p>
+                        <h2 className="text-lg font-black text-indigo-900">KHO GÓI TRI THỨC</h2>
                      </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                  <div className="flex flex-col gap-4 relative z-10">
                      {globalPackages.map((pkg: any) => (
-                        <div key={pkg.id} className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-indigo-100/50 shadow-sm flex items-center justify-between group">
-                           <div>
-                              <p className="text-xs font-black text-slate-800 uppercase">{pkg.package_name}</p>
-                              <p className="text-[10px] text-slate-500 font-bold mt-1">Ngành: {pkg.industry_name}</p>
+                        <div key={pkg.id} className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-indigo-100/50 shadow-sm transition-all group overflow-hidden">
+                           <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}>
+                               <div>
+                                  <p className="text-xs font-black text-slate-800 uppercase group-hover:text-indigo-600 transition-colors">{pkg.package_name}</p>
+                                  <p className="text-[10px] text-slate-500 font-bold mt-1">Ngành: {pkg.industry_name}</p>
+                               </div>
+                               <div className="flex items-center gap-3">
+                                   <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200 hidden sm:block">Đang hoạt động</div>
+                                   <button className="text-indigo-500 font-bold text-[10px] uppercase hover:underline">{expandedPackageId === pkg.id ? 'Thu gọn' : 'Xem chi tiết'}</button>
+                               </div>
                            </div>
-                           <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200">Đang hoạt động</div>
+                           
+                           {expandedPackageId === pkg.id && pkg.faq_json && pkg.faq_json.length > 0 && (
+                               <div className="mt-4 pt-4 border-t border-indigo-50 max-h-[300px] overflow-y-auto custom-scrollbar flex flex-col gap-2">
+                                   {pkg.faq_json.map((f: any, idx: number) => (
+                                       <div key={idx} className="bg-slate-50/50 p-3 rounded-xl border border-slate-100">
+                                           <p className="text-[11px] font-black text-slate-800 mb-1">Q: {f.q}</p>
+                                           <p className="text-[11px] text-slate-600 leading-relaxed">A: {f.a}</p>
+                                       </div>
+                                   ))}
+                               </div>
+                           )}
+                           
+                           {expandedPackageId === pkg.id && (!pkg.faq_json || pkg.faq_json.length === 0) && (
+                               <div className="mt-4 pt-4 border-t border-indigo-50 text-center py-4">
+                                   <p className="text-[10px] font-bold text-slate-400">Gói này không có dữ liệu FAQ chi tiết.</p>
+                               </div>
+                           )}
                         </div>
                      ))}
                   </div>

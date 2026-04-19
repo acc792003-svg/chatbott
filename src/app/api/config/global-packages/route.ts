@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     
     if (mappings && mappings.length > 0) {
       const templateIds = mappings.map((m: any) => m.template_id);
-      const { data: pkgs } = await supabaseAdmin.from('knowledge_templates').select('id, package_name, industry_name').in('id', templateIds);
+      const { data: pkgs } = await supabaseAdmin.from('knowledge_templates').select('id, package_name, industry_name, faq_json').in('id', templateIds);
       return NextResponse.json({ packages: pkgs || [] });
     }
 
