@@ -115,10 +115,11 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     }
 
     // 3. VECTOR SEARCH
+    let faqContext = "";
     const { data: vectorFaqs } = await client.rpc('match_faqs', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.85,
-      match_count: 5,
+      match_threshold: 0.80, // Lấy tới mức 0.80 (để phân loại 3 mức độ)
+      match_count: 3,
       p_shop_id: shopId
     });
     
@@ -126,8 +127,23 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       const scoredFaqs = vectorFaqs.map((f: any) => ({ ...f, hybridScore: (f.similarity * 0.7) + (f.question.toLowerCase().includes(normalized) ? 0.3 : 0) }))
                                    .sort((a: any, b: any) => b.hybridScore - a.hybridScore);
 
-      if (scoredFaqs[0].hybridScore >= 0.85) {
-        console.log(`[Engine] FAQ Match (Hybrid: ${scoredFaqs[0].hybridScore.toFixed(2)}), passing to AI to ensure Config priority.`);
+      const topScore = scoredFaqs[0].hybridScore;
+
+      // 🥇 MỨC 1: >= 0.89 (rất khớp) -> Trả thẳng FAQ, không gọi AI
+      if (topScore >= 0.89) {
+        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.89) - FAST PATH, SKIP AI!`);
+        finalResponse = scoredFaqs[0].answer;
+        resultSource = 'faq';
+      } 
+      // 🥈 MỨC 2: 0.80 - 0.89 -> Gom context 2-3 câu FAQ nạp vào AI
+      else if (topScore >= 0.80) {
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.80~0.89) - Gửi AI nhào nặn`);
+         const validFaqs = scoredFaqs.filter(f => f.hybridScore >= 0.80);
+         faqContext = validFaqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
+      }
+      // 🥉 MỨC 3: < 0.80 -> Quá lệch, KHÔNG lấy FAQ làm context để tránh nhiễu AI
+      else {
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.80) - Quá lệch, KHÔNG nạp FAQ`);
       }
     }
 
@@ -145,7 +161,6 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     // 4. AI INFERENCE
     if (!finalResponse) {
-        const faqContext = vectorFaqs && vectorFaqs.length > 0 ? vectorFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n') : "";
 
         // Phát hiện khách nhập số điện thoại sai định dạng
         const { hasNearPhone, rawNumber } = detectNearPhone(message);
@@ -173,7 +188,7 @@ QUY TẮC PHẢN HỒI:
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
 - Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác về vấn đề này, mình xin phép báo quản lý hỗ trợ bạn ngay nhe! 🙏"${phoneHint}`;
         const aiResult = await callGeminiWithFallback([
-          ...(history || []).slice(-5).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+          ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }
         ], { temperature: 0.7 }, shopId, 'API_CHAT_WIDGET', systemPrompt);
 
@@ -224,8 +239,13 @@ async function saveLogs(shopId: string, message: string, answer: string, source:
 
 async function summarizeThread(shopId: string, externalUserId: string, fullHistory: any[]) {
   try {
+    // Tối ưu Ý 5: Chỉ tóm tắt khi đạt mốc 20 tin nhắn để tiết kiệm 50-80% lượng token (không gọi liên tục mỗi tin)
+    if (fullHistory.length > 0 && fullHistory.length % 20 !== 0) {
+       return; 
+    }
+
     const client = supabaseAdmin || supabase;
-    const historyText = fullHistory.slice(-10).map((h: any) => `${h.role}: ${h.content}`).join('\n');
+    const historyText = fullHistory.slice(-20).map((h: any) => `${h.role}: ${h.content}`).join('\n');
     const { text } = await callGeminiWithFallback([{ role: 'user', parts: [{ text: `Phân tích JSON: {summary, sentiment, satisfaction_score, new_faq} từ: ${historyText}` }] }], { temperature: 0.2, responseMimeType: "application/json" }, shopId, 'API_INTERNAL_ANALYST');
     if (text) {
       const result = JSON.parse(text);
