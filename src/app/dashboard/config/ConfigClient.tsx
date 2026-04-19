@@ -31,16 +31,29 @@ export default function ConfigClient() {
   const [stats, setStats] = useState({ avg_score: 0, positive: 0, total: 0 });
 
 
+  const [actions, setActions] = useState<any[]>([]);
+  const [newAction, setNewAction] = useState({ type: 'menu', content: '', intent_binding: 'pricing' });
+  const [globalPackages, setGlobalPackages] = useState<any[]>([]);
+
+  const fetchGlobalPackages = async () => {
+     const { data: mappings } = await supabase.from('shop_templates').select('template_id').eq('shop_id', shopId);
+     if (mappings && mappings.length > 0) {
+         const tIds = mappings.map((m: any) => m.template_id);
+         const { data: pkgs } = await supabase.from('knowledge_templates').select('id, package_name, industry_name').in('id', tIds);
+         setGlobalPackages(pkgs || []);
+     } else {
+         setGlobalPackages([]);
+     }
+  };
+
   useEffect(() => {
     if (activeTab === 'ai_core' && shopId) {
       fetchSuggestions();
       fetchActions();
       fetchVectorFaqs();
+      fetchGlobalPackages();
     }
   }, [activeTab, shopId]);
-
-  const [actions, setActions] = useState<any[]>([]);
-  const [newAction, setNewAction] = useState({ type: 'menu', content: '', intent_binding: 'pricing' });
 
   const fetchVectorFaqs = async () => {
      const { data } = await supabase.from('faqs').select('id, question, answer').eq('shop_id', shopId).order('created_at', { ascending: false });
@@ -563,12 +576,37 @@ export default function ConfigClient() {
                 </div>
               )}
             </div>
+            {/* VÙNG 3.5: GÓI TRI THỨC HỆ THỐNG */}
+            {globalPackages.length > 0 && (
+               <div className="bg-gradient-to-br from-indigo-50 to-blue-50 p-6 rounded-3xl border border-indigo-100 shadow-xl mt-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -z-10"></div>
+                  <div className="flex items-center gap-3 mb-6 relative z-10">
+                     <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><CheckCircle size={20}/></div>
+                     <div>
+                        <h2 className="text-lg font-black text-indigo-900">Trí Não Kế Thừa (Global)</h2>
+                        <p className="text-[10px] text-indigo-600 font-bold uppercase tracking-widest">Được cấp phát từ SuperAdmin</p>
+                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                     {globalPackages.map((pkg: any) => (
+                        <div key={pkg.id} className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-indigo-100/50 shadow-sm flex items-center justify-between group">
+                           <div>
+                              <p className="text-xs font-black text-slate-800 uppercase">{pkg.package_name}</p>
+                              <p className="text-[10px] text-slate-500 font-bold mt-1">Ngành: {pkg.industry_name}</p>
+                           </div>
+                           <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-widest border border-emerald-200">Đang hoạt động</div>
+                        </div>
+                     ))}
+                  </div>
+               </div>
+            )}
+
             {/* VÙNG 4: KHO TRI THỨC ĐÃ LƯU (VECTOR DB) */}
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xl mt-6">
                <div className="flex items-center justify-between mb-6">
                   <div>
                      <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                        <CheckCircle className="text-emerald-500" size={20} /> Kho Tri Thức Riêng
+                        <CheckCircle className="text-blue-500" size={20} /> Kho Tri Thức Riêng
                      </h2>
                      <p className="text-xs text-slate-600 font-medium">Danh sách các câu hỏi đã được huấn luyện cho AI và đang hoạt động</p>
                   </div>

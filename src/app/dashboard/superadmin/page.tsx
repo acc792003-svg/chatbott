@@ -170,6 +170,8 @@ export default function SuperAdminPage() {
     }
   }, [userRole]);
 
+  const [shopPackages, setShopPackages] = useState<any>({});
+
   const fetchShops = async () => {
     try {
         // Lấy token từ session hiện tại của Supabase
@@ -188,6 +190,21 @@ export default function SuperAdminPage() {
             const iconMap: any = {};
             configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
             setActiveIcons(iconMap);
+
+            // Fetch package mappings
+            const { data: mappings } = await supabase.from('shop_templates').select('shop_id, template_id');
+            const { data: templates } = await supabase.from('knowledge_templates').select('id, package_name');
+            const pkgMap: any = {};
+            if (mappings && templates) {
+                mappings.forEach((m: any) => {
+                    const template = templates.find((t: any) => t.id === m.template_id);
+                    if (template) {
+                        if (!pkgMap[m.shop_id]) pkgMap[m.shop_id] = [];
+                        pkgMap[m.shop_id].push(template.package_name);
+                    }
+                });
+            }
+            setShopPackages(pkgMap);
         } else if (data.error) {
             console.error('API Error:', data.error);
         }
@@ -715,8 +732,10 @@ export default function SuperAdminPage() {
                                             </div>
                                             <div>
                                                 <p className="text-xs font-black text-slate-900 leading-none mb-1.5">{shop.name}</p>
-                                                <div className="flex items-center gap-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
                                                     {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-1 rounded-lg leading-none">/{shop.slug}</span>}
+                                                    {shopPackages[shop.id]?.[0] && <span className="text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100 truncate max-w-[100px]" title={shopPackages[shop.id].join(', ')}>{shopPackages[shop.id][0]}</span>}
+                                                    {shopPackages[shop.id]?.length > 1 && <span className="text-[9px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100">+{shopPackages[shop.id].length - 1}</span>}
                                                     <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-100 p-1 rounded-lg shadow-sm">
                                                         <Settings size={13}/>
                                                     </button>
