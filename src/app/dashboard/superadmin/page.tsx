@@ -785,18 +785,18 @@ export default function SuperAdminPage() {
                                         </button>
                                     </td>
                                     <td className="p-4">
-                                        <input type="date" className="bg-slate-50 border border-slate-100 rounded-lg p-1.5 text-[10px] font-black text-slate-600 outline-none focus:border-indigo-500" value={shop.plan_expiry_date?.split('T')[0] || ''} onChange={e => handleUpdateExpiry(shop.id, e.target.value)} />
-                                    </td>
-                                    <td className="p-4">
-                                        {!expiryDate ? (
-                                            <span className="text-[10px] font-bold text-slate-500">Vô thời hạn</span>
-                                        ) : isExpired ? (
-                                            <span className="text-[10px] font-black text-red-500 uppercase">Đã hết hạn 🛑</span>
-                                        ) : (
-                                            <span className={cn("text-[10px] font-black uppercase", diffDays <= 7 ? "text-amber-500" : "text-emerald-500")}>
-                                                Còn {diffDays} ngày {diffDays <= 7 && '⚠️'}
-                                            </span>
-                                        )}
+                                        <div className="flex flex-col gap-1.5">
+                                            <input type="date" className="bg-slate-50 border border-slate-100 rounded-lg p-1.5 text-[10px] font-black text-slate-600 outline-none focus:border-indigo-500 w-full" value={shop.plan_expiry_date?.split('T')[0] || ''} onChange={e => handleUpdateExpiry(shop.id, e.target.value)} />
+                                            {!expiryDate ? (
+                                                <span className="text-[10px] font-bold text-slate-500">Vô thời hạn</span>
+                                            ) : isExpired ? (
+                                                <span className="text-[10px] font-black text-red-500 uppercase">Đã hết hạn 🛑</span>
+                                            ) : (
+                                                <span className={cn("text-[10px] font-black uppercase", diffDays <= 7 ? "text-amber-500" : "text-emerald-500")}>
+                                                    Còn {diffDays} ngày {diffDays <= 7 && '⚠️'}
+                                                </span>
+                                            )}
+                                        </div>
                                     </td>
                                     <td className="p-4 text-right pr-8">
                                         <button onClick={() => handleDeleteShop(shop.id, shop.name)} className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-md transition-all">
@@ -806,8 +806,8 @@ export default function SuperAdminPage() {
                                 </tr>
                                 {openShopId === shop.id && (
                                     <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
-                                        <td colSpan={4} className="p-6 pl-16 border-l-4 border-indigo-600 relative">
-                                            <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
+                                        <td colSpan={5} className="p-6 pl-16 border-l-4 border-indigo-600 relative">
+                                            <div className="grid grid-cols-1 md:grid-cols-6 gap-6 xl:gap-8">
                                                 {/* ICON CONFIG */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><ImageIcon size={12}/> Hình đại diện (Icon Bot)</p>
