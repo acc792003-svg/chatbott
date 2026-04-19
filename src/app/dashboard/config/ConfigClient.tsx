@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send } from 'lucide-react';
+import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send, Lock } from 'lucide-react';
 
 export default function ConfigClient() {
   const [activeTab, setActiveTab] = useState<'general' | 'ai_core'>('general');
@@ -63,6 +63,7 @@ export default function ConfigClient() {
   const [isCheckingPin, setIsCheckingPin] = useState(true);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
+  const [hasPinState, setHasPinState] = useState(false);
 
   const checkPinFirst = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -80,6 +81,8 @@ export default function ConfigClient() {
                // No pin required
                setIsUnlocked(true);
                fetchConfigData(userData.shop_id);
+           } else {
+               setHasPinState(true);
            }
        } catch (e) {
            console.error('Lỗi kiểm tra PIN', e);
@@ -288,7 +291,7 @@ export default function ConfigClient() {
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                  </div>
                  <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Khu Vực Bảo Mật</h2>
-                 <p className="text-xs text-slate-500 mb-8 font-medium">Bạn cần nhập mã PIN để xem và chỉnh sửa cấu hình Shop. Liên hệ SuperAdmin nếu quên mã.</p>
+                 <p className="text-xs text-slate-500 mb-8 font-medium">Bạn cần nhập mã PIN để xem và chỉnh sửa cấu hình Shop.</p>
                  <form onSubmit={handleUnlock}>
                     <input 
                        type="password" 
@@ -313,20 +316,31 @@ export default function ConfigClient() {
            <h1 className="text-3xl font-black bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent tracking-tight">Cấu Hình Shop</h1>
            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Quản lý Tri thức & Tích hợp Mạng xã hội</p>
         </div>
-        <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
-           <button 
-             onClick={() => setActiveTab('general')}
-             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'general' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-           >
-             <Settings size={14} /> Cấu hình chung
-           </button>
-           <button 
-             onClick={() => setActiveTab('ai_core')}
-             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'ai_core' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-           >
-             <Brain size={14} /> Smart AI Core
-             {suggestions.length > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full text-[8px] flex items-center justify-center animate-pulse">{suggestions.length}</span>}
-           </button>
+        <div className="flex items-center gap-4 mt-4 sm:mt-0">
+           {hasPinState && isUnlocked && (
+             <button 
+               onClick={() => { setIsUnlocked(false); setPinInput(''); setPinError(''); }} 
+               className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-all border border-rose-200 shadow-sm"
+               title="Khoá Cấu Hình Lại"
+             >
+               <Lock size={14} /> KHÓA LẠI
+             </button>
+           )}
+           <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200 shadow-inner">
+              <button 
+                onClick={() => setActiveTab('general')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'general' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Settings size={14} /> Cấu hình chung
+              </button>
+              <button 
+                onClick={() => setActiveTab('ai_core')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'ai_core' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+              >
+                <Brain size={14} /> Smart AI Core
+                {suggestions.length > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full text-[8px] flex items-center justify-center animate-pulse">{suggestions.length}</span>}
+              </button>
+           </div>
         </div>
       </div>
 
