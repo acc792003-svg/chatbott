@@ -100,16 +100,25 @@ export default function ConfigClient() {
   const handleApprove = async (sugg: any) => {
     setLoading(true);
     try {
-      // 1. Thêm vào FAQ chính thức (Nối vào chuỗi hiện tại)
-      const newFaq = faq + `\n\nQ: ${sugg.question}\nA: ${sugg.suggested_answer}`;
-      await supabase.from('chatbot_configs').update({ faq: newFaq }).eq('shop_id', shopId);
+      // 1. Gọi API chuản hóa: Bulk-add để nhúng AI Embeddings thay vì ghi chuỗi thô
+      const res = await fetch('/api/faqs/bulk-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          faqs: [{ question: sugg.question, answer: sugg.suggested_answer, type: 'info' }]
+        })
+      });
       
-      // 2. Cập nhật trạng thái đề xuất
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error || 'Lỗi khi tạo AI Embeddings');
+
+      // 2. Đánh dấu đã xử lý
       await supabase.from('faq_suggestions').update({ status: 'approved' }).eq('id', sugg.id);
       
-      setFaq(newFaq);
       setSuggestions(prev => prev.filter(s => s.id !== sugg.id));
-      alert('✅ Đã duyệt và đưa vào tri thức chính thức!');
+      alert('✅ Đã duyệt và Vector hóa thành công nạp vào Xưởng Tri Thức!');
     } catch (e: any) {
       alert('Lỗi: ' + e.message);
     } finally {

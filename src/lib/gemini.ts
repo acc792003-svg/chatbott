@@ -374,3 +374,61 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
     throw error;
   }
 }
+
+/**
+ * Batch Tạo Vector Embedding cho mảng văn bản (gom 10-20 câu / lần)
+ * Sử dụng API batchEmbedContents để tiết kiệm quota và tăng tốc độ.
+ */
+export async function batchGenerateEmbeddings(texts: string[], isPro: boolean = false): Promise<number[][]> {
+  if (texts.length === 0) return [];
+  const stepStart = Date.now();
+  const keys = await getDetailedApiKeys(isPro); 
+  if (keys.length === 0) throw new Error('Không có API Key để tạo Batch Embedding');
+  
+  const apiKey = keys[0].value;
+  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents?key=${apiKey}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s cho batch
+
+  const requests = texts.map(text => ({
+    model: "models/gemini-embedding-001",
+    content: { parts: [{ text }] }
+  }));
+
+  try {
+    const response = await fetch(apiURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requests }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const data = await response.json();
+    console.log(`[BATCH_EMBED_STEP] Finish ${texts.length} items: ${Date.now() - stepStart}ms`);
+
+    if (response.ok && data.embeddings) {
+      return data.embeddings.map((embed: any) => embed.values);
+    }
+    
+    throw new Error(data.error?.message || 'Lỗi tạo Batch Embedding');
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    console.error('Batch Embedding Error:', error);
+    
+    // Ghi log vào system_errors để không bị mất dấu
+    try {
+      const client = supabaseAdmin || supabase;
+      if (client) {
+        await client.from('system_errors').insert({
+          error_type: 'EMBEDDING_FAIL',
+          error_message: error.message,
+          file_source: 'gemini.ts - batchGenerateEmbeddings'
+        });
+      }
+    } catch(e) {}
+    
+    throw error;
+  }
+}

@@ -11,10 +11,14 @@ CREATE TABLE IF NOT EXISTS faqs (
   shop_id uuid REFERENCES shops(id) ON DELETE CASCADE,
   question text NOT NULL,
   answer text NOT NULL,
-  embedding vector(768), -- Phù hợp với Gemini/OpenAI embeddings
+  embedding vector(3072), -- Phù hợp với Gemini/OpenAI embeddings
   intent text,
+  type text DEFAULT 'info', -- 'info', 'sales', 'policy', etc.
   created_at timestamp with time zone DEFAULT now()
 );
+
+-- Bổ sung ngay nếu bảng đã tồn tại:
+ALTER TABLE faqs ADD COLUMN IF NOT EXISTS type text DEFAULT 'info';
 
 CREATE INDEX IF NOT EXISTS idx_faqs_shop_id ON faqs(shop_id);
 
@@ -77,8 +81,10 @@ CREATE TABLE IF NOT EXISTS system_settings (
   updated_at timestamp with time zone DEFAULT now()
 );
 
--- 8. Tối ưu Facebook Routing cho chatbot_configs
-CREATE INDEX IF NOT EXISTS idx_fb_page_id ON chatbot_configs(fb_page_id);
+-- 8. Tối ưu Facebook Routing cho shops
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS fb_page_id text;
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS fb_page_token text;
+CREATE INDEX IF NOT EXISTS idx_fb_page_id ON shops(fb_page_id);
 
 ALTER TABLE chatbot_configs
 ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
@@ -86,7 +92,7 @@ ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
 -- 9. Hàm tìm kiếm Vector Similarity (Linh hồn của Hybrid Search)
 -- Hàm này tìm các câu hỏi có nghĩa tương đồng nhất với câu hỏi của khách
 CREATE OR REPLACE FUNCTION match_faqs (
-  query_embedding vector(768),
+  query_embedding vector(3072),
   match_threshold float,
   match_count int,
   p_shop_id uuid
@@ -117,3 +123,32 @@ $$;
 -- ==========================================================
 -- BẢN SCHEMA NÀY ĐÃ SẴN SÀNG CHO SCALE 1000+ USER
 -- ==========================================================
+
+-- 10. KÍCH HOẠT VÀ TẠO CHÍNH SÁCH RLS (BẢO MẬT DỮ LIỆU)
+-- Tránh cảnh báo "Without RLS" của Supabase
+
+ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cache_answers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+
+-- Chỉ Service Role (Backend API có chứa khóa service_role_key) mới có toàn quyền
+-- Client App (Anon key) sẽ không thể Query hay Chỉnh sửa trực tiếp từ Frontend
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý tất cả bảng faqs" ON faqs;
+CREATE POLICY "Cho phép Backend Server xử lý tất cả bảng faqs" ON faqs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý cache_answers" ON cache_answers;
+CREATE POLICY "Cho phép Backend Server xử lý cache_answers" ON cache_answers FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý chat_logs" ON chat_logs;
+CREATE POLICY "Cho phép Backend Server xử lý chat_logs" ON chat_logs FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý conversations" ON conversations;
+CREATE POLICY "Cho phép Backend Server xử lý conversations" ON conversations FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend đọc system_settings" ON system_settings;
+CREATE POLICY "Cho phép Backend đọc system_settings" ON system_settings FOR SELECT USING (true);
+
+-- (MẸO: Để Supabase Node JS Client nhận diện bảng mới ngay lập tức)
+NOTIFY pgrst, 'reload schema';
