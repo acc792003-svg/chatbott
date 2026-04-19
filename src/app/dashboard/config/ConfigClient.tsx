@@ -472,9 +472,9 @@ export default function ConfigClient() {
                <div className="flex items-center justify-between mb-6">
                   <div>
                      <h2 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                        <CheckCircle className="text-emerald-500" size={20} /> Kho Tri Thức Riêng (Vector DB)
+                        <CheckCircle className="text-emerald-500" size={20} /> Kho Tri Thức Riêng
                      </h2>
-                     <p className="text-xs text-slate-600 font-medium">Danh sách các câu hỏi đã được nhúng thuật toán và đang hoạt động</p>
+                     <p className="text-xs text-slate-600 font-medium">Danh sách các câu hỏi đã được huấn luyện cho AI và đang hoạt động</p>
                   </div>
                   <button onClick={fetchVectorFaqs} className="text-[10px] font-bold text-blue-600 hover:underline">Làm mới</button>
                </div>
@@ -495,13 +495,13 @@ export default function ConfigClient() {
                      disabled={isBulkAdding}
                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all disabled:opacity-50"
                   >
-                     {isBulkAdding ? 'Đang nhúng Vector...' : 'Nạp vào Vector DB'}
+                     {isBulkAdding ? 'Đang đồng bộ AI...' : 'Nạp vào Trí Não AI'}
                   </button>
                </div>
 
                {vectorFaqs.length === 0 ? (
                  <div className="py-6 text-center opacity-50">
-                    <p className="text-xs font-bold">Chưa có tri thức nào được vector hóa.</p>
+                    <p className="text-xs font-bold">Chưa có tri thức nào được đồng bộ.</p>
                  </div>
                ) : (
                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
