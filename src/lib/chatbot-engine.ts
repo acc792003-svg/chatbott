@@ -95,6 +95,22 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     console.log(`[Engine] START chat for Shop: ${shopData?.name || shopConfig.shop_name} (#${shopCode})`);
     
+    // 🌍 TẢI TRI THỨC KẾ THỪA TỪ SUPER ADMIN (Xưởng Tri Thức)
+    let globalProductInfo = '';
+    let globalFaq = '';
+    let globalInsights = '';
+
+    const { data: mappings } = await client.from('shop_templates').select('template_id').eq('shop_id', shopId);
+    if (mappings && mappings.length > 0) {
+      const templateIds = mappings.map((m: any) => m.template_id);
+      const { data: templates } = await client.from('knowledge_templates').select('*').in('id', templateIds);
+      if (templates && templates.length > 0) {
+         globalProductInfo = templates.map((t: any) => `[Global: ${t.package_name}]\n${t.product_info || ''}`).join('\n\n');
+         globalFaq = templates.map((t: any) => `[Global: ${t.package_name}]\n${t.faq || ''}`).join('\n\n');
+         globalInsights = templates.map((t: any) => t.insights || '').join('\n');
+      }
+    }
+    
     // 1. EMBEDDING
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
@@ -174,14 +190,22 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopConfig?.shop_name || shopData?.name || 'Shop'}". 
 GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
 CHIẾN LƯỢC BÁN HÀNG & THẤU HIỂU KHÁCH HÀNG: ${shopConfig?.customer_insights || ''}
+${globalInsights ? `\nCHIẾN LƯỢC TOÀN CỤC:\n${globalInsights}` : ''}
 
 HÃY TUÂN THỦ THỨ TỰ ƯU TIÊN DỮ LIỆU SAU:
 1. 🥇 ƯU TIÊN 1 (TỐI CAO): Các thông tin trong "THÔNG TIN CHUNG", "GIÁ CẢ" và "FAQ VĂN BẢN" bên dưới.
 2. 🥈 ƯU TIÊN 2: Dữ liệu từ "TRI THỨC VECTOR" (dùng để bổ trợ nếu Ưu tiên 1 không có).
 
-THÔNG TIN CHUNG (Nguồn chính): ${shopConfig?.product_info || ''}
-GIÁ CẢ (Nguồn chính): ${shopConfig?.pricing_info || ''}
-FAQ VĂN BẢN (Nguồn chính): ${shopConfig?.faq || ''}
+THÔNG TIN CHUNG (Nguồn chính):
+${globalProductInfo}
+${shopConfig?.product_info || ''}
+
+GIÁ CẢ (Nguồn chính):
+${shopConfig?.pricing_info || ''}
+
+FAQ VĂN BẢN (Nguồn chính):
+${globalFaq}
+${shopConfig?.faq || ''}
 
 TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
 
