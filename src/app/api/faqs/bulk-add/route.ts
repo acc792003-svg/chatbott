@@ -39,10 +39,10 @@ export async function POST(req: Request) {
       .select('question')
       .eq('shop_id', shop_id);
 
-    const existingQuestions = new Set((existingFaqs || []).map(f => f.question.toLowerCase().trim()));
+    const existingQuestions = new Set((existingFaqs || []).map((f: any) => f.question.toLowerCase().trim()));
     
     // Lọc ra những FAQ thực sự mới
-    const newFaqsToInsert = validFaqs.filter(f => !existingQuestions.has(f.question));
+    const newFaqsToInsert = validFaqs.filter((f: any) => !existingQuestions.has(f.question));
 
     if (newFaqsToInsert.length === 0) {
       return NextResponse.json({ success: true, count: 0, message: 'Tất cả FAQ đều đã tồn tại trước đó' });
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
 
     for (let i = 0; i < newFaqsToInsert.length; i += BATCH_SIZE) {
       const batch = newFaqsToInsert.slice(i, i + BATCH_SIZE);
-      const textsToEmbed = batch.map(f => `Q: ${f.question}\nA: ${f.answer}`);
+      const textsToEmbed = batch.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`);
       
       try {
         // Gọi hàm batch API Gemini
