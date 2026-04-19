@@ -8,7 +8,7 @@ export async function GET() {
     const { data } = await supabaseAdmin
       .from('knowledge_templates')
       .select('*')
-      .order('industry_name', { ascending: true });
+      .order('created_at', { ascending: false });
     
     return NextResponse.json({ templates: data || [] });
   } catch (error: any) {

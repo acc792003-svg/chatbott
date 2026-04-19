@@ -209,8 +209,13 @@ export default function SuperAdminPage() {
   };
 
   const fetchKnowledgePackages = async () => {
-    const { data } = await supabase.from('knowledge_templates').select('*').order('created_at', { ascending: false });
-    if (data) setKnowledgePackages(data);
+    try {
+        const res = await fetch('/api/admin/knowledge-templates?ts=' + Date.now());
+        const data = await res.json();
+        if (data.templates) setKnowledgePackages(data.templates);
+    } catch (e) {
+        console.error("Lỗi lấy Knowledge Packages:", e);
+    }
   };
 
   const fetchErrorLogs = async () => {
