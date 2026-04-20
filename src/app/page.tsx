@@ -75,8 +75,8 @@ export default function LandingPage() {
           </Link>
 
           <div className="hidden md:flex items-center gap-10">
-            <Link href="#features" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
-            <Link href="#pricing" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Bảng giá</Link>
+            <Link href="/#features" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
+            <Link href="/#pricing" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Bảng giá</Link>
             <button onClick={() => setShowDemo(true)} className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Xem thử</button>
           </div>
 
@@ -276,9 +276,9 @@ export default function LandingPage() {
           
           {/* Social Links */}
           <div className="flex items-center justify-center md:justify-end gap-6 text-slate-400 flex-1">
-              <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Facebook</Link>
-              <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Youtube</Link>
-              <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Zalo</Link>
+              <Link href="/" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Facebook</Link>
+              <Link href="/" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Youtube</Link>
+              <Link href="/" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Zalo</Link>
           </div>
         </div>
       </footer>
