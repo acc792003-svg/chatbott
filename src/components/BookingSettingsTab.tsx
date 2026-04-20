@@ -249,9 +249,9 @@ export default function BookingSettingsTab() {
 
                 <div className="space-y-4 relative z-10">
                   <AnimatePresence>
-                    {rules.map((rule) => (
+                    {rules.map((rule, idx) => (
                       <motion.div 
-                        key={rule.id}
+                        key={idx}
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 20, opacity: 0 }}
@@ -259,30 +259,57 @@ export default function BookingSettingsTab() {
                       >
                          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-between">
                             <input 
-                              type="time" defaultValue={rule.startTime}
+                              type="time" value={rule.startTime}
+                              onChange={(e) => {
+                                 const newRules = [...rules];
+                                 newRules[idx].startTime = e.target.value;
+                                 setRules(newRules);
+                              }}
                               className="bg-white/80 border border-slate-200 rounded-lg px-2 py-2 text-slate-800 outline-none w-[110px] sm:w-32 text-sm focus:border-amber-400"
                             />
                             <span className="text-amber-600 font-bold mx-1">→</span>
                             <input 
-                              type="time" defaultValue={rule.endTime}
+                              type="time" value={rule.endTime}
+                              onChange={(e) => {
+                                 const newRules = [...rules];
+                                 newRules[idx].endTime = e.target.value;
+                                 setRules(newRules);
+                              }}
                               className="bg-white/80 border border-slate-200 rounded-lg px-2 py-2 text-slate-800 outline-none w-[110px] sm:w-32 text-sm focus:border-amber-400"
                             />
                          </div>
 
                          <div className="flex-1 flex items-center gap-2 w-full mt-2 md:mt-0">
                            <div className="bg-slate-100/50 border border-slate-200/60 p-1 flex rounded-lg shrink-0">
-                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'percent' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>% Giảm</button>
-                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>VNĐ</button>
+                             <button 
+                               onClick={() => {
+                                 const newRules = [...rules];
+                                 newRules[idx].type = 'percent';
+                                 setRules(newRules);
+                               }}
+                               className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'percent' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>% Giảm</button>
+                             <button 
+                               onClick={() => {
+                                 const newRules = [...rules];
+                                 newRules[idx].type = 'fixed';
+                                 setRules(newRules);
+                               }}
+                               className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>VNĐ</button>
                            </div>
                            <input 
-                              type="number" defaultValue={rule.value}
+                              type="number" value={rule.value}
+                              onChange={(e) => {
+                                 const newRules = [...rules];
+                                 newRules[idx].value = parseInt(e.target.value) || 0;
+                                 setRules(newRules);
+                              }}
                               className="w-full flex-1 min-w-[80px] bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 outline-none focus:ring-2 focus:ring-amber-400 text-sm font-bold"
                               placeholder="Mức giảm..."
                             />
                          </div>
 
                          <button 
-                           onClick={() => removeRule(rule.id)}
+                           onClick={() => removeRule(idx)}
                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-auto sm:ml-0 shrink-0"
                          >
                            <Trash2 className="w-5 h-5" />
