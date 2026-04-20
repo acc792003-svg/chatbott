@@ -128,8 +128,10 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Spacing adjustments */}
-          <div className="pt-8"></div>
+          {/* Social Proof Text Only */}
+          <div className="pt-12 opacity-60">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Được tin dùng bởi 100+ shop bán hàng</p>
+          </div>
         </div>
       </section>
 
@@ -254,26 +256,11 @@ export default function LandingPage() {
       </section>
 
       {/* ===== FOOTER ===== */}
-      <footer className="py-20 px-6 border-t border-slate-100 bg-slate-50/30">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="flex flex-col items-center md:items-start gap-4">
-             <Link href="/" className="flex items-center gap-2.5">
-               <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
-                 <Bot size={20} />
-               </div>
-               <span className="font-extrabold text-xl text-slate-900">ChatBot Pro</span>
-             </Link>
-             <p className="text-sm text-slate-400 font-medium text-center md:text-left max-w-xs">Giải pháp AI bán hàng thông minh giúp doanh nghiệp vừa và nhỏ bứt phá doanh số.</p>
-          </div>
-          
-          <div className="flex flex-col items-center md:items-end gap-3 text-right">
-             <div className="flex items-center gap-4 text-slate-400">
-                <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Facebook</Link>
-                <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Youtube</Link>
-                <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Zalo</Link>
-             </div>
-             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-4">© 2026 • CHATBOT PRO GLOBAL LTD.</p>
-          </div>
+      <footer className="py-12 border-t border-slate-100 bg-white">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">
+               @2026 - 0905550738
+            </p>
         </div>
       </footer>
 
