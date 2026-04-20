@@ -60,7 +60,7 @@ export default function BookingSettingsTab() {
         // Fetch Rules
         const { data: dbRules } = await supabase.from('discount_rules').select('*').eq('shop_id', userData.shop_id);
         if (dbRules && dbRules.length > 0) {
-          setRules(dbRules.map(r => ({
+          setRules(dbRules.map((r: any) => ({
              id: r.id,
              startTime: r.start_time.substring(0, 5),
              endTime: r.end_time.substring(0, 5),
