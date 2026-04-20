@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { Bot, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 
 export default function FloatingChatbot() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const shopCode = 'CB-C8LUZ8';
@@ -14,7 +16,12 @@ export default function FloatingChatbot() {
     setMounted(true);
   }, []);
 
-  if (!mounted) return null;
+  // Đừng hiển thị chatbot nếu đang ở trong trang widget hoặc dashboard/login
+  const isHiddenPath = pathname.startsWith('/widget') || 
+                       pathname.startsWith('/dashboard') || 
+                       pathname.startsWith('/login');
+                       
+  if (!mounted || isHiddenPath) return null;
 
   return (
     <motion.div 
