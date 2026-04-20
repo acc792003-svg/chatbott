@@ -24,7 +24,6 @@ import {
 import { cn } from '@/lib/utils';
 
 export default function LandingPage() {
-  const [showDemo, setShowDemo] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -77,7 +76,6 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-10">
             <Link href="/#features" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Tính năng</Link>
             <Link href="/#pricing" className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Bảng giá</Link>
-            <button onClick={() => setShowDemo(true)} className="text-sm font-bold text-slate-600 hover:text-blue-600 transition-colors">Xem thử</button>
           </div>
 
           <div className="flex items-center gap-4">
@@ -116,16 +114,9 @@ export default function LandingPage() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-5 pt-8">
             <Link href="/login?mode=register" className="w-full sm:w-auto bg-slate-900 text-white px-10 py-5 rounded-[2rem] text-lg font-black flex items-center justify-center gap-3 shadow-2xl shadow-slate-300 hover:bg-blue-600 hover:shadow-blue-200 transition-all active:scale-95 group">
-              Dùng thử miễn phí ngay
+              Bắt đầu miễn phí ngay
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
-            <button 
-              onClick={() => setShowDemo(true)}
-              className="w-full sm:w-auto bg-white border-2 border-slate-200 text-slate-900 px-10 py-5 rounded-[2rem] text-lg font-black flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 transition-all shadow-sm group"
-            >
-              <Play size={20} fill="currentColor" className="text-blue-600 group-hover:scale-110 transition-transform" />
-              Xem Demo Chat
-            </button>
           </div>
 
           {/* Social Proof Text Only */}
@@ -282,31 +273,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-
-      {/* ===== MODAL DEMO ===== */}
-      {showDemo && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md px-4" onClick={() => setShowDemo(false)}>
-           <div className="bg-white rounded-[3rem] w-full max-w-5xl h-[80vh] overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
-              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white"><Bot size={24}/></div>
-                    <div>
-                       <p className="text-sm font-black text-slate-900">Trải Nghiệm Live Chatbot</p>
-                       <p className="text-[10px] text-emerald-500 font-black uppercase tracking-wider">● Đang hoạt động</p>
-                    </div>
-                 </div>
-                 <button onClick={() => setShowDemo(false)} className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 shadow-sm transition-all"><X size={20}/></button>
-              </div>
-              <div className="flex-1 bg-slate-100">
-                 <iframe 
-                   src="/widget/70WPN" 
-                   className="w-full h-full border-none"
-                   title="Live Demo"
-                 />
-              </div>
-           </div>
-        </div>
-      )}
 
     </div>
   );

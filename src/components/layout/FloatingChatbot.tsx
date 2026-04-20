@@ -30,7 +30,7 @@ export default function FloatingChatbot() {
       dragConstraints={{ left: -window?.innerWidth + 100, right: 0, top: -window?.innerHeight + 200, bottom: 0 }}
       dragElastic={0.1}
       dragMomentum={false}
-      className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end gap-4 cursor-move"
+      className="fixed bottom-6 right-6 z-[150] flex flex-col items-end gap-4 cursor-move"
       style={{ touchAction: 'none' }} // Ngăn cuộn trang khi kéo trên mobile
     >
       {/* Chat Window */}
