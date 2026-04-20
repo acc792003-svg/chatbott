@@ -19,6 +19,11 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
+interface SidebarProps {
+  isOpen: boolean;
+  setIsOpen: (open: boolean) => void;
+}
+
 const menuItems = [
   { name: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Khách hàng', href: '/dashboard/leads', icon: Users },
@@ -29,7 +34,7 @@ const menuItems = [
   { name: 'Gói dịch vụ', href: '/dashboard/pricing', icon: CreditCard },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<string | null>(null);
@@ -60,7 +65,18 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 h-screen glass border-r border-white/20 fixed left-0 top-0 z-50 flex flex-col p-4">
+    <aside className={cn(
+      "w-64 h-screen glass border-r border-white/20 fixed left-0 top-0 z-[60] flex flex-col p-4 transition-transform duration-300 lg:translate-x-0",
+      isOpen ? "translate-x-0" : "-translate-x-full"
+    )}>
+      {/* Nút đóng cho mobile */}
+      <button 
+        onClick={() => setIsOpen(false)}
+        className="lg:hidden absolute -right-12 top-4 w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 shadow-lg"
+      >
+        <X size={20} />
+      </button>
+
       <div className="flex items-center gap-3 px-2 mb-8">
         <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
           <Bot size={24} />

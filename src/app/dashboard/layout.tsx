@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/layout/sidebar';
-import { User, Bell, Search, Loader2 } from 'lucide-react';
+import { User, Bell, Search, Loader2, Menu } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
   children,
@@ -13,6 +15,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userName, setUserName] = useState('Admin Shop');
   const [shopCode, setShopCode] = useState('');
   const [shopPlan, setShopPlan] = useState<'free' | 'pro'>('free');
@@ -50,17 +53,41 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex bg-slate-50 min-h-screen">
-      <Sidebar />
-      <main className="flex-1 ml-64 p-8">
-        <header className="flex justify-between items-center mb-10">
-          <div className="relative w-96 group">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
-            <input 
-              type="text" 
-              placeholder="Tìm kiếm thông tin..." 
-              className="w-full bg-white/50 backdrop-blur-md border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-            />
+    <div className="flex bg-slate-50 min-h-screen relative overflow-x-hidden">
+      {/* Overlay cho mobile */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsSidebarOpen(false)}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[55] lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      
+      <main className="flex-1 lg:ml-64 p-4 md:p-8 w-full max-w-full overflow-hidden transition-all duration-300">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 md:mb-10">
+          <div className="flex items-center gap-3 w-full md:w-auto">
+             {/* Nút Hamburger cho mobile */}
+             <button 
+               onClick={() => setIsSidebarOpen(true)}
+               className="lg:hidden p-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 shadow-sm"
+             >
+               <Menu size={20} />
+             </button>
+
+             <div className="relative flex-1 md:w-96 group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-600 transition-colors" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Tìm kiếm..." 
+                  className="w-full bg-white/50 backdrop-blur-md border border-slate-200 rounded-2xl py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+             </div>
           </div>
 
           <div className="flex items-center gap-4">
