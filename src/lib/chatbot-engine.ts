@@ -112,7 +112,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       : "";
 
     const happyHourContext = (happyHours && happyHours.length > 0)
-      ? `[ƯU ĐÃI GIỜ VÀNG (HAPPY HOUR)]:\n${happyHours.map(h => `- Từ ${h.start_time.substring(0,5)} đến ${h.end_time.substring(0,5)}: Giảm ${h.discount_value}${h.discount_type === 'percent' ? '%' : 'K'}`).join('\n')}\n(Hãy chủ động gợi ý ưu đãi này nếu khách hỏi giá hoặc đang đắn đo về giá).`
+      ? `[ƯU ĐÃI GIỜ VÀNG (HAPPY HOUR)]:\n${happyHours.map((h: any) => `- Từ ${h.start_time.substring(0,5)} đến ${h.end_time.substring(0,5)}: Giảm ${h.discount_value}${h.discount_type === 'percent' ? '%' : 'K'}`).join('\n')}\n(Hãy chủ động gợi ý ưu đãi này nếu khách hỏi giá hoặc đang đắn đo về giá).`
       : "";
 
     const { data: mappings } = await client.from('shop_templates').select('template_id').eq('shop_id', shopId);
