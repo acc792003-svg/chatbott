@@ -53,8 +53,6 @@ export default function BookingSettingsTab() {
         if (settings) {
           setSlotDuration(settings.slot_duration_minutes || 0);
           setMaxSlots(settings.max_slot_per_block || 0);
-          setWorkingStart(settings.working_start || "08:00");
-          setWorkingEnd(settings.working_end || "20:00");
         }
 
         // Fetch Rules
@@ -91,8 +89,8 @@ export default function BookingSettingsTab() {
          shop_id: shopId,
          slot_duration_minutes: slotDuration,
          max_slot_per_block: maxSlots,
-         working_start: workingStart,
-         working_end: workingEnd,
+         working_start: '00:00',
+         working_end: '23:59',
          timezone: 'Asia/Ho_Chi_Minh'
       }, { onConflict: 'shop_id' });
 
@@ -144,61 +142,51 @@ export default function BookingSettingsTab() {
           </div>
         </div>
 
-        {/* BASIC SETTINGS BLOCK */}
+        {/* LIVE STATUS UPDATE BLOCK */}
         <div className="bg-white/40 backdrop-blur-md border border-slate-200/50 rounded-2xl overflow-hidden p-6 shadow-sm">
           <div className="flex items-center gap-3 border-b border-slate-200/30 pb-4 mb-6">
-            <div className="p-2 bg-blue-100 rounded-lg text-blue-800">
-              <CalendarDaysIcon />
+            <div className="p-2 bg-amber-100 rounded-lg text-amber-800">
+               <Timer className="w-5 h-5" />
             </div>
-            <h3 className="text-lg font-bold text-blue-600">Cơ Bản (Lịch Làm Việc)</h3>
+            <h3 className="text-lg font-bold text-amber-900">Trạng Thái Live (Cập nhật nhanh)</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Slot Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Wait time */}
             <div className="space-y-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
-                  <Timer className="w-4 h-4" /> Thời lượng 1 Slot (Phút)
+                <label className="flex items-center gap-2 text-[13px] font-black text-blue-600 uppercase mb-2">
+                  1. Bao nhiêu phút nữa trống lịch?
                 </label>
-                <input 
-                  type="number" value={slotDuration} 
-                  onChange={(e) => setSlotDuration(parseInt(e.target.value) || 0)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
-                  <Users className="w-4 h-4" /> Số khách tối đa / Slot
-                </label>
-                <input 
-                  type="number" value={maxSlots} 
-                  onChange={(e) => setMaxSlots(parseInt(e.target.value) || 0)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
-                />
+                <div className="relative">
+                  <input 
+                    type="number" value={slotDuration} 
+                    onChange={(e) => setSlotDuration(parseInt(e.target.value) || 0)}
+                    className="w-full bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 text-2xl font-black text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-inner"
+                    placeholder="Ví dụ: 30"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">PHÚT</span>
+                </div>
+                <p className="text-[11px] text-slate-500 italic mt-1">* Nhập 0 nếu đang có chỗ trống ngay lập tức.</p>
               </div>
             </div>
 
-            {/* Timings */}
+            {/* Availability */}
             <div className="space-y-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
-                  <Clock className="w-4 h-4" /> Giờ Mở Cửa
+                <label className="flex items-center gap-2 text-[13px] font-black text-blue-600 uppercase mb-2">
+                  2. Số chỗ dự kiến sẽ trống?
                 </label>
-                <input 
-                  type="time" value={workingStart} 
-                  onChange={(e) => setWorkingStart(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
-                />
-              </div>
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
-                  <Clock className="w-4 h-4" /> Giờ Đóng Cửa
-                </label>
-                <input 
-                  type="time" value={workingEnd} 
-                  onChange={(e) => setWorkingEnd(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
-                />
+                <div className="relative">
+                  <input 
+                    type="number" value={maxSlots} 
+                    onChange={(e) => setMaxSlots(parseInt(e.target.value) || 0)}
+                    className="w-full bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 text-2xl font-black text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-inner"
+                    placeholder="Ví dụ: 2"
+                  />
+                  <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">CHỖ</span>
+                </div>
+                <p className="text-[11px] text-slate-500 italic mt-1">* Số lượng khách sếp có thể nhận tại thời điểm đó.</p>
               </div>
             </div>
           </div>
