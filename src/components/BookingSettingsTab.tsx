@@ -37,7 +37,7 @@ export default function BookingSettingsTab() {
   };
 
   return (
-    <div className="min-h-screen p-6 text-slate-200">
+    <div className="min-h-screen p-6 text-blue-50">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* HEADER SECTION */}
@@ -48,7 +48,7 @@ export default function BookingSettingsTab() {
               <Settings2 className="w-6 h-6 text-amber-500" />
               Cấu Hình Đặt Lịch & Ưu Đãi
             </h2>
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mt-2 text-sm text-blue-500 font-medium">
               Quản lý giờ tiếp khách và các khung giờ Vàng (Happy Hour) để AI chủ động Sale.
             </p>
           </div>
@@ -67,7 +67,7 @@ export default function BookingSettingsTab() {
             {/* Slot Settings */}
             <div className="space-y-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
                   <Timer className="w-4 h-4" /> Thời lượng 1 Slot (Phút)
                 </label>
                 <input 
@@ -76,7 +76,7 @@ export default function BookingSettingsTab() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
                   <Users className="w-4 h-4" /> Số khách tối đa / Slot
                 </label>
                 <input 
@@ -89,7 +89,7 @@ export default function BookingSettingsTab() {
             {/* Timings */}
             <div className="space-y-4">
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
                   <Clock className="w-4 h-4" /> Giờ Mở Cửa
                 </label>
                 <input 
@@ -99,7 +99,7 @@ export default function BookingSettingsTab() {
                 />
               </div>
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-400 mb-1">
+                <label className="flex items-center gap-2 text-sm font-medium text-blue-500 mb-1">
                   <Clock className="w-4 h-4" /> Giờ Đóng Cửa
                 </label>
                 <input 
@@ -122,10 +122,10 @@ export default function BookingSettingsTab() {
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-blue-500' : 'text-slate-300'}`}>
+              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-blue-500' : 'text-blue-400'}`}>
                 Nâng Cao: Cơ Chế Giờ Vàng (Happy Hour)
               </h3>
-              <p className="text-sm text-slate-400 mt-1">AI Chatbot tự động tư vấn giảm giá khi khách chọn trúng khung giờ vắng.</p>
+              <p className="text-sm text-blue-500 mt-1 font-medium">AI Chatbot tự động tư vấn giảm giá khi khách chọn trúng khung giờ vắng.</p>
             </div>
           </div>
           
@@ -175,37 +175,37 @@ export default function BookingSettingsTab() {
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 20, opacity: 0 }}
-                        className="flex flex-col md:flex-row items-center gap-4 bg-black/40 border border-white/5 rounded-xl p-4 hover:border-purple-500/30 transition-colors"
+                        className="flex flex-col md:flex-row items-center gap-2 bg-black/40 border border-white/5 rounded-xl p-3 hover:border-purple-500/30 transition-colors"
                       >
-                         <div className="flex items-center gap-3 w-full md:w-auto">
+                         <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-between">
                             <input 
                               type="time" defaultValue={rule.startTime}
-                              className="bg-slate-800/80 border border-white/10 rounded-lg px-3 py-2 text-white outline-none w-full md:w-32"
+                              className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-2 text-white outline-none w-[110px] sm:w-32 text-sm"
                               style={{ colorScheme: 'dark' }}
                             />
-                            <span className="text-slate-500">→</span>
+                            <span className="text-blue-600 font-bold mx-1">→</span>
                             <input 
                               type="time" defaultValue={rule.endTime}
-                              className="bg-slate-800/80 border border-white/10 rounded-lg px-3 py-2 text-white outline-none w-full md:w-32"
+                              className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-2 text-white outline-none w-[110px] sm:w-32 text-sm"
                               style={{ colorScheme: 'dark' }}
                             />
                          </div>
 
-                         <div className="flex-1 flex items-center gap-3 w-full">
-                           <div className="bg-slate-800/80 border border-white/10 p-1 flex rounded-lg">
-                             <button className={`px-3 py-1 text-sm rounded-md transition-colors ${rule.type === 'percent' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}>% Giảm</button>
-                             <button className={`px-3 py-1 text-sm rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}>VNĐ</button>
+                         <div className="flex-1 flex items-center gap-2 w-full mt-2 md:mt-0">
+                           <div className="bg-slate-800/80 border border-white/10 p-1 flex rounded-lg shrink-0">
+                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'percent' ? 'bg-purple-500 text-white' : 'text-blue-500 hover:text-white'}`}>% Giảm</button>
+                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-purple-500 text-white' : 'text-blue-500 hover:text-white'}`}>VNĐ</button>
                            </div>
                            <input 
                               type="number" defaultValue={rule.value}
-                              className="w-full md:flex-1 bg-slate-800/80 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:ring-1 focus:ring-purple-500"
+                              className="w-full flex-1 min-w-[80px] bg-slate-800/80 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500 text-sm font-bold"
                               placeholder="Mức giảm..."
                             />
                          </div>
 
                          <button 
                            onClick={() => removeRule(rule.id)}
-                           className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors ml-auto sm:ml-0"
+                           className="p-2 text-blue-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors ml-auto sm:ml-0 shrink-0"
                          >
                            <Trash2 className="w-5 h-5" />
                          </button>
@@ -214,7 +214,7 @@ export default function BookingSettingsTab() {
                   </AnimatePresence>
                   
                   {rules.length === 0 && (
-                    <div className="text-center py-8 text-slate-500 border border-dashed border-white/10 rounded-xl">
+                    <div className="text-center py-8 text-blue-500 font-medium border border-dashed border-white/10 rounded-xl">
                       Chưa có quy tắc Happy Hour nào được thêm.
                     </div>
                   )}
