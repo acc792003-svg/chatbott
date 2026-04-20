@@ -130,7 +130,7 @@ export default function LandingPage() {
 
           {/* Social Proof Text Only */}
           <div className="pt-12 opacity-60">
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400">Được tin dùng bởi 100+ shop bán hàng</p>
+            <p className="text-[13px] font-black uppercase tracking-[0.3em] text-blue-900 whitespace-nowrap">Được tin dùng bởi 100+ shop bán hàng</p>
           </div>
         </div>
       </section>
