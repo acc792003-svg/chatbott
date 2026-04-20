@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send, Lock, CalendarDays } from 'lucide-react';
-import BookingSettingsTab from '@/components/BookingSettingsTab';
+import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send, Lock } from 'lucide-react';
 
 export default function ConfigClient() {
-  const [activeTab, setActiveTab] = useState<'general' | 'ai_core' | 'booking'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'ai_core'>('general');
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showToken, setShowToken] = useState(false);
@@ -347,12 +346,6 @@ export default function ConfigClient() {
                 <Brain size={14} /> Smart AI Core
                 {suggestions.length > 0 && <span className="bg-red-500 text-white w-4 h-4 rounded-full text-[8px] flex items-center justify-center animate-pulse">{suggestions.length}</span>}
               </button>
-              <button 
-                onClick={() => setActiveTab('booking')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'booking' ? 'bg-white text-purple-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-              >
-                <CalendarDays size={14} /> Lịch & Ưu đãi
-              </button>
            </div>
         </div>
       </div>
@@ -685,10 +678,6 @@ export default function ConfigClient() {
                )}
             </div>
          </div>
-      )}
-
-      {activeTab === 'booking' && (
-         <BookingSettingsTab />
       )}
     </div>
   );

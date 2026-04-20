@@ -12,7 +12,8 @@ import {
   Bot,
   LogOut,
   ShieldAlert,
-  Users
+  Users,
+  CalendarDays
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +21,7 @@ import { useRouter } from 'next/navigation';
 
 const menuItems = [
   { name: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Lịch & Ưu Đãi', href: '/dashboard/booking', icon: CalendarDays },
   { name: 'Khách hàng', href: '/dashboard/leads', icon: Users },
   { name: 'Cấu hình AI', href: '/dashboard/config', icon: Settings },
   { name: 'Lịch sử Chat', href: '/dashboard/history', icon: History },
