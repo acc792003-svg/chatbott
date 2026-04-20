@@ -74,7 +74,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto min-h-[500px]">
+        <div className="overflow-x-auto h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar">
           {loading ? (
              <div className="flex justify-center items-center h-64 text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">
                 Đang tải dữ liệu...
@@ -86,43 +86,46 @@ export default function HistoryPage() {
                 <p className="text-xs text-slate-400 mt-2 font-medium">Không có tin nhắn nào trong 24 giờ qua</p>
              </div>
           ) : (
-            <table className="w-full text-left">
-              <thead>
-                <tr className="bg-indigo-50/50 text-[9px] font-black text-indigo-500 uppercase tracking-wide">
-                  <th className="px-4 py-2.5 w-32">Session</th>
-                  <th className="px-4 py-2.5 w-1/3">User Msg</th>
-                  <th className="px-4 py-2.5 w-1/2">AI Response</th>
-                  <th className="px-4 py-2.5 w-24">Time</th>
+            <table className="w-full text-left border-separate border-spacing-0">
+              <thead className="sticky top-0 z-30">
+                <tr className="bg-indigo-50 text-[9px] font-black text-indigo-500 uppercase tracking-wide shadow-sm">
+                  <th className="px-6 py-4 w-32 border-b border-indigo-100">Session</th>
+                  <th className="px-6 py-4 w-1/3 border-b border-indigo-100">User Msg</th>
+                  <th className="px-6 py-4 w-1/2 border-b border-indigo-100">AI Response</th>
+                  <th className="px-6 py-4 w-24 border-b border-indigo-100">Time</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {history.map((h) => (
-                  <tr key={h.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/80 transition-colors group">
-                    <td className="px-4 py-2 align-top">
-                        <span className="font-bold text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded" title={h.session_id}>
+                  <tr key={h.id} className="group hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 align-top">
+                        <span className="font-bold text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shadow-sm" title={h.session_id}>
                           #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
                         </span>
                     </td>
-                    <td className="px-4 py-3 align-top group-hover:bg-indigo-50/30 transition-all duration-500">
-                      <div className="relative group/msg">
-                        <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed transition-all group-hover/msg:text-sm">
+                    <td className="px-6 py-4 align-top">
+                      <div className="max-h-24 overflow-hidden group-hover:max-h-none transition-all duration-300">
+                        <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3 group-hover:line-clamp-none">
                           {h.user_message}
                         </p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 align-top">
-                      <div className="relative group/ai">
+                    <td className="px-6 py-4 align-top">
+                      <div className="relative group/ai max-w-full">
                         <div className={cn(
-                          "text-[12px] text-emerald-800 bg-emerald-50/50 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/50 transition-all duration-300",
-                          "hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-900/10 hover:bg-white hover:border-emerald-400 hover:text-emerald-900",
-                          "hover:relative hover:z-20 cursor-text"
+                          "text-[12px] text-emerald-800 bg-emerald-50/30 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-300",
+                          "max-h-20 overflow-hidden line-clamp-3 mb-1",
+                          "group-hover:max-h-60 group-hover:overflow-y-auto group-hover:line-clamp-none group-hover:bg-white group-hover:border-emerald-400 group-hover:shadow-xl group-hover:scale-[1.01] group-hover:z-50 group-hover:relative"
                         )}>
-                          <div className="flex items-center gap-1.5 mb-1 opacity-40 group-hover/ai:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-1.5 mb-1 opacity-40 group-hover:opacity-100">
                              <Bot size={12} className="text-emerald-600" />
                              <span className="text-[9px] font-black uppercase tracking-tighter">AI Assistant</span>
                           </div>
                           {h.ai_response}
                         </div>
+                        {h.ai_response && h.ai_response.length > 100 && (
+                          <div className="text-[9px] font-bold text-slate-400 italic group-hover:hidden px-2">... xem thêm</div>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap align-top text-right">
