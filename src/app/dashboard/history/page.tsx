@@ -15,10 +15,15 @@ import { cn } from '@/lib/utils';
 export default function HistoryPage() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -96,44 +101,75 @@ export default function HistoryPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {history.map((h) => (
-                  <tr key={h.id} className="group hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 align-top">
-                        <span className="font-bold text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded shadow-sm" title={h.session_id}>
-                          #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="max-h-24 overflow-hidden group-hover:max-h-none transition-all duration-300">
-                        <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3 group-hover:line-clamp-none">
-                          {h.user_message}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 align-top">
-                      <div className="relative group/ai max-w-full">
+                {history.map((h) => {
+                  const isExpanded = expandedId === h.id;
+                  return (
+                    <tr 
+                      key={h.id} 
+                      onClick={() => toggleExpand(h.id)}
+                      className={cn(
+                        "group transition-all duration-500 cursor-pointer border-b border-slate-100 last:border-0",
+                        isExpanded ? "bg-indigo-50/40 ring-1 ring-inset ring-indigo-200 shadow-inner" : "hover:bg-slate-50/50"
+                      )}
+                    >
+                      <td className="px-6 py-4 align-top">
+                          <span className={cn(
+                            "font-bold text-[10px] px-1.5 py-0.5 rounded shadow-sm transition-colors",
+                            isExpanded ? "bg-indigo-600 text-white" : "text-indigo-600 bg-indigo-50"
+                          )}>
+                            #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
+                          </span>
+                      </td>
+                      <td className={cn(
+                        "px-6 py-4 align-top transition-all duration-500",
+                        isExpanded ? "w-48 opacity-40" : "w-1/3"
+                      )}>
                         <div className={cn(
-                          "text-[12px] text-emerald-800 bg-emerald-50/30 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-300",
-                          "max-h-20 overflow-hidden line-clamp-3 mb-1",
-                          "group-hover:max-h-60 group-hover:overflow-y-auto group-hover:line-clamp-none group-hover:bg-white group-hover:border-emerald-400 group-hover:shadow-xl group-hover:scale-[1.01] group-hover:z-50 group-hover:relative"
+                          "overflow-hidden transition-all duration-500",
+                          isExpanded ? "max-h-24 scale-95 origin-left" : "max-h-24"
                         )}>
-                          <div className="flex items-center gap-1.5 mb-1 opacity-40 group-hover:opacity-100">
-                             <Bot size={12} className="text-emerald-600" />
-                             <span className="text-[9px] font-black uppercase tracking-tighter">AI Assistant</span>
-                          </div>
-                          {h.ai_response}
+                          <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3 group-hover:line-clamp-none">
+                            {h.user_message}
+                          </p>
                         </div>
-                        {h.ai_response && h.ai_response.length > 100 && (
-                          <div className="text-[9px] font-bold text-slate-400 italic group-hover:hidden px-2">... xem thêm</div>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-2 whitespace-nowrap align-top text-right">
-                      <p className="text-[11px] font-bold text-slate-700">{new Date(h.created_at).toLocaleTimeString()}</p>
-                      <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(h.created_at).toLocaleDateString()}</p>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className={cn(
+                        "px-6 py-4 align-top transition-all duration-500",
+                        isExpanded ? "w-full" : "w-1/2"
+                      )}>
+                        <div className="relative group/ai max-w-full h-full">
+                          <div className={cn(
+                            "text-[12px] text-emerald-800 bg-emerald-50/30 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-500 shadow-sm",
+                            isExpanded 
+                              ? "max-h-none opacity-100 bg-white border-emerald-500 shadow-xl shadow-emerald-900/10 scale-[1.02] -translate-x-4" 
+                              : "max-h-20 overflow-hidden line-clamp-3 mb-1 group-hover:bg-white/80"
+                          )}>
+                            <div className="flex items-center justify-between mb-2">
+                               <div className="flex items-center gap-1.5 opacity-60">
+                                  <Bot size={12} className="text-emerald-600" />
+                                  <span className="text-[9px] font-black uppercase tracking-tighter">AI Assistant</span>
+                               </div>
+                               {isExpanded && (
+                                 <span className="text-[9px] bg-emerald-100 text-emerald-700 font-black px-2 py-0.5 rounded-full animate-pulse">ĐANG XEM CHI TIẾT</span>
+                               )}
+                            </div>
+                            {h.ai_response}
+                          </div>
+                          {!isExpanded && h.ai_response && h.ai_response.length > 100 && (
+                            <div className="text-[9px] font-bold text-slate-400 italic px-2">Nhấn để xem toàn bộ...</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap align-top text-right">
+                        <p className={cn(
+                          "text-[11px] font-bold transition-colors",
+                          isExpanded ? "text-indigo-600" : "text-slate-700"
+                        )}>{new Date(h.created_at).toLocaleTimeString()}</p>
+                        <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(h.created_at).toLocaleDateString()}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
