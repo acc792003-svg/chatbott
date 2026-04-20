@@ -70,21 +70,23 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       "w-64 h-screen glass border-r border-white/20 fixed left-0 top-0 z-[60] flex flex-col p-4 transition-transform duration-300 lg:translate-x-0",
       isOpen ? "translate-x-0" : "-translate-x-full"
     )}>
-      {/* Nút đóng cho mobile */}
-      <button 
-        onClick={() => setIsOpen(false)}
-        className="lg:hidden absolute -right-12 top-4 w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-slate-600 shadow-lg"
-      >
-        <X size={20} />
-      </button>
-
-      <div className="flex items-center gap-3 px-2 mb-8">
-        <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-          <Bot size={24} />
+      <div className="flex items-center justify-between mb-8 px-2">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+            <Bot size={24} />
+          </div>
+          <span className="font-extrabold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
+            AI Chat
+          </span>
         </div>
-        <span className="font-extrabold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
-          AI Chat
-        </span>
+
+        {/* Nút đóng cho mobile nằm bên trong */}
+        <button 
+          onClick={() => setIsOpen(false)}
+          className="lg:hidden p-2 hover:bg-slate-100 rounded-xl transition-colors text-slate-500"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       <nav className="flex-1 space-y-2">
@@ -92,6 +94,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           <Link
             key={item.href}
             href={item.href}
+            onClick={() => setIsOpen(false)}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
               pathname === item.href 
@@ -110,6 +113,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         {role === 'super_admin' && (
           <Link
             href="/dashboard/superadmin"
+            onClick={() => setIsOpen(false)}
             className={cn(
               "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group mt-4 border border-red-200",
               pathname === '/dashboard/superadmin' 
