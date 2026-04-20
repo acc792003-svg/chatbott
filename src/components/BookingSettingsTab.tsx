@@ -37,7 +37,7 @@ export default function BookingSettingsTab() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-[#030712] text-slate-300">
+    <div className="min-h-screen p-6 bg-[#fefce8] text-slate-900">
       <div className="max-w-4xl mx-auto space-y-8">
         <style>{`
           .max-w-4xl.mx-auto.space-y-8 .text-blue-500 {
@@ -47,8 +47,8 @@ export default function BookingSettingsTab() {
         
         {/* HEADER SECTION */}
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-          <div className="relative bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-200 to-indigo-300 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
+          <div className="relative bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-6 shadow-xl">
             <h2 className="text-2xl font-black text-amber-500 flex items-center gap-2">
               <Settings2 className="w-6 h-6 text-amber-500" />
               Cấu Hình Đặt Lịch & Ưu Đãi
@@ -60,8 +60,8 @@ export default function BookingSettingsTab() {
         </div>
 
         {/* BASIC SETTINGS BLOCK */}
-        <div className="bg-slate-900/50 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden p-6 shadow-xl">
-          <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
+        <div className="bg-white/70 backdrop-blur-xl border border-slate-200 rounded-2xl overflow-hidden p-6 shadow-lg">
+          <div className="flex items-center gap-3 border-b border-slate-100 pb-4 mb-6">
             <div className="p-2 bg-blue-100 rounded-lg text-blue-800">
               <CalendarDaysIcon />
             </div>
@@ -77,7 +77,7 @@ export default function BookingSettingsTab() {
                 </label>
                 <input 
                   type="number" defaultValue={60} 
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-black/60"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
               <div>
@@ -86,7 +86,7 @@ export default function BookingSettingsTab() {
                 </label>
                 <input 
                   type="number" defaultValue={3} 
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-black/60"
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
             </div>
@@ -99,8 +99,7 @@ export default function BookingSettingsTab() {
                 </label>
                 <input 
                   type="time" defaultValue="08:00" 
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-black/60"
-                  style={{ colorScheme: 'dark' }}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
               <div>
@@ -109,8 +108,7 @@ export default function BookingSettingsTab() {
                 </label>
                 <input 
                   type="time" defaultValue="20:00" 
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-black/60"
-                  style={{ colorScheme: 'dark' }}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
             </div>
@@ -120,26 +118,26 @@ export default function BookingSettingsTab() {
         {/* ADVANCED TOGGLE */}
         <div 
           onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-          className={`cursor-pointer transition-all duration-300 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between border ${isAdvancedMode ? 'bg-blue-900/20 border-blue-600/50 shadow-[0_0_30px_rgba(37,99,235,0.15)]' : 'bg-slate-900/50 border-white/5 hover:bg-slate-800/80'} backdrop-blur-xl shadow-xl`}
+          className={`cursor-pointer transition-all duration-300 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between border ${isAdvancedMode ? 'bg-[#fef08a] border-yellow-400 shadow-md' : 'bg-white/70 border-slate-200 hover:bg-white'} backdrop-blur-xl`}
         >
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl transition-colors ${isAdvancedMode ? 'bg-blue-100 text-blue-800' : 'bg-white/5 text-slate-400'}`}>
+            <div className={`p-3 rounded-xl transition-colors ${isAdvancedMode ? 'bg-yellow-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-blue-500' : 'text-blue-400'}`}>
+              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-yellow-700' : 'text-slate-500'}`}>
                 Nâng Cao: Cơ Chế Giờ Vàng (Happy Hour)
               </h3>
-              <p className="text-sm text-blue-500 mt-1 font-medium">AI Chatbot tự động tư vấn giảm giá khi khách chọn trúng khung giờ vắng.</p>
+              <p className="text-sm text-slate-600 mt-1 font-medium">AI Chatbot tự động tư vấn giảm giá khi khách chọn trúng khung giờ vắng.</p>
             </div>
           </div>
           
           {/* Custom Switch UI */}
-          <div className="mt-4 sm:mt-0 relative w-14 h-8 bg-black/60 rounded-full border border-white/10 p-1 flex items-center">
+          <div className="mt-4 sm:mt-0 relative w-14 h-8 bg-slate-200 rounded-full border border-slate-300 p-1 flex items-center">
             <motion.div 
               layout 
               transition={{ type: "spring", stiffness: 700, damping: 30 }}
-              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-600'}`}
+              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-yellow-500' : 'bg-white'}`}
               style={{ marginLeft: isAdvancedMode ? '24px' : '0px' }}
             />
           </div>
@@ -154,19 +152,19 @@ export default function BookingSettingsTab() {
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden"
             >
-              <div className="bg-slate-900/30 backdrop-blur-sm border border-purple-500/20 rounded-2xl p-6 mt-2 relative">
+              <div className="bg-white/80 backdrop-blur-sm border border-yellow-200 rounded-2xl p-6 mt-2 relative">
                 
                 {/* Decorative glow */}
-                <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-yellow-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
                 <div className="flex justify-between items-center mb-6">
-                  <h4 className="text-white font-medium flex items-center gap-2">
-                    <Gift className="w-4 h-4 text-purple-400" />
+                  <h4 className="text-slate-900 font-bold flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-yellow-600" />
                     Luật Giảm Giá Khung Giờ
                   </h4>
                   <button 
                     onClick={addRule}
-                    className="flex items-center gap-2 text-sm bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 px-3 py-1.5 rounded-lg border border-purple-500/30 transition-all font-medium"
+                    className="flex items-center gap-2 text-sm bg-yellow-100 hover:bg-yellow-200 text-yellow-700 px-3 py-1.5 rounded-lg border border-yellow-300 transition-all font-medium"
                   >
                     <Plus className="w-4 h-4" /> Thêm Giờ Vàng
                   </button>
@@ -180,37 +178,35 @@ export default function BookingSettingsTab() {
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
                         exit={{ x: 20, opacity: 0 }}
-                        className="flex flex-col md:flex-row items-center gap-2 bg-black/40 border border-white/5 rounded-xl p-3 hover:border-purple-500/30 transition-colors"
+                        className="flex flex-col md:flex-row items-center gap-2 bg-white border border-slate-200 rounded-xl p-3 shadow-sm hover:border-yellow-400 transition-colors"
                       >
                          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 justify-between">
                             <input 
                               type="time" defaultValue={rule.startTime}
-                              className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-2 text-white outline-none w-[110px] sm:w-32 text-sm"
-                              style={{ colorScheme: 'dark' }}
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 outline-none w-[110px] sm:w-32 text-sm"
                             />
-                            <span className="text-blue-600 font-bold mx-1">→</span>
+                            <span className="text-yellow-600 font-bold mx-1">→</span>
                             <input 
                               type="time" defaultValue={rule.endTime}
-                              className="bg-slate-800/80 border border-white/10 rounded-lg px-2 py-2 text-white outline-none w-[110px] sm:w-32 text-sm"
-                              style={{ colorScheme: 'dark' }}
+                              className="bg-slate-50 border border-slate-200 rounded-lg px-2 py-2 text-slate-900 outline-none w-[110px] sm:w-32 text-sm"
                             />
                          </div>
 
                          <div className="flex-1 flex items-center gap-2 w-full mt-2 md:mt-0">
-                           <div className="bg-slate-800/80 border border-white/10 p-1 flex rounded-lg shrink-0">
-                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'percent' ? 'bg-purple-500 text-white' : 'text-blue-500 hover:text-white'}`}>% Giảm</button>
-                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-purple-500 text-white' : 'text-blue-500 hover:text-white'}`}>VNĐ</button>
+                           <div className="bg-slate-100 border border-slate-200 p-1 flex rounded-lg shrink-0">
+                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'percent' ? 'bg-yellow-500 text-white' : 'text-slate-600 hover:text-slate-800'}`}>% Giảm</button>
+                             <button className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-yellow-500 text-white' : 'text-slate-600 hover:text-slate-800'}`}>VNĐ</button>
                            </div>
                            <input 
                               type="number" defaultValue={rule.value}
-                              className="w-full flex-1 min-w-[80px] bg-slate-800/80 border border-white/10 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-purple-500 text-sm font-bold"
+                              className="w-full flex-1 min-w-[80px] bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-yellow-500 text-sm font-bold"
                               placeholder="Mức giảm..."
                             />
                          </div>
 
                          <button 
                            onClick={() => removeRule(rule.id)}
-                           className="p-2 text-blue-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors ml-auto sm:ml-0 shrink-0"
+                           className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-auto sm:ml-0 shrink-0"
                          >
                            <Trash2 className="w-5 h-5" />
                          </button>
