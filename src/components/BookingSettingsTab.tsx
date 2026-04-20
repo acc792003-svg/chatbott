@@ -160,10 +160,12 @@ export default function BookingSettingsTab() {
                 </label>
                 <div className="relative">
                   <input 
-                    type="number" value={slotDuration} 
+                    type="number" 
+                    value={slotDuration === 0 ? "" : slotDuration} 
                     onChange={(e) => setSlotDuration(parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     className="w-full bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 text-2xl font-black text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-inner"
-                    placeholder="Ví dụ: 30"
+                    placeholder="0"
                   />
                   <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">PHÚT</span>
                 </div>
@@ -179,10 +181,12 @@ export default function BookingSettingsTab() {
                 </label>
                 <div className="relative">
                   <input 
-                    type="number" value={maxSlots} 
+                    type="number" 
+                    value={maxSlots === 0 ? "" : maxSlots} 
                     onChange={(e) => setMaxSlots(parseInt(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
                     className="w-full bg-white border-2 border-slate-200 rounded-2xl px-5 py-4 text-2xl font-black text-slate-800 focus:outline-none focus:border-amber-500 transition-all shadow-inner"
-                    placeholder="Ví dụ: 2"
+                    placeholder="0"
                   />
                   <span className="absolute right-5 top-1/2 -translate-y-1/2 font-bold text-slate-400">CHỖ</span>
                 </div>
@@ -297,14 +301,16 @@ export default function BookingSettingsTab() {
                                className={`px-2 py-1.5 text-xs font-bold rounded-md transition-colors ${rule.type === 'fixed' ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'}`}>VNĐ</button>
                            </div>
                            <input 
-                              type="number" value={rule.value}
+                              type="number" 
+                              value={rule.value === 0 ? "" : rule.value}
                               onChange={(e) => {
                                  const newRules = [...rules];
                                  newRules[idx].value = parseInt(e.target.value) || 0;
                                  setRules(newRules);
                               }}
+                              onFocus={(e) => e.target.select()}
                               className="w-full flex-1 min-w-[80px] bg-white/80 border border-slate-200 rounded-lg px-3 py-2 text-slate-800 outline-none focus:ring-2 focus:ring-amber-400 text-sm font-bold"
-                              placeholder="Mức giảm..."
+                              placeholder="0"
                             />
                          </div>
 
