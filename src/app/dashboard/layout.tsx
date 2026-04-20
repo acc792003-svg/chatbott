@@ -103,11 +103,19 @@ export default function DashboardLayout({
                    <p className="text-[11px] font-black text-slate-900 leading-none">{userName}</p>
                    {shopCode && <span className="text-[9px] bg-slate-100 px-1 py-0.5 rounded font-bold text-slate-500">#{shopCode}</span>}
                 </div>
-                <div className="flex items-center gap-1">
-                   <div className={`w-1.5 h-1.5 rounded-full ${shopPlan === 'pro' ? 'bg-amber-400' : 'bg-slate-300'}`}></div>
+                <div className="flex items-center gap-1.5">
+                   <div className={`w-1.5 h-1.5 rounded-full ${shopPlan === 'pro' ? 'bg-amber-400 animate-pulse' : 'bg-slate-300'}`}></div>
                    <p className={`text-[9px] font-black uppercase tracking-wider ${shopPlan === 'pro' ? 'text-amber-600' : 'text-slate-400'}`}>
-                      Plan: {shopPlan}
+                      Plan: {shopPlan === 'pro' ? 'Premium Pro' : 'Free Trial'}
                    </p>
+                   {shopPlan === 'free' && (
+                     <button 
+                       onClick={() => router.push('/dashboard/pricing')}
+                       className="ml-1 text-[8px] font-bold text-blue-600 hover:underline bg-blue-50 px-1.5 py-0.5 rounded shadow-sm"
+                     >
+                       Nâng cấp
+                     </button>
+                   )}
                 </div>
               </div>
             </div>

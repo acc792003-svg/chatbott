@@ -11,8 +11,13 @@ import {
   Clock, 
   Trash2,
   ExternalLink,
-  Loader2
+  Loader2,
+  MessageCircle,
+  PhoneCall,
+  Search,
+  Filter
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Lead {
   id: string;
@@ -28,6 +33,7 @@ export default function LeadsClient() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'new' | 'done'>('all');
 
   const fetchLeads = async () => {
     try {
@@ -84,87 +90,162 @@ export default function LeadsClient() {
     }
   };
 
-  if (loading) return <div className="flex h-64 justify-center items-center"><Loader2 className="animate-spin text-blue-500" /></div>;
+  const filteredLeads = leads.filter(l => {
+    if (filter === 'all') return true;
+    return l.status === filter;
+  });
+
+  if (loading) return <div className="flex h-64 justify-center items-center"><Loader2 className="animate-spin text-blue-600" size={32} /></div>;
+
+  const newLeadsCount = leads.filter(l => l.status !== 'done').length;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500" style={{ fontFamily: 'Arial, sans-serif' }}>
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Header & Stats Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Khách Hàng Tiềm Năng</h1>
-          <p className="text-slate-500 font-medium">Danh sách khách hàng để lại số điện thoại qua Chatbot.</p>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight leading-none mb-3">QUẢN LÝ KHÁCH HÀNG</h1>
+          <p className="text-slate-500 font-medium">Tự động thu thập thông tin khách hàng tiềm năng qua trợ lý ảo.</p>
         </div>
-        <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-2xl font-bold flex items-center gap-2">
-          <Users size={20} />
-          {leads.length} khách hàng
+        
+        <div className="flex gap-3">
+            <div className="bg-blue-600 text-white px-6 py-3 rounded-2xl shadow-xl shadow-blue-100 flex flex-col items-center min-w-[120px]">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Mới nhất</span>
+                <span className="text-2xl font-black leading-none">{newLeadsCount}</span>
+            </div>
+            <div className="bg-white border border-slate-200 px-6 py-3 rounded-2xl shadow-sm flex flex-col items-center min-w-[120px]">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Tổng cộng</span>
+                <span className="text-2xl font-black text-slate-900 leading-none">{leads.length}</span>
+            </div>
         </div>
       </div>
 
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 p-1 bg-slate-100 w-fit rounded-2xl border border-slate-200 shadow-inner">
+         <button 
+          onClick={() => setFilter('all')}
+          className={cn(
+            "px-6 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-wider",
+            filter === 'all' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+         >
+           Tất cả
+         </button>
+         <button 
+          onClick={() => setFilter('new')}
+          className={cn(
+            "px-6 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-wider",
+            filter === 'new' ? "bg-white text-orange-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+         >
+           Đang chờ
+         </button>
+         <button 
+          onClick={() => setFilter('done')}
+          className={cn(
+            "px-6 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-wider",
+            filter === 'done' ? "bg-white text-green-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
+          )}
+         >
+           Đã xử lý
+         </button>
+      </div>
+
+      {/* Leads List */}
       <div className="grid grid-cols-1 gap-4">
-        {leads.length === 0 ? (
-          <div className="glass p-20 rounded-[3rem] text-center space-y-4">
-             <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400">
-                <Phone size={32} />
+        {filteredLeads.length === 0 ? (
+          <div className="glass p-24 rounded-[3.5rem] text-center space-y-6 flex flex-col items-center border border-white">
+             <div className="w-20 h-20 bg-slate-50 text-slate-200 rounded-full flex items-center justify-center animate-pulse">
+                <Users size={40} />
              </div>
-             <p className="text-slate-500 font-medium">Chưa có khách hàng nào để lại số điện thoại.</p>
+             <div className="space-y-1">
+                <p className="text-lg font-black text-slate-800">Chưa có dữ liệu khách hàng</p>
+                <p className="text-sm text-slate-400 font-medium max-w-xs mx-auto">Trợ lý ảo đang trực để sẵn sàng thu thập số điện thoại khách hàng giúp bạn.</p>
+             </div>
           </div>
         ) : (
-          leads.map((lead) => (
-            <div key={lead.id} className="glass p-6 rounded-[2rem] hover:shadow-xl transition-all border border-slate-100 group">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-start gap-4">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-                    lead.status === 'done' ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
-                  }`}>
-                    <Phone size={24} />
+          filteredLeads.map((lead) => (
+            <div key={lead.id} className={cn(
+              "glass p-8 rounded-[2.5rem] transition-all border group relative overflow-hidden",
+              lead.status === 'done' ? "bg-white/40 grayscale-[0.3]" : "bg-white border-blue-50 shadow-xl shadow-slate-200/40 hover:shadow-2xl hover:scale-[1.005]"
+            )}>
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+                {/* Left info */}
+                <div className="flex items-start gap-5">
+                  <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                    lead.status === 'done' ? 'bg-slate-100 text-slate-400' : 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-100'
+                  )}>
+                    <PhoneCall size={24} strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900">{lead.phone}</h3>
-                    <div className="flex items-center gap-3 mt-1">
-                      <span className="flex items-center gap-1 text-xs font-bold text-slate-400">
-                        <Calendar size={12} />
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-2 selection:bg-blue-100">{lead.phone}</h3>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                        <Calendar size={13} className="text-slate-300" />
                         {new Date(lead.created_at).toLocaleString('vi-VN')}
                       </span>
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${
-                        lead.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
-                      }`}>
-                        {lead.status === 'done' ? 'Đã xử lý' : 'Mới'}
+                      <span className={cn(
+                        "text-[10px] font-black uppercase px-3 py-1 rounded-full border tracking-wider",
+                        lead.status === 'done' 
+                          ? 'bg-green-50 text-green-600 border-green-100' 
+                          : 'bg-orange-50 text-orange-600 border-orange-100 animate-pulse'
+                      )}>
+                        {lead.status === 'done' ? '✓ Đã liên hệ' : '● Khách mới'}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="flex-1 max-w-md bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                   <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase mb-1">
-                      <MessageSquare size={10} /> Tin nhắn gốc
+                {/* Content info */}
+                <div className="flex-1 max-w-lg bg-slate-50/70 p-5 rounded-[1.5rem] border border-slate-100 group-hover:bg-blue-50/50 transition-colors">
+                   <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest">
+                      <MessageSquare size={12} className="text-slate-300" /> Nhu cầu khách hàng
                    </div>
-                   <p className="text-sm text-slate-600 italic line-clamp-2">"{lead.first_message}"</p>
+                   <p className="text-sm text-slate-700 italic leading-relaxed line-clamp-3">"{lead.first_message}"</p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                {/* Actions */}
+                <div className="flex items-center gap-3">
+                   {/* Quick Contact Buttons */}
+                   <div className="flex bg-slate-100/50 p-1 rounded-2xl border border-slate-100">
+                      <a 
+                        href={`tel:${lead.phone}`}
+                        className="p-3 text-blue-600 hover:bg-white hover:shadow-sm rounded-xl transition-all"
+                        title="Gọi điện ngay"
+                      >
+                        <PhoneCall size={20} />
+                      </a>
+                      <a 
+                        href={`https://zalo.me/${lead.phone.replace(/^0/, '84')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 text-blue-500 hover:bg-white hover:shadow-sm rounded-xl transition-all"
+                        title="Chat Zalo"
+                      >
+                        <MessageCircle size={20} />
+                      </a>
+                   </div>
+
                    <button 
                     onClick={() => updateStatus(lead.id, lead.status === 'done' ? 'new' : 'done')}
                     disabled={updatingId === lead.id}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                    className={cn(
+                      "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all",
                       lead.status === 'done' 
-                        ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
-                        : 'bg-green-600 text-white hover:bg-green-700 shadow-lg shadow-green-100'
-                    }`}
+                        ? 'bg-slate-200 text-slate-500 hover:bg-slate-300' 
+                        : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-100 active:scale-95'
+                    )}
                    >
-                     {updatingId === lead.id ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                     {lead.status === 'done' ? 'Hoàn tác (Chưa gọi)' : 'Xác nhận đã gọi'}
+                     {updatingId === lead.id ? <Loader2 size={16} className="animate-spin" /> : (lead.status === 'done' ? <Clock size={16} /> : <CheckCircle2 size={16} />)}
+                     <span className="hidden sm:inline">{lead.status === 'done' ? 'Phục hồi' : 'Xong'}</span>
                    </button>
                    
-                   <a 
-                    href={`/dashboard/history?session=${lead.session_id}`}
-                    className="p-2 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                    title="Xem hội thoại"
-                   >
-                     <ExternalLink size={20} />
-                   </a>
+                   <div className="w-[1px] h-8 bg-slate-200 mx-2 hidden sm:block"></div>
 
                    <button 
                     onClick={() => deleteLead(lead.id)}
-                    className="p-2 text-slate-300 hover:text-red-500 transition-colors"
+                    className="p-3 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all"
                    >
                      <Trash2 size={20} />
                    </button>

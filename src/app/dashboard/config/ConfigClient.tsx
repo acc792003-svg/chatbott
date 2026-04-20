@@ -383,24 +383,58 @@ export default function ConfigClient() {
 
 
             <div className="pt-4 border-t border-dashed border-slate-200 space-y-6">
-               <div>
-                  <h3 className="text-xs font-black uppercase text-blue-600 mb-3 flex items-center gap-2">
-                     <Send size={14} /> Nhận khách qua Telegram (Tùy chọn)
-                  </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Telegram Chat ID</label>
-                        <input type="text" value={telegramChatId} onChange={e => setTelegramChatId(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 text-sm font-mono outline-none focus:border-blue-500" placeholder="-1001234567..." />
+               <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 p-8 rounded-[2rem] border border-blue-100/50 relative overflow-hidden group">
+                  <div className="absolute -right-4 -top-4 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl group-hover:bg-blue-500/10 transition-all"></div>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+                     <div>
+                        <h3 className="text-sm font-black uppercase text-blue-700 flex items-center gap-2">
+                           <Send size={18} className="rotate-[25deg]" /> THÔNG BÁO QUA TELEGRAM
+                        </h3>
+                        <p className="text-[10px] text-slate-500 font-bold mt-1 uppercase tracking-wider">Nhận thông tin khách hàng tức thì về điện thoại</p>
                      </div>
-                     <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                        <label className="block text-[9px] font-bold text-slate-600 uppercase mb-2">Telegram Bot Token</label>
+                     <div className="flex items-center gap-2 px-3 py-1 bg-white rounded-full border border-blue-100 shadow-sm">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <span className="text-[9px] font-black text-slate-600 uppercase">Tính năng Pro</span>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5 relative z-10">
+                     <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase ml-1">
+                           Mã Chat ID 
+                           <HelpCircle size={12} className="text-slate-300 cursor-help" title="Lấy ID từ Telegram Bot của bạn" />
+                        </label>
+                        <input 
+                           type="text" 
+                           value={telegramChatId} 
+                           onChange={e => setTelegramChatId(e.target.value)} 
+                           className="w-full bg-white/80 border border-slate-200 rounded-2xl p-4 text-sm font-mono focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all outline-none shadow-sm" 
+                           placeholder="-100xxxxxxxxx" 
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase ml-1">
+                           Mã Bot Token 
+                           <Lock size={12} className="text-slate-300" />
+                        </label>
                         <div className="relative">
-                            <input type={showToken ? "text" : "password"} value={telegramBotToken} onChange={e => setTelegramBotToken(e.target.value)} className="w-full bg-white border border-slate-100 rounded-xl p-3 pr-10 text-sm font-mono outline-none focus:border-blue-500" placeholder="7123912:AAGF..." />
-                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 hover:text-blue-600">
-                                {showToken ? <EyeOff size={16}/> : <Eye size={16}/>}
+                            <input 
+                              type={showToken ? "text" : "password"} 
+                              value={telegramBotToken} 
+                              onChange={e => setTelegramBotToken(e.target.value)} 
+                              className="w-full bg-white/80 border border-slate-200 rounded-2xl p-4 pr-12 text-sm font-mono focus:ring-4 focus:ring-blue-100/50 focus:border-blue-500 transition-all outline-none shadow-sm" 
+                              placeholder="7123912:AAGF..." 
+                            />
+                            <button type="button" onClick={() => setShowToken(!showToken)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors">
+                                {showToken ? <EyeOff size={18}/> : <Eye size={18}/>}
                             </button>
                         </div>
                      </div>
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-100/30 rounded-xl border border-blue-100/50">
+                     <p className="text-[10px] text-blue-700 font-bold leading-relaxed italic">
+                        💡 Mẹo: Khi cài đặt xong, bạn sẽ nhận được tin nhắn báo số điện thoại khách hàng NGAY LẬP TỨC để gọi tư vấn chốt đơn.
+                     </p>
                   </div>
                </div>
 
