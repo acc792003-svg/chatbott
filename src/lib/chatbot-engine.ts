@@ -100,6 +100,21 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     let globalFaq = '';
     let globalInsights = '';
 
+    // 🕒 TẢI CẤU HÌNH ĐẶT LỊCH LIVE & GIỜ VÀNG
+    const { data: bookingConfig } = await client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle();
+    const { data: happyHours } = await client.from('discount_rules')
+      .select('*')
+      .eq('shop_id', shopId)
+      .eq('is_active', true);
+
+    const bookingContext = bookingConfig 
+      ? `[TRẠNG THÁI CUỘC HẸN LIVE]:\n- Dự kiến sẽ còn trống chỗ sau: ${bookingConfig.slot_duration_minutes} phút nữa.\n- Số chỗ dự kiến sẽ trống: ${bookingConfig.max_slot_per_block} chỗ.\n(Hãy dùng thông tin này để báo lịch cho khách nếu khách hỏi về chỗ trống hoặc muốn đặt lịch gấp).`
+      : "";
+
+    const happyHourContext = (happyHours && happyHours.length > 0)
+      ? `[ƯU ĐÃI GIỜ VÀNG (HAPPY HOUR)]:\n${happyHours.map(h => `- Từ ${h.start_time.substring(0,5)} đến ${h.end_time.substring(0,5)}: Giảm ${h.discount_value}${h.discount_type === 'percent' ? '%' : 'K'}`).join('\n')}\n(Hãy chủ động gợi ý ưu đãi này nếu khách hỏi giá hoặc đang đắn đo về giá).`
+      : "";
+
     const { data: mappings } = await client.from('shop_templates').select('template_id').eq('shop_id', shopId);
     if (mappings && mappings.length > 0) {
       const templateIds = mappings.map((m: any) => m.template_id);
@@ -235,6 +250,8 @@ ${injectedGlobalFaq}
 ${shopConfig?.faq || ''}
 
 TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
+${bookingContext}
+${happyHourContext}
 
 QUY TẮC PHẢN HỒI:
 - Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
