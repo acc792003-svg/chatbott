@@ -123,18 +123,19 @@ export default function HistoryPage() {
                       </div>
 
                       {/* Messages Area - ĐÂY LÀ NƠI GIÃN NỞ */}
-                      <div className="flex-1 flex flex-col md:flex-row gap-4 items-start transition-all duration-500 overflow-hidden">
+                      <div className="flex-1 flex flex-col md:flex-row gap-8 items-start transition-all duration-500">
                          
                          {/* User Message */}
                          <div className={cn(
-                            "transition-all duration-700 ease-in-out order-1",
-                            isExpanded ? "w-full md:w-1/4 opacity-40 grayscale" : "w-full md:w-1/2"
+                            "transition-all duration-700 ease-in-out",
+                            isExpanded ? "w-full md:w-1/5 opacity-30 blur-[0.5px]" : "w-full md:w-1/3"
                          )}>
-                            <div className="bg-indigo-50/30 p-3 rounded-2xl border border-indigo-100/30">
+                            <div className="py-1">
                                <p className={cn(
-                                 "text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed transition-all",
-                                 !isExpanded && "line-clamp-2 md:line-clamp-3"
+                                 "text-sm text-slate-600 font-medium whitespace-pre-wrap leading-relaxed",
+                                 !isExpanded && "line-clamp-2"
                                )}>
+                                 <span className="text-[10px] uppercase font-black text-indigo-400 block mb-1">Khách hàng:</span>
                                  {h.user_message}
                                </p>
                             </div>
@@ -142,28 +143,29 @@ export default function HistoryPage() {
 
                          {/* AI Message */}
                          <div className={cn(
-                            "transition-all duration-700 ease-in-out order-2",
-                            isExpanded ? "w-full md:w-3/4" : "w-full md:w-1/2"
+                            "transition-all duration-700 ease-in-out",
+                            isExpanded ? "w-full md:w-4/5" : "w-full md:w-2/3"
                          )}>
                             <div className={cn(
-                              "text-[12px] text-emerald-800 bg-emerald-50/50 p-4 rounded-3xl whitespace-pre-wrap leading-relaxed border border-emerald-100/50 transition-all duration-500",
-                              isExpanded 
-                                ? "bg-emerald-50 shadow-inner border-emerald-300 translate-x-0" 
-                                : "line-clamp-2 md:line-clamp-3 max-h-24 overflow-hidden"
+                              "transition-all duration-500 rounded-2xl",
+                              isExpanded ? "bg-white p-6 shadow-xl ring-1 ring-slate-200" : "p-1"
                             )}>
-                               <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-1.5">
-                                     <Bot size={14} className="text-emerald-600" />
-                                     <span className="text-[9px] font-black uppercase tracking-tighter text-emerald-600">AI Assistant</span>
-                                  </div>
-                                  {isExpanded && (
-                                     <span className="text-[9px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full animate-pulse">ĐANG XEM CHI TIẾT</span>
-                                  )}
+                               <div className="flex items-center gap-2 mb-2">
+                                  <Bot size={16} className={cn("transition-colors", isExpanded ? "text-emerald-600" : "text-slate-300")} />
+                                  <span className={cn(
+                                    "text-[10px] font-black uppercase tracking-widest",
+                                    isExpanded ? "text-emerald-700" : "text-slate-400"
+                                  )}>AI Trả lời:</span>
                                </div>
-                               {h.ai_response}
+                               <p className={cn(
+                                 "text-slate-800 whitespace-pre-wrap leading-loose transition-all",
+                                 isExpanded ? "text-[16px] font-medium" : "text-[13px] line-clamp-2"
+                               )}>
+                                 {h.ai_response}
+                               </p>
                             </div>
                             {!isExpanded && h.ai_response && h.ai_response.length > 50 && (
-                               <p className="text-[9px] font-bold text-slate-400 italic mt-1 px-2">Xem chi tiết...</p>
+                               <p className="text-[10px] font-bold text-indigo-500 mt-2 hover:underline">Xem chi tiết...</p>
                             )}
                          </div>
                       </div>
