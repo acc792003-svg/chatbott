@@ -39,6 +39,11 @@ export default function BookingSettingsTab() {
   return (
     <div className="min-h-screen p-6 text-blue-50">
       <div className="max-w-4xl mx-auto space-y-8">
+        <style>{`
+          .max-w-4xl.mx-auto.space-y-8 .text-blue-500 {
+             color: lab(21 9.37 -43.4) !important;
+          }
+        `}</style>
         
         {/* HEADER SECTION */}
         <div className="relative">
