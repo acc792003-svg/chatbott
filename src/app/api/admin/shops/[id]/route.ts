@@ -27,11 +27,21 @@ export async function DELETE(
         return NextResponse.json({ error: 'Chỉ Super Admin mới có quyền xóa Shop' }, { status: 403 });
     }
 
-    // 2. Thực hiện xóa Shop (Supabase sẽ tự động xóa các bảng liên quan nhờ ON DELETE CASCADE)
-    // Lưu ý: Một số bảng như 'users' có thể không cascade, cần kiểm tra
+    // 2. Thực hiện xóa Shop
+    // Lưu ý: Tên cột field trong bảng users là shop_id. Cần xóa user trước để tránh lỗi FK.
     
-    // Xóa tất cả users thuộc shop này trước nếu cần (hoặc set shop_id = null)
-    // Theo quy trình hiện tại, shop xóa thì data đi theo.
+    // Xóa users thuộc shop này
+    const { error: usersDeleteError } = await supabaseAdmin
+      .from('users')
+      .delete()
+      .eq('shop_id', shopId);
+
+    if (usersDeleteError) {
+        console.error('Error deleting users:', usersDeleteError);
+        throw new Error('Không thể xóa người dùng thuộc shop: ' + usersDeleteError.message);
+    }
+
+    // Xóa Shop (Supabase sẽ tự động xóa các bảng khác nếu có ON DELETE CASCADE)
     const { error: deleteError } = await supabaseAdmin
       .from('shops')
       .delete()
