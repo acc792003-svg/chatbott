@@ -203,6 +203,7 @@ export default function SuperAdminPage() {
         }
     } catch (e) {
         console.error('Lỗi khi load danh sách shop:', e);
+        addToast('Lỗi khi tải danh sách Shop. Đang dùng data cũ.', 'error');
     } finally {
         setLoading(false);
     }
@@ -310,11 +311,29 @@ export default function SuperAdminPage() {
   };
 
   const handleDeleteShop = async (id: string, name: string) => {
-    if (!confirm(`Bạn có chắc muốn xóa shop "${name}"?`)) return;
+    if (userRole !== 'super_admin') {
+      addToast('Bạn không có quyền thực hiện hành động này.', 'error');
+      return;
+    }
+    if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn XÓA VĨNH VIỄN shop "${name.toUpperCase()}"? \nMọi dữ liệu Leads, Chatbot, Knowledge sẽ bị xóa sạch và không thể khôi phục.`)) return;
+    
+    addToast(`Đang xóa shop ${name}...`, 'info');
     try {
-      await supabase.from('shops').delete().eq('id', id);
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(`/api/admin/shops/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+      });
+      
+      const result = await res.json();
+      if (!res.ok || result.error) throw new Error(result.error || 'Lỗi khi xóa shop');
+
+      addToast(`Đã xóa thành công shop: ${name}`, 'success');
       fetchShops();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { 
+      addToast(`Lỗi xóa shop: ${e.message}`, 'error');
+      console.error(e);
+    }
   };
 
   const handleRemovePackage = async (shopId: string, templateId: string) => {
@@ -707,6 +726,13 @@ export default function SuperAdminPage() {
                     <input type="text" placeholder="Tìm theo Tên, Mã hoặc Link (QLADY)..." className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs font-bold focus:border-indigo-500 outline-none shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
                 <div className="flex gap-2 items-end">
+                    <button 
+                        onClick={fetchShops} 
+                        className="bg-white border border-slate-200 p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+                        title="Tải lại danh sách"
+                    >
+                        <Activity size={18} className={loading ? "animate-spin" : ""} />
+                    </button>
                     <div className="flex flex-col gap-1">
                         <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest animate-pulse border-b-2 border-indigo-100 w-fit">
                             {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : 'Nhập tên cửa hàng mới'}
@@ -721,7 +747,7 @@ export default function SuperAdminPage() {
                             userRole === 'super_admin' ? "bg-indigo-600 text-white active:scale-95" : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         )}
                     >
-                        {userRole === 'super_admin' ? '+ TẠO SHOP' : 'KHÓA'}
+                        {addingShop ? 'ĐANG TẠO...' : (userRole === 'super_admin' ? '+ TẠO SHOP' : 'KHÓA')}
                     </button>
                 </div>
             </div>
