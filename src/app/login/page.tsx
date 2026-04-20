@@ -38,8 +38,33 @@ function LoginForm() {
     setError(null);
     try {
       if (isLogin) {
-        const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+        const { data: { user }, error: err } = await supabase.auth.signInWithPassword({ email, password });
         if (err) throw err;
+        if (!user) throw new Error('Không thể xác thực người dùng');
+
+        // KIỂM TRA MÃ CỬA HÀNG
+        const { data: userData, error: userFetchError } = await supabase
+          .from('users')
+          .select('shop_id')
+          .eq('id', user.id)
+          .single();
+
+        if (userFetchError || !userData?.shop_id) {
+          await supabase.auth.signOut();
+          throw new Error('Tài khoản này chưa được gán cho cửa hàng nào.');
+        }
+
+        const { data: shopData, error: shopFetchError } = await supabase
+          .from('shops')
+          .select('code')
+          .eq('id', userData.shop_id)
+          .single();
+
+        if (shopFetchError || shopData?.code !== shopCode) {
+          await supabase.auth.signOut();
+          throw new Error('Mã cửa hàng không chính xác.');
+        }
+
         router.push('/dashboard');
       } else {
         if (password !== confirmPassword) {
@@ -110,12 +135,14 @@ function LoginForm() {
       {error && <div className="mb-4 p-3 bg-red-100 text-red-700 text-xs font-bold rounded-lg">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {!isLogin && (
-          <input 
-            type="text" placeholder="Mã cửa hàng (để trống nếu đăng ký dùng thử)" value={shopCode} onChange={e => setShopCode(e.target.value)}
-            className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
-          />
-        )}
+        <input 
+          type="text" 
+          placeholder="Mã cửa hàng (Shop Code)" 
+          value={shopCode} 
+          onChange={e => setShopCode(e.target.value)} 
+          required
+          className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold bg-blue-50/30"
+        />
         <input 
           type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required
           className="w-full border-2 border-slate-100 p-4 rounded-2xl focus:border-blue-500 outline-none font-bold"
