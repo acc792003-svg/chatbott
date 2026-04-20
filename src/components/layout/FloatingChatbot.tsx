@@ -16,10 +16,11 @@ export default function FloatingChatbot() {
     setMounted(true);
   }, []);
 
-  // Đừng hiển thị chatbot nếu đang ở trong trang widget hoặc dashboard/login
+  // Đừng hiển thị chatbot nếu đang ở trong trang widget, dashboard, login hoặc link trực tiếp của shop (/s/)
   const isHiddenPath = pathname.startsWith('/widget') || 
                        pathname.startsWith('/dashboard') || 
-                       pathname.startsWith('/login');
+                       pathname.startsWith('/login') ||
+                       pathname.startsWith('/s/');
                        
   if (!mounted || isHiddenPath) return null;
 
