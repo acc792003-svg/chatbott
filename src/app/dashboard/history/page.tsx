@@ -121,28 +121,28 @@ export default function HistoryPage() {
                           </span>
                       </td>
                       <td className={cn(
-                        "px-6 py-4 align-top transition-all duration-500",
-                        isExpanded ? "w-48 opacity-40" : "w-1/3"
+                        "px-6 py-4 align-top transition-all duration-700 ease-in-out",
+                        isExpanded ? "w-[10%] opacity-30 select-none" : "w-[25%]"
                       )}>
                         <div className={cn(
                           "overflow-hidden transition-all duration-500",
-                          isExpanded ? "max-h-24 scale-95 origin-left" : "max-h-24"
+                          isExpanded ? "max-h-24 scale-90 blur-[1px]" : "max-h-24"
                         )}>
-                          <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3 group-hover:line-clamp-none">
+                          <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3">
                             {h.user_message}
                           </p>
                         </div>
                       </td>
                       <td className={cn(
-                        "px-6 py-4 align-top transition-all duration-500",
-                        isExpanded ? "w-full" : "w-1/2"
+                        "px-6 py-4 align-top transition-all duration-700 ease-in-out",
+                        isExpanded ? "w-[80%]" : "w-[50%]"
                       )}>
-                        <div className="relative group/ai max-w-full h-full">
+                        <div className="relative group/ai w-full h-full">
                           <div className={cn(
-                            "text-[12px] text-emerald-800 bg-emerald-50/30 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-500 shadow-sm",
+                            "text-[12px] text-emerald-800 bg-emerald-50/30 p-4 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-500 shadow-sm",
                             isExpanded 
-                              ? "max-h-none opacity-100 bg-white border-emerald-500 shadow-xl shadow-emerald-900/10 scale-[1.02] -translate-x-4" 
-                              : "max-h-20 overflow-hidden line-clamp-3 mb-1 group-hover:bg-white/80"
+                              ? "max-h-none bg-white border-emerald-500 shadow-2xl shadow-emerald-900/20 scale-[1.01] -translate-x-2" 
+                              : "max-h-20 overflow-hidden line-clamp-3 mb-1"
                           )}>
                             <div className="flex items-center justify-between mb-2">
                                <div className="flex items-center gap-1.5 opacity-60">
