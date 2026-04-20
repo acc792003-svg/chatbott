@@ -438,7 +438,6 @@ export default function ConfigClient() {
             {loading ? 'Đang Thiết Lập...' : 'Xác Nhận Lưu Cấu Hình'}
           </button>
         </form>
-        </form>
       )}
       
       {activeTab === 'ai_core' && (
