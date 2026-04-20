@@ -192,9 +192,13 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
         // Phát hiện khách nhập số điện thoại sai định dạng
         const { hasNearPhone, rawNumber } = detectNearPhone(message);
-        const phoneHint = hasNearPhone
-          ? `\n\n⚠️ CHÚ Ý ĐọC KỸ: Khách vừa nhập cỗ số "${rawNumber}" nhưng đây KHÔNG PHẢI số điện thoại Việt Nam hợp lệ. Hãy nhẹ nhàng hỏi lại khách bổ sung thành định dạng chuẩn.`
-          : '';
+        
+        let phoneActionRule = '';
+        if (hasNearPhone) {
+            phoneActionRule = `- ⚠️ CHÚ Ý: Khách vừa nhập dãy số "${rawNumber}" nhưng KHÔNG PHẢI định dạng số điện thoại Việt Nam hợp lệ. Hãy báo khách nhập lại cho đúng, TUYỆT ĐỐI KHÔNG CÁM ƠN hay xác nhận đặt lịch thành công lúc này.`;
+        } else if (/(0|\+84)(3|5|7|8|9)[0-9]{8}/.test(message.replace(/[.\-\s]/g, ''))) {
+            phoneActionRule = `- NẾU khách hàng vừa để lại số điện thoại hợp lệ, BẮT BUỘC TRONG CÂU TRẢ LỜI PHẢI CÓ LỜI CẢM ƠN và xác nhận sẽ có nhân viên liên hệ tư vấn sớm nhất.`;
+        }
 
         // Tối ưu Payload: Nếu Vector Match đủ tốt (>0.80), cắt bỏ globalFaq (tuyệt chiêu Context Layering)
         let injectedGlobalFaq = globalFaq;
@@ -236,8 +240,8 @@ QUY TẮC PHẢN HỒI:
 - Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
 - Ưu tiên lệnh tại Shop Config hơn Global Config.
 - Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
-- NẾU khách hàng vừa để lại hoặc cung cấp SỐ ĐIỆN THOẠI, BẮT BUỘC TRONG CÂU TRẢ LỜI PHẢI CÓ LỜI CẢM ƠN và xác nhận sẽ có nhân viên liên hệ tư vấn sớm nhất cho khách.
-- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác, mình xin phép báo quản lý hỗ trợ bạn ngay nhe!"${phoneHint}`;
+${phoneActionRule}
+- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác, mình xin phép báo quản lý hỗ trợ bạn ngay nhe!"`;
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }

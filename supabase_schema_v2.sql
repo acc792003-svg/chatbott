@@ -124,7 +124,44 @@ $$;
 -- BẢN SCHEMA NÀY ĐÃ SẴN SÀNG CHO SCALE 1000+ USER
 -- ==========================================================
 
--- 10. KÍCH HOẠT VÀ TẠO CHÍNH SÁCH RLS (BẢO MẬT DỮ LIỆU)
+-- 10. HỆ THỐNG ĐẶT LỊCH (BOOKING SYSTEM) & ƯU ĐÃI
+CREATE TABLE IF NOT EXISTS shop_settings (
+  shop_id uuid PRIMARY KEY REFERENCES shops(id) ON DELETE CASCADE,
+  slot_duration_minutes integer DEFAULT 60,
+  max_slot_per_block integer DEFAULT 3,
+  working_start time DEFAULT '08:00',
+  working_end time DEFAULT '20:00',
+  timezone text DEFAULT 'Asia/Ho_Chi_Minh',
+  slot_interval_minutes integer DEFAULT 60,
+  updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS discount_rules (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id uuid REFERENCES shops(id) ON DELETE CASCADE,
+  start_time time NOT NULL,
+  end_time time NOT NULL,
+  discount_type text DEFAULT 'percent', -- 'percent' hoặc 'fixed'
+  discount_value integer NOT NULL,
+  apply_days text[] DEFAULT '{"mon","tue","wed","thu","fri","sat","sun"}',
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS bookings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  shop_id uuid REFERENCES shops(id) ON DELETE CASCADE,
+  customer_phone text NOT NULL,
+  service_name text NOT NULL,
+  booking_time timestamp with time zone NOT NULL,
+  booking_end_time timestamp with time zone NOT NULL,
+  status text DEFAULT 'new', -- 'new', 'confirmed', 'cancel'
+  created_at timestamp with time zone DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookings_shop_time ON bookings(shop_id, booking_time);
+
+-- 11. KÍCH HOẠT VÀ TẠO CHÍNH SÁCH RLS (BẢO MẬT DỮ LIỆU)
 -- Tránh cảnh báo "Without RLS" của Supabase
 
 ALTER TABLE faqs ENABLE ROW LEVEL SECURITY;
@@ -132,6 +169,9 @@ ALTER TABLE cache_answers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE chat_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shop_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discount_rules ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
 
 -- Chỉ Service Role (Backend API có chứa khóa service_role_key) mới có toàn quyền
 -- Client App (Anon key) sẽ không thể Query hay Chỉnh sửa trực tiếp từ Frontend
@@ -149,6 +189,15 @@ CREATE POLICY "Cho phép Backend Server xử lý conversations" ON conversations
 
 DROP POLICY IF EXISTS "Cho phép Backend đọc system_settings" ON system_settings;
 CREATE POLICY "Cho phép Backend đọc system_settings" ON system_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý shop_settings" ON shop_settings;
+CREATE POLICY "Cho phép Backend Server xử lý shop_settings" ON shop_settings FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý discount_rules" ON discount_rules;
+CREATE POLICY "Cho phép Backend Server xử lý discount_rules" ON discount_rules FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Cho phép Backend Server xử lý bookings" ON bookings;
+CREATE POLICY "Cho phép Backend Server xử lý bookings" ON bookings FOR ALL USING (true) WITH CHECK (true);
 
 -- (MẸO: Để Supabase Node JS Client nhận diện bảng mới ngay lập tức)
 NOTIFY pgrst, 'reload schema';
