@@ -103,11 +103,27 @@ export default function HistoryPage() {
                           #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
                         </span>
                     </td>
-                    <td className="px-4 py-2 align-top">
-                      <p className="text-[11px] text-slate-800 font-medium whitespace-pre-wrap leading-tight">{h.user_message}</p>
+                    <td className="px-4 py-3 align-top group-hover:bg-indigo-50/30 transition-all duration-500">
+                      <div className="relative group/msg">
+                        <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed transition-all group-hover/msg:text-sm">
+                          {h.user_message}
+                        </p>
+                      </div>
                     </td>
-                    <td className="px-4 py-2 align-top">
-                      <p className="text-[10px] text-emerald-800 bg-emerald-50/50 p-2 rounded-lg whitespace-pre-wrap leading-tight">{h.ai_response}</p>
+                    <td className="px-4 py-3 align-top">
+                      <div className="relative group/ai">
+                        <div className={cn(
+                          "text-[12px] text-emerald-800 bg-emerald-50/50 p-3 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/50 transition-all duration-300",
+                          "hover:scale-[1.02] hover:shadow-xl hover:shadow-emerald-900/10 hover:bg-white hover:border-emerald-400 hover:text-emerald-900",
+                          "hover:relative hover:z-20 cursor-text"
+                        )}>
+                          <div className="flex items-center gap-1.5 mb-1 opacity-40 group-hover/ai:opacity-100 transition-opacity">
+                             <Bot size={12} className="text-emerald-600" />
+                             <span className="text-[9px] font-black uppercase tracking-tighter">AI Assistant</span>
+                          </div>
+                          {h.ai_response}
+                        </div>
+                      </div>
                     </td>
                     <td className="px-4 py-2 whitespace-nowrap align-top text-right">
                       <p className="text-[11px] font-bold text-slate-700">{new Date(h.created_at).toLocaleTimeString()}</p>
