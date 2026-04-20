@@ -128,16 +128,8 @@ export default function LandingPage() {
             </button>
           </div>
 
-          {/* Social Proof */}
-          <div className="pt-20 opacity-50 flex flex-col items-center gap-6">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-500">Được tin dùng bởi 100+ shop bán hàng</p>
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16 grayscale">
-               <span className="text-2xl font-black text-slate-400">SHOPY</span>
-               <span className="text-2xl font-black text-slate-400">LAZADA</span>
-               <span className="text-2xl font-black text-slate-400">TIKTOK</span>
-               <span className="text-2xl font-black text-slate-400">ZALOPAY</span>
-            </div>
-          </div>
+          {/* Spacing adjustments */}
+          <div className="pt-8"></div>
         </div>
       </section>
 
