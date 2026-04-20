@@ -402,7 +402,7 @@ export default function ConfigClient() {
                      <div className="space-y-2">
                         <label className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase ml-1">
                            Mã Chat ID 
-                           <HelpCircle size={12} className="text-slate-300 cursor-help" title="Lấy ID từ Telegram Bot của bạn" />
+                         <span title="Lấy ID từ Telegram Bot của bạn"><HelpCircle size={12} className="text-slate-300 cursor-help" /></span>
                         </label>
                         <input 
                            type="text" 
