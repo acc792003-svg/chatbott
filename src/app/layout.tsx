@@ -21,6 +21,8 @@ export const viewport = {
   interactiveWidget: 'resizes-content',
 };
 
+import FloatingChatbot from "@/components/layout/FloatingChatbot";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +35,7 @@ export default function RootLayout({
     >
       <body style={{ fontFamily: 'Arial, Helvetica, sans-serif' }} className="min-h-full flex flex-col">
         {children}
+        <FloatingChatbot />
         <script
           dangerouslySetInnerHTML={{
             __html: `
