@@ -79,7 +79,7 @@ export default function HistoryPage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar">
+        <div className="h-[calc(100vh-320px)] overflow-y-auto custom-scrollbar p-6 space-y-4">
           {loading ? (
              <div className="flex justify-center items-center h-64 text-slate-400 font-bold text-xs uppercase tracking-widest animate-pulse">
                 Đang tải dữ liệu...
@@ -91,88 +91,97 @@ export default function HistoryPage() {
                 <p className="text-xs text-slate-400 mt-2 font-medium">Không có tin nhắn nào trong 24 giờ qua</p>
              </div>
           ) : (
-            <table className="w-full text-left border-separate border-spacing-0">
-              <thead className="sticky top-0 z-30">
-                <tr className="bg-indigo-50 text-[9px] font-black text-indigo-500 uppercase tracking-wide shadow-sm">
-                  <th className="px-6 py-4 w-32 border-b border-indigo-100">Session</th>
-                  <th className="px-6 py-4 w-1/3 border-b border-indigo-100">User Msg</th>
-                  <th className="px-6 py-4 w-1/2 border-b border-indigo-100">AI Response</th>
-                  <th className="px-6 py-4 w-24 border-b border-indigo-100">Time</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {history.map((h) => {
+            <div className="flex flex-col gap-3">
+               {/* HEADER GIẢ LẬP */}
+               <div className="flex px-6 py-2 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100 hidden md:flex">
+                  <div className="w-24">Session</div>
+                  <div className="flex-1 px-4">Hội thoại (User & AI)</div>
+                  <div className="w-32 text-right">Thời gian</div>
+               </div>
+
+               {history.map((h) => {
                   const isExpanded = expandedId === h.id;
                   return (
-                    <tr 
+                    <div 
                       key={h.id} 
                       onClick={() => toggleExpand(h.id)}
                       className={cn(
-                        "group transition-all duration-500 cursor-pointer border-b border-slate-100 last:border-0",
-                        isExpanded ? "bg-indigo-50/40 ring-1 ring-inset ring-indigo-200 shadow-inner" : "hover:bg-slate-50/50"
+                        "flex flex-col md:flex-row items-stretch gap-4 p-4 rounded-3xl transition-all duration-500 cursor-pointer border border-transparent",
+                        isExpanded 
+                          ? "bg-white shadow-2xl shadow-indigo-200/50 border-indigo-200 ring-2 ring-indigo-50" 
+                          : "bg-slate-50/50 hover:bg-white hover:border-slate-200"
                       )}
                     >
-                      <td className="px-6 py-4 align-top">
+                      {/* Session Info */}
+                      <div className="md:w-24 shrink-0 flex flex-col justify-center">
                           <span className={cn(
-                            "font-bold text-[10px] px-1.5 py-0.5 rounded shadow-sm transition-colors",
+                            "font-bold text-[10px] px-1.5 py-0.5 rounded shadow-sm transition-colors text-center inline-block",
                             isExpanded ? "bg-indigo-600 text-white" : "text-indigo-600 bg-indigo-50"
                           )}>
                             #{(h.session_id || '').replace(/-/g, '').substring(0, 6).toUpperCase()}
                           </span>
-                      </td>
-                      <td className={cn(
-                        "px-6 py-4 align-top transition-all duration-700 ease-in-out",
-                        isExpanded ? "w-[10%] opacity-30 select-none" : "w-[25%]"
-                      )}>
-                        <div className={cn(
-                          "overflow-hidden transition-all duration-500",
-                          isExpanded ? "max-h-24 scale-90 blur-[1px]" : "max-h-24"
-                        )}>
-                          <p className="text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed line-clamp-3">
-                            {h.user_message}
-                          </p>
-                        </div>
-                      </td>
-                      <td className={cn(
-                        "px-6 py-4 align-top transition-all duration-700 ease-in-out",
-                        isExpanded ? "w-[80%]" : "w-[50%]"
-                      )}>
-                        <div className="relative group/ai w-full h-full">
-                          <div className={cn(
-                            "text-[12px] text-emerald-800 bg-emerald-50/30 p-4 rounded-2xl whitespace-pre-wrap leading-relaxed border border-emerald-100/30 transition-all duration-500 shadow-sm",
-                            isExpanded 
-                              ? "max-h-none bg-white border-emerald-500 shadow-2xl shadow-emerald-900/20 scale-[1.01] -translate-x-2" 
-                              : "max-h-20 overflow-hidden line-clamp-3 mb-1"
-                          )}>
-                            <div className="flex items-center justify-between mb-2">
-                               <div className="flex items-center gap-1.5 opacity-60">
-                                  <Bot size={12} className="text-emerald-600" />
-                                  <span className="text-[9px] font-black uppercase tracking-tighter">AI Assistant</span>
-                               </div>
-                               {isExpanded && (
-                                 <span className="text-[9px] bg-emerald-100 text-emerald-700 font-black px-2 py-0.5 rounded-full animate-pulse">ĐANG XEM CHI TIẾT</span>
-                               )}
+                      </div>
+
+                      {/* Messages Area - ĐÂY LÀ NƠI GIÃN NỞ */}
+                      <div className="flex-1 flex flex-col md:flex-row gap-4 items-start transition-all duration-500 overflow-hidden">
+                         
+                         {/* User Message */}
+                         <div className={cn(
+                            "transition-all duration-700 ease-in-out order-1",
+                            isExpanded ? "w-full md:w-1/4 opacity-40 grayscale" : "w-full md:w-1/2"
+                         )}>
+                            <div className="bg-indigo-50/30 p-3 rounded-2xl border border-indigo-100/30">
+                               <p className={cn(
+                                 "text-[12px] text-slate-800 font-medium whitespace-pre-wrap leading-relaxed transition-all",
+                                 !isExpanded && "line-clamp-2 md:line-clamp-3"
+                               )}>
+                                 {h.user_message}
+                               </p>
                             </div>
-                            {h.ai_response}
-                          </div>
-                          {!isExpanded && h.ai_response && h.ai_response.length > 100 && (
-                            <div className="text-[9px] font-bold text-slate-400 italic px-2">Nhấn để xem toàn bộ...</div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap align-top text-right">
+                         </div>
+
+                         {/* AI Message */}
+                         <div className={cn(
+                            "transition-all duration-700 ease-in-out order-2",
+                            isExpanded ? "w-full md:w-3/4" : "w-full md:w-1/2"
+                         )}>
+                            <div className={cn(
+                              "text-[12px] text-emerald-800 bg-emerald-50/50 p-4 rounded-3xl whitespace-pre-wrap leading-relaxed border border-emerald-100/50 transition-all duration-500",
+                              isExpanded 
+                                ? "bg-emerald-50 shadow-inner border-emerald-300 translate-x-0" 
+                                : "line-clamp-2 md:line-clamp-3 max-h-24 overflow-hidden"
+                            )}>
+                               <div className="flex items-center justify-between mb-2">
+                                  <div className="flex items-center gap-1.5">
+                                     <Bot size={14} className="text-emerald-600" />
+                                     <span className="text-[9px] font-black uppercase tracking-tighter text-emerald-600">AI Assistant</span>
+                                  </div>
+                                  {isExpanded && (
+                                     <span className="text-[9px] bg-emerald-600 text-white font-black px-2 py-0.5 rounded-full animate-pulse">ĐANG XEM CHI TIẾT</span>
+                                  )}
+                               </div>
+                               {h.ai_response}
+                            </div>
+                            {!isExpanded && h.ai_response && h.ai_response.length > 50 && (
+                               <p className="text-[9px] font-bold text-slate-400 italic mt-1 px-2">Xem chi tiết...</p>
+                            )}
+                         </div>
+                      </div>
+
+                      {/* Time Info */}
+                      <div className="md:w-32 shrink-0 flex flex-col justify-center items-end border-t md:border-t-0 md:border-l border-slate-100 pt-2 md:pt-0 md:pl-4">
                         <p className={cn(
                           "text-[11px] font-bold transition-colors",
                           isExpanded ? "text-indigo-600" : "text-slate-700"
                         )}>{new Date(h.created_at).toLocaleTimeString()}</p>
                         <p className="text-[8px] text-slate-400 font-bold uppercase">{new Date(h.created_at).toLocaleDateString()}</p>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   );
                 })}
-              </tbody>
-            </table>
+            </div>
           )}
+        </div>
         </div>
       </div>
     </div>
