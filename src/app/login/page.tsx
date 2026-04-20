@@ -148,7 +148,7 @@ function LoginForm() {
         <div className="text-center mb-10">
            <div className="inline-flex items-center gap-2 mb-6">
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-100"><Bot size={28}/></div>
-              <span className="font-black text-2xl text-slate-900 tracking-tighter">DịchVụ<span className="text-blue-600">Pro</span></span>
+              <span className="font-black text-2xl text-slate-900 tracking-tighter">ChatBot <span className="text-blue-600">Pro</span></span>
            </div>
            <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter mb-2">
              {isLogin ? 'Chào mừng trở lại' : 'Bắt đầu dùng thử'}
@@ -299,7 +299,7 @@ export default function LoginPage() {
         </Suspense>
         
         {/* Footer info for mobile */}
-        <p className="mt-10 md:hidden text-[10px] font-black text-slate-300 uppercase tracking-widest">© 2026 DịchVụPro Global</p>
+        <p className="mt-10 md:hidden text-[10px] font-black text-slate-300 uppercase tracking-widest">© 2026 ChatBot Pro Global</p>
       </div>
     </div>
   );

@@ -71,7 +71,7 @@ export default function LandingPage() {
             <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform duration-300">
               <Bot size={24} />
             </div>
-            <span className="font-black text-2xl text-slate-900 tracking-tighter">DịchVụ<span className="text-blue-600">Pro</span></span>
+            <span className="font-black text-2xl text-slate-900 tracking-tighter">ChatBot <span className="text-blue-600">Pro</span></span>
           </Link>
 
           <div className="hidden md:flex items-center gap-10">
@@ -103,9 +103,11 @@ export default function LandingPage() {
             Trợ lý ảo thông minh cho shop của bạn
           </div>
           
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-tight leading-[0.95] max-w-5xl mx-auto">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tighter leading-[1.1] max-w-4xl mx-auto uppercase">
             BÁN HÀNG TỰ ĐỘNG <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600">TĂNG VỌT DOANH THU</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              TĂNG VỌT DOANH THU
+            </span>
           </h1>
 
           <p className="text-lg md:text-2xl text-slate-500 max-w-3xl mx-auto font-medium leading-relaxed">
@@ -267,7 +269,7 @@ export default function LandingPage() {
                <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white">
                  <Bot size={20} />
                </div>
-               <span className="font-extrabold text-xl text-slate-900">DịchVụPro</span>
+               <span className="font-extrabold text-xl text-slate-900">ChatBot Pro</span>
              </Link>
              <p className="text-sm text-slate-400 font-medium text-center md:text-left max-w-xs">Giải pháp AI bán hàng thông minh giúp doanh nghiệp vừa và nhỏ bứt phá doanh số.</p>
           </div>
@@ -278,7 +280,7 @@ export default function LandingPage() {
                 <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Youtube</Link>
                 <Link href="#" className="hover:text-blue-600 font-bold text-xs uppercase tracking-widest transition-colors">Zalo</Link>
              </div>
-             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-4">© 2026 • DICHVUPRO GLOBAL LTD.</p>
+             <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.2em] mt-4">© 2026 • CHATBOT PRO GLOBAL LTD.</p>
           </div>
         </div>
       </footer>

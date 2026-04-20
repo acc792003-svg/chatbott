@@ -76,7 +76,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             <Bot size={24} />
           </div>
           <span className="font-extrabold text-xl bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-700 tracking-tight">
-            AI Chat
+            ChatBot Pro
           </span>
         </div>
 

@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Chat Bán Hàng",
+  title: "ChatBot Pro",
   description: "Nền tảng AI Chatbot thông minh",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "AI Chatbot",
+    title: "ChatBot Pro",
   },
   icons: {
     apple: "/icon.png",
