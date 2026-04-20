@@ -17,12 +17,17 @@ export default function FloatingChatbot() {
   }, []);
 
   // Đừng hiển thị chatbot nếu đang ở trong trang widget, dashboard, login hoặc link trực tiếp của shop (/s/)
-  const isHiddenPath = pathname.startsWith('/widget') || 
+  // Hoặc nếu đang nằm trong một iframe (để tránh lặp lại vô tận)
+  const isIframe = typeof window !== 'undefined' && (window.self !== window.top || window.parent !== window);
+  
+  const isHiddenPath = !pathname || 
+                       pathname.startsWith('/widget') || 
                        pathname.startsWith('/dashboard') || 
                        pathname.startsWith('/login') ||
-                       pathname.startsWith('/s/');
+                       pathname.startsWith('/s/') ||
+                       pathname.includes('widget');
                        
-  if (!mounted || isHiddenPath) return null;
+  if (!mounted || isHiddenPath || isIframe) return null;
 
   return (
     <motion.div 
