@@ -4,10 +4,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const shopId = params.id;
+    const { id: shopId } = await context.params;
 
     // 1. Kiểm tra quyền Admin (Token từ Authorization header)
     const authHeader = req.headers.get('Authorization');
