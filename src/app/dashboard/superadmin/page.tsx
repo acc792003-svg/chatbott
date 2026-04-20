@@ -699,10 +699,10 @@ export default function SuperAdminPage() {
                                     className={cn(
                                         "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-sm transition-all", 
                                         k.status === 'healthy' && k.error === 0 ? "bg-emerald-400 text-white border-indigo-500" : 
-                                        k.status === 'healthy' && k.error > 0 ? "bg-orange-400 text-white border-orange-600 animate-pulse" : 
-                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 border-indigo-500 animate-pulse" : 
+                                        k.status === 'healthy' && k.error > 0 ? "bg-orange-400 text-white border-orange-600" : 
+                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 border-indigo-500" : 
                                         k.status === 'missing' ? "bg-slate-800 text-slate-400 border-slate-600" :
-                                        "bg-red-500 text-white border-red-700 animate-bounce"
+                                        "bg-red-500 text-white border-red-700"
                                     )} 
                                     title={`${k.name}: ${k.status.toUpperCase()} (${k.error} lỗi)`}
                                 >
@@ -734,7 +734,7 @@ export default function SuperAdminPage() {
                         <Activity size={18} className={loading ? "animate-spin" : ""} />
                     </button>
                     <div className="flex flex-col gap-1">
-                        <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest animate-pulse border-b-2 border-indigo-100 w-fit">
+                        <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest border-b-2 border-indigo-100 w-fit">
                             {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : 'Nhập tên cửa hàng mới'}
                         </label>
                         <input type="text" placeholder="Ví dụ: Yến Sào Phương Nam..." className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" value={newShopName} onChange={e => setNewShopName(e.target.value)} />

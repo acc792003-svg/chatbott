@@ -103,7 +103,7 @@ export default function AiAnalytics() {
         <div className={cn(
             "md:col-span-2 p-10 rounded-[3rem] shadow-[0_20px_50px_-15px_rgba(0,0,0,0.3)] relative overflow-hidden transition-all duration-700",
             masterHealth > 85 ? "bg-gradient-to-br from-emerald-900 via-slate-900 to-slate-900 border border-emerald-500/20" : 
-            masterHealth > 60 ? "bg-gradient-to-br from-amber-900 via-slate-900 to-slate-900 border border-amber-500/20" : "bg-gradient-to-br from-red-950 via-slate-900 to-slate-900 border border-red-500/40 animate-pulse"
+            masterHealth > 60 ? "bg-gradient-to-br from-amber-900 via-slate-900 to-slate-900 border border-amber-500/20" : "bg-gradient-to-br from-red-950 via-slate-900 to-slate-900 border border-red-500/40"
         )}>
             <div className="absolute top-0 right-0 p-10 opacity-10">
                 <ShieldAlert size={160} className={masterHealth < 60 ? "text-red-500" : "text-white"} />
@@ -144,7 +144,7 @@ export default function AiAnalytics() {
             <div className="flex justify-between items-start">
                <div>
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2">
-                     <Zap size={14} className={latencyAlert ? "text-amber-600 animate-bounce" : "text-slate-500"}/> AI Processing
+                     <Zap size={14} className={latencyAlert ? "text-amber-600" : "text-slate-500"}/> AI Processing
                   </p>
                   <div className="flex items-end gap-1">
                      <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", latencyAlert ? "from-amber-500 to-amber-700" : "from-slate-800 to-slate-600")}>
@@ -153,7 +153,7 @@ export default function AiAnalytics() {
                      <span className="text-[10px] font-bold text-slate-500 mb-1.5">ms</span>
                   </div>
                </div>
-               {latencyAlert && <AlertTriangle size={24} className="text-amber-600 animate-pulse" />}
+               {latencyAlert && <AlertTriangle size={24} className="text-amber-600" />}
             </div>
             <div className="mt-8">
                <p className={cn("text-[10px] font-black uppercase", latencyAlert ? "text-amber-600" : "text-emerald-600")}>
@@ -173,7 +173,7 @@ export default function AiAnalytics() {
             <div className="flex justify-between items-start">
                <div>
                   <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2">
-                     <Send size={14} className={deliveryAlert ? "text-red-600 animate-ping" : "text-slate-500"}/> Lead Delivery
+                     <Send size={14} className={deliveryAlert ? "text-red-600" : "text-slate-500"}/> Lead Delivery
                   </p>
                   <div className="flex items-end gap-1">
                      <h3 className={cn("text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r", deliveryAlert ? "from-red-500 to-red-700" : "from-indigo-600 to-blue-600")}>
@@ -181,7 +181,7 @@ export default function AiAnalytics() {
                      </h3>
                   </div>
                </div>
-               {deliveryAlert && <ShieldAlert size={24} className="text-red-600 animate-pulse" />}
+               {deliveryAlert && <ShieldAlert size={24} className="text-red-600" />}
             </div>
             <div className="mt-8">
                <p className={cn("text-[10px] font-black uppercase", deliveryAlert ? "text-red-600" : "text-indigo-600")}>
