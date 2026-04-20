@@ -44,26 +44,7 @@ export default function FloatingChatbot() {
           className="w-[380px] h-[600px] max-h-[80vh] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 animate-in slide-in-from-bottom-10 fade-in duration-300 flex flex-col cursor-default"
           onPointerDown={(e) => e.stopPropagation()} // Ngăn kéo khi đang click trong cửa sổ chat
         >
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
-                <Bot size={22} />
-              </div>
-              <div>
-                <p className="font-black text-sm leading-tight">Hỗ Trợ Trực Tuyến</p>
-                <p className="text-[10px] text-blue-100 opacity-80 uppercase tracking-widest font-bold">● Đang hoạt động</p>
-              </div>
-            </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsOpen(false);
-              }}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
-            >
-              <X size={20} />
-            </button>
-          </div>
+          {/* Header removed: using the iframe's built-in header to avoid duplicate stacked chatbots */}
           
           <div className="flex-1 bg-slate-50 relative">
             <iframe 
