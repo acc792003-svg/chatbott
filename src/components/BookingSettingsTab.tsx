@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Clock, 
@@ -12,10 +12,11 @@ import {
   Sparkles,
   Timer
 } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 // Mock Data Types
 type DiscountRule = {
-  id: string;
+  id?: string;
   startTime: string;
   endTime: string;
   type: 'percent' | 'fixed';
@@ -23,17 +24,101 @@ type DiscountRule = {
 };
 
 export default function BookingSettingsTab() {
+  const [loading, setLoading] = useState(false);
+  const [shopId, setShopId] = useState<string | null>(null);
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  
+  // Settings States
+  const [slotDuration, setSlotDuration] = useState(0);
+  const [maxSlots, setMaxSlots] = useState(0);
+  const [workingStart, setWorkingStart] = useState("08:00");
+  const [workingEnd, setWorkingEnd] = useState("20:00");
+
   const [rules, setRules] = useState<DiscountRule[]>([
-    { id: '1', startTime: '13:00', endTime: '16:00', type: 'percent', value: 20 }
+    { startTime: '13:00', endTime: '16:00', type: 'percent', value: 0 }
   ]);
 
+  // Fetch Existing Data
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
+      if (userData?.shop_id) {
+        setShopId(userData.shop_id);
+        
+        // Fetch Settings
+        const { data: settings } = await supabase.from('shop_settings').select('*').eq('shop_id', userData.shop_id).single();
+        if (settings) {
+          setSlotDuration(settings.slot_duration_minutes || 0);
+          setMaxSlots(settings.max_slot_per_block || 0);
+          setWorkingStart(settings.working_start || "08:00");
+          setWorkingEnd(settings.working_end || "20:00");
+        }
+
+        // Fetch Rules
+        const { data: dbRules } = await supabase.from('discount_rules').select('*').eq('shop_id', userData.shop_id);
+        if (dbRules && dbRules.length > 0) {
+          setRules(dbRules.map(r => ({
+             id: r.id,
+             startTime: r.start_time.substring(0, 5),
+             endTime: r.end_time.substring(0, 5),
+             type: r.discount_type,
+             value: r.discount_value
+          })));
+          setIsAdvancedMode(true);
+        }
+      }
+    };
+    fetchData();
+  }, []);
+
   const addRule = () => {
-    setRules([...rules, { id: Date.now().toString(), startTime: '10:00', endTime: '12:00', type: 'percent', value: 10 }]);
+    setRules([...rules, { startTime: '10:00', endTime: '12:00', type: 'percent', value: 0 }]);
   };
 
-  const removeRule = (id: string) => {
-    setRules(rules.filter(r => r.id !== id));
+  const removeRule = (idx: number) => {
+    setRules(rules.filter((_, i) => i !== idx));
+  };
+
+  const handleSave = async () => {
+    if (!shopId) return alert("Không tìm thấy Shop ID!");
+    setLoading(true);
+    try {
+      // 1. Save Shop Settings (Upsert)
+      const { error: settingsError } = await supabase.from('shop_settings').upsert({
+         shop_id: shopId,
+         slot_duration_minutes: slotDuration,
+         max_slot_per_block: maxSlots,
+         working_start: workingStart,
+         working_end: workingEnd,
+         timezone: 'Asia/Ho_Chi_Minh'
+      }, { onConflict: 'shop_id' });
+
+      if (settingsError) throw settingsError;
+
+      // 2. Clear old rules and insert new ones
+      await supabase.from('discount_rules').delete().eq('shop_id', shopId);
+      if (isAdvancedMode && rules.length > 0) {
+         const rulesToInsert = rules.map(r => ({
+            shop_id: shopId,
+            start_time: r.startTime,
+            end_time: r.endTime,
+            discount_type: r.type,
+            discount_value: r.value,
+            is_active: true
+         }));
+         const { error: rulesError } = await supabase.from('discount_rules').insert(rulesToInsert);
+         if (rulesError) throw rulesError;
+      }
+
+      alert("✅ Đã lưu cấu hình và huấn luyện AI thành công!");
+    } catch (e: any) {
+      alert("❌ Lỗi: " + e.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -76,7 +161,8 @@ export default function BookingSettingsTab() {
                   <Timer className="w-4 h-4" /> Thời lượng 1 Slot (Phút)
                 </label>
                 <input 
-                  type="number" defaultValue={60} 
+                  type="number" value={slotDuration} 
+                  onChange={(e) => setSlotDuration(parseInt(e.target.value) || 0)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
@@ -85,7 +171,8 @@ export default function BookingSettingsTab() {
                   <Users className="w-4 h-4" /> Số khách tối đa / Slot
                 </label>
                 <input 
-                  type="number" defaultValue={3} 
+                  type="number" value={maxSlots} 
+                  onChange={(e) => setMaxSlots(parseInt(e.target.value) || 0)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
@@ -98,7 +185,8 @@ export default function BookingSettingsTab() {
                   <Clock className="w-4 h-4" /> Giờ Mở Cửa
                 </label>
                 <input 
-                  type="time" defaultValue="08:00" 
+                  type="time" value={workingStart} 
+                  onChange={(e) => setWorkingStart(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
@@ -107,7 +195,8 @@ export default function BookingSettingsTab() {
                   <Clock className="w-4 h-4" /> Giờ Đóng Cửa
                 </label>
                 <input 
-                  type="time" defaultValue="20:00" 
+                  type="time" value={workingEnd} 
+                  onChange={(e) => setWorkingEnd(e.target.value)}
                   className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all hover:bg-slate-50"
                 />
               </div>
@@ -228,8 +317,17 @@ export default function BookingSettingsTab() {
         
         {/* SUBMIT BUTTON */}
         <div className="flex justify-end pt-4">
-          <button className="bg-blue-600 hover:bg-blue-500 text-white font-medium px-8 py-3 rounded-xl shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5">
-            Lưu Cấu Hình Đặt Lịch
+          <button 
+            onClick={handleSave}
+            disabled={loading}
+            className={`bg-amber-600 hover:bg-amber-500 text-white font-bold px-8 py-3 rounded-xl shadow-lg shadow-amber-500/25 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {loading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Đang đồng bộ AI...
+              </>
+            ) : "Lưu Cấu Hình Đặt Lịch"}
           </button>
         </div>
 
