@@ -37,7 +37,7 @@ export default function BookingSettingsTab() {
   };
 
   return (
-    <div className="min-h-screen p-6 text-blue-50">
+    <div className="min-h-screen p-6 bg-[#030712] text-slate-300">
       <div className="max-w-4xl mx-auto space-y-8">
         <style>{`
           .max-w-4xl.mx-auto.space-y-8 .text-blue-500 {
@@ -135,11 +135,11 @@ export default function BookingSettingsTab() {
           </div>
           
           {/* Custom Switch UI */}
-          <div className="mt-4 sm:mt-0 relative w-14 h-8 bg-black/50 rounded-full border border-white/10 p-1 flex items-center">
+          <div className="mt-4 sm:mt-0 relative w-14 h-8 bg-black/60 rounded-full border border-white/10 p-1 flex items-center">
             <motion.div 
               layout 
               transition={{ type: "spring", stiffness: 700, damping: 30 }}
-              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-500'}`}
+              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-600'}`}
               style={{ marginLeft: isAdvancedMode ? '24px' : '0px' }}
             />
           </div>
