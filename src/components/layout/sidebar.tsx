@@ -19,12 +19,10 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 
-const menuItemsPart1 = [
+const menuItems = [
   { name: 'Tổng quan', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Khách hàng', href: '/dashboard/leads', icon: Users },
-];
-
-const menuItemsPart2 = [
+  { name: 'Lịch & Ưu Đãi', href: '/dashboard/booking', icon: CalendarDays },
   { name: 'Cấu hình AI', href: '/dashboard/config', icon: Settings },
   { name: 'Lịch sử Chat', href: '/dashboard/history', icon: History },
   { name: 'Chat Demo', href: '/dashboard/chat', icon: MessageSquare },
@@ -72,46 +70,8 @@ export default function Sidebar() {
         </span>
       </div>
 
-      <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-1">
-        {menuItemsPart1.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
-              pathname === item.href 
-                ? "bg-blue-600 text-white shadow-lg shadow-blue-200" 
-                : "text-slate-600 hover:bg-white/60 hover:text-blue-600"
-            )}
-          >
-            <item.icon size={20} className={cn(
-              "transition-colors",
-              pathname === item.href ? "text-white" : "text-slate-400 group-hover:text-blue-600"
-            )} />
-            <span className="font-semibold text-sm">{item.name}</span>
-          </Link>
-        ))}
-
-        {/* Khối Lịch & Ưu Đãi Tách Riêng Nổi Bật */}
-        <div className="pt-4 pb-2">
-           <h3 className="px-4 text-xs font-black uppercase tracking-wider text-amber-500 mb-2">
-             Lịch & Ưu Đãi
-           </h3>
-           <Link
-             href="/dashboard/booking"
-             className={cn(
-               "flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl transition-all duration-300 group border",
-               pathname === '/dashboard/booking' 
-                 ? "bg-blue-100 border-blue-200 text-blue-800 shadow-inner" 
-                 : "bg-blue-50/50 border-blue-100/50 text-blue-800 hover:bg-blue-100 hover:border-blue-200"
-             )}
-           >
-             <CalendarDays size={18} className="text-blue-800" />
-             <span className="font-bold text-[13px]">Quản lý khung giờ</span>
-           </Link>
-        </div>
-
-        {menuItemsPart2.map((item) => (
+      <nav className="flex-1 space-y-2">
+        {menuItems.map((item) => (
           <Link
             key={item.href}
             href={item.href}

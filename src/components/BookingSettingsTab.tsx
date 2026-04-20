@@ -44,8 +44,8 @@ export default function BookingSettingsTab() {
         <div className="relative">
           <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
           <div className="relative bg-slate-900/80 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400 flex items-center gap-2">
-              <Settings2 className="w-6 h-6 text-blue-400" />
+            <h2 className="text-2xl font-black text-amber-500 flex items-center gap-2">
+              <Settings2 className="w-6 h-6 text-amber-500" />
               Cấu Hình Đặt Lịch & Ưu Đãi
             </h2>
             <p className="mt-2 text-sm text-slate-400">
@@ -57,10 +57,10 @@ export default function BookingSettingsTab() {
         {/* BASIC SETTINGS BLOCK */}
         <div className="bg-slate-900/50 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden p-6 shadow-xl">
           <div className="flex items-center gap-3 border-b border-white/10 pb-4 mb-6">
-            <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-800">
               <CalendarDaysIcon />
             </div>
-            <h3 className="text-lg font-semibold text-white">Cơ Bản (Lịch Làm Việc)</h3>
+            <h3 className="text-lg font-bold text-blue-600">Cơ Bản (Lịch Làm Việc)</h3>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -115,14 +115,14 @@ export default function BookingSettingsTab() {
         {/* ADVANCED TOGGLE */}
         <div 
           onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-          className={`cursor-pointer transition-all duration-300 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between border ${isAdvancedMode ? 'bg-gradient-to-r from-indigo-900/40 to-purple-900/40 border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.15)]' : 'bg-slate-900/50 border-white/5 hover:bg-slate-800/80'} backdrop-blur-xl shadow-xl`}
+          className={`cursor-pointer transition-all duration-300 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between border ${isAdvancedMode ? 'bg-blue-900/20 border-blue-600/50 shadow-[0_0_30px_rgba(37,99,235,0.15)]' : 'bg-slate-900/50 border-white/5 hover:bg-slate-800/80'} backdrop-blur-xl shadow-xl`}
         >
           <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-xl transition-colors ${isAdvancedMode ? 'bg-purple-500/20 text-purple-400' : 'bg-white/5 text-slate-400'}`}>
+            <div className={`p-3 rounded-xl transition-colors ${isAdvancedMode ? 'bg-blue-100 text-blue-800' : 'bg-white/5 text-slate-400'}`}>
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-white' : 'text-slate-300'}`}>
+              <h3 className={`text-lg font-bold transition-colors ${isAdvancedMode ? 'text-blue-500' : 'text-slate-300'}`}>
                 Nâng Cao: Cơ Chế Giờ Vàng (Happy Hour)
               </h3>
               <p className="text-sm text-slate-400 mt-1">AI Chatbot tự động tư vấn giảm giá khi khách chọn trúng khung giờ vắng.</p>
@@ -134,7 +134,7 @@ export default function BookingSettingsTab() {
             <motion.div 
               layout 
               transition={{ type: "spring", stiffness: 700, damping: 30 }}
-              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-purple-500' : 'bg-slate-500'}`}
+              className={`w-6 h-6 rounded-full shadow-md ${isAdvancedMode ? 'bg-blue-600' : 'bg-slate-500'}`}
               style={{ marginLeft: isAdvancedMode ? '24px' : '0px' }}
             />
           </div>
