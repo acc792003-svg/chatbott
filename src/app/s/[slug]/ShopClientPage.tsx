@@ -2,10 +2,9 @@
 
 import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, X, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Bot, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { cn } from '@/lib/utils';
 
 export default function ShopClientPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
@@ -35,112 +34,77 @@ export default function ShopClientPage({ params }: { params: Promise<{ slug: str
     setLoading(false);
   };
 
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-[#F8FAFC]">
-      <motion.div 
-        animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-        transition={{ duration: 2, repeat: Infinity }}
-        className="w-16 h-16 bg-white rounded-2xl shadow-xl flex items-center justify-center text-blue-600 mb-4"
-      >
-        <Bot size={32} />
-      </motion.div>
-      <div className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px]">Đang kết nối...</div>
-    </div>
-  );
+  if (loading) return <div className="flex items-center justify-center h-screen font-bold">Đang tải...</div>;
 
   if (!shop) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen p-6 text-center bg-white">
-        <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-200 mb-6">
-           <Bot size={48} />
-        </div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">KHÔNG TÌM THẤY</h1>
-        <p className="text-slate-500 mt-2 font-medium max-w-[280px]">Đường dẫn này không tồn tại hoặc đã bị thay đổi.</p>
-        <button 
-          onClick={() => router.push('/')} 
-          className="mt-8 px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
-        >
-          Về trang chủ
-        </button>
+      <div className="flex flex-col items-center justify-center h-screen p-6 text-center">
+        <Bot size={64} className="text-slate-300 mb-4" />
+        <h1 className="text-2xl font-black text-slate-800">Không tìm thấy cửa hàng</h1>
+        <p className="text-slate-500 mt-2">Đường dẫn này không tồn tại hoặc đã bị thay đổi.</p>
+        <button onClick={() => router.push('/')} className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-xl font-bold">Về trang chủ</button>
       </div>
     );
   }
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#F1F5F9]">
-      
-      {/* Background decoration */}
-      <div className="absolute top-0 left-0 w-full h-full -z-10 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05)_0%,transparent_50%)]"></div>
-
+    <div className="relative w-screen h-screen overflow-hidden bg-white">
       {/* DRAGGABLE ROBOT ICON */}
       <motion.div
         drag
         dragMomentum={false}
-        initial={{ x: 0, y: 0 }}
-        style={{ position: 'fixed', zIndex: 9999, right: 24, bottom: 24 }}
-        className="cursor-move pointer-events-auto"
+        initial={{ x: 20, y: 20 }}
+        style={{ position: 'fixed', zIndex: 9999, right: 30, bottom: 40 }}
+        className="cursor-move"
       >
         <div className="relative flex flex-col items-center">
-           {/* Yellow X - Close button */}
+           {/* Yellow X - Close button (Top) - Closes the website/app */}
            <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
                 setIsOpen(false);
+                window.close();
                 setTimeout(() => {
-                   if (confirm("Bạn muốn đóng trang này?")) {
-                      window.close();
-                      window.location.href = "about:blank";
-                   }
+                  window.location.href = "about:blank";
                 }, 100);
               }}
-              className="absolute -top-10 bg-amber-400 text-amber-900 w-8 h-8 rounded-full flex items-center justify-center shadow-xl border-2 border-white font-black z-[10000] hover:scale-110 active:scale-90 transition-transform"
+              className="absolute -top-12 bg-amber-400 text-amber-900 w-6 h-6 rounded-full flex items-center justify-center shadow-lg border-2 border-white font-black z-[10000] hover:scale-110 active:scale-90 transition-transform"
            >
-              <X size={16} strokeWidth={3} />
+              <X size={14} strokeWidth={4} />
            </button>
 
+           {/* Small Badge text */}
+           <div className="absolute -top-5 bg-indigo-600/90 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-md whitespace-nowrap backdrop-blur-sm z-[9999]">
+              {shop.slug}
+           </div>
+
            {/* Robot Button */}
-           <motion.button 
-             whileHover={{ scale: 1.05 }}
-             whileTap={{ scale: 0.95 }}
+           <button 
              onClick={() => setIsOpen(!isOpen)}
-             className={cn(
-               "w-16 h-16 md:w-20 md:h-20 bg-white rounded-[2rem] shadow-[0_10px_30px_rgba(0,0,0,0.1)] flex items-center justify-center overflow-hidden border-4 border-white transition-all duration-300",
-               isOpen ? 'ring-4 ring-blue-500/20 scale-110' : 'hover:shadow-2xl'
-             )}
+             className={`w-14 h-14 bg-white rounded-[1.2rem] shadow-2xl flex items-center justify-center overflow-hidden border-2 border-slate-100 active:scale-95 transition-all duration-300 ${isOpen ? 'ring-4 ring-amber-400/50' : ''}`}
            >
              <img 
                src={shop?.bot_gender === 'female' ? '/robot_female.png' : '/robot_male.png'} 
                alt="Robot"
-               className="w-full h-full object-cover p-1.5"
+               className="w-full h-full object-cover p-1"
              />
-           </motion.button>
-
-           <div className="absolute -bottom-8 bg-blue-600 text-white text-[9px] font-black px-3 py-1 rounded-full shadow-lg whitespace-nowrap uppercase tracking-widest">
-              {shop.name}
-           </div>
+           </button>
         </div>
       </motion.div>
 
-      {/* CHAT WINDOW */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className={cn(
-              "fixed z-[9998] shadow-[0_30px_100px_rgba(0,0,0,0.15)] overflow-hidden bg-white border border-white/40",
-              "inset-0 sm:inset-auto sm:right-6 sm:bottom-28 sm:w-[420px] sm:h-[75vh] sm:max-h-[750px] sm:rounded-[3rem]"
-            )}
-          >
-            <iframe 
-              src={`/widget/${shop.code}`} 
-              className="w-full h-full border-none"
-              title="Chatbot"
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9, y: 30 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          className="fixed inset-4 sm:inset-auto sm:right-6 sm:bottom-24 sm:w-[380px] sm:h-[600px] z-[9998] shadow-2xl overflow-hidden sm:rounded-[2.5rem] border border-white/40 bg-white"
+        >
+          <iframe 
+            src={`/widget/${shop.code}`} 
+            className="w-full h-full border-none"
+            title="Chatbot"
+          />
+        </motion.div>
+      )}
     </div>
   );
 }
