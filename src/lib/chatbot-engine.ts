@@ -22,6 +22,7 @@ export interface ChatResponse {
   source: 'faq' | 'cache' | 'ai';
   latency: number;
   intent?: string;
+  shopName?: string;
 }
 
 export function normalizeMessage(text: string): string {
@@ -285,7 +286,13 @@ ${phoneActionRule}
        console.error('[Engine] detectAndSaveLead error:', e);
     }
 
-    return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
+    return { 
+      answer: finalResponse, 
+      source: resultSource, 
+      latency, 
+      intent: detectedIntent,
+      shopName: shopConfig?.shop_name || shopData?.name
+    };
 
   } catch (error: any) {
     const latency = Date.now() - start;

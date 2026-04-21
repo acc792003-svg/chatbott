@@ -27,6 +27,15 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
     }
 
+    // Lấy tên tùy chỉnh từ chatbot_configs (nếu có)
+    const { data: config } = await supabaseAdmin
+      .from('chatbot_configs')
+      .select('shop_name')
+      .eq('shop_id', shop.id)
+      .maybeSingle();
+    
+    const displayName = config?.shop_name || shop.name;
+
     // 2. Lấy 3 cặp hội thoại gần nhất (tổng 3 bản ghi messages)
     // Mỗi bản ghi chứa cả user_message và ai_response
     const { data: messages, error } = await supabaseAdmin
@@ -42,7 +51,7 @@ export async function GET(req: Request) {
     // Trả về history theo thứ tự thời gian tăng dần
     return NextResponse.json({
       history: messages ? messages.reverse() : [],
-      shop_name: shop.name
+      shop_name: displayName
     });
 
   } catch (error: any) {

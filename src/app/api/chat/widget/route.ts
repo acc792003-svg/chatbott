@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ 
        response: result.answer,
-       shop_name: shop.name 
+       shop_name: result.shopName || shop.name 
     });
 
   } catch (error: any) {
