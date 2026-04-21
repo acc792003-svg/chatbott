@@ -41,7 +41,7 @@ export default function FloatingChatbot() {
       {/* Chat Window */}
       {isOpen && (
         <div 
-          className="w-[calc(100vw-32px)] sm:w-[380px] h-[600px] max-h-[80vh] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 animate-in slide-in-from-bottom-10 fade-in duration-300 flex flex-col cursor-default"
+          className="w-[calc(100vw-40px)] sm:w-[380px] h-[450px] sm:h-[600px] max-h-[65vh] sm:max-h-[80vh] bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-slate-100 animate-in slide-in-from-bottom-10 fade-in duration-300 flex flex-col cursor-default"
           onPointerDown={(e) => e.stopPropagation()} // Ngăn kéo khi đang click trong cửa sổ chat
         >
           {/* Header removed: using the iframe's built-in header to avoid duplicate stacked chatbots */}

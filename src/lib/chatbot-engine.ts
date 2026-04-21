@@ -315,8 +315,10 @@ async function saveLogs(shopId: string, message: string, answer: string, source:
   try {
     const client = supabaseAdmin || supabase;
     await client.from('chat_logs').insert({ shop_id: shopId, user_input: message, answer, source, latency_ms: latency, total_tokens: tokens });
-    await client.from('messages').insert({ shop_id: shopId, user_message: message, ai_response: answer, platform, session_id: externalUserId, total_tokens: tokens, metadata: { source, latency } });
-  } catch (e) {}
+    await client.from('messages').insert({ shop_id: shopId, user_message: message, ai_response: answer, platform, session_id: externalUserId, usage_tokens: tokens, metadata: { source, latency } });
+  } catch (e) {
+    console.error('[Engine] saveLogs error:', e);
+  }
 }
 
 async function summarizeThread(shopId: string, externalUserId: string, fullHistory: any[]) {

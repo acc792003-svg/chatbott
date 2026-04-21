@@ -22,6 +22,7 @@ import {
   Smartphone
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
@@ -95,8 +96,13 @@ export default function LandingPage() {
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-indigo-400/20 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
         </div>
 
-        <div className="max-w-7xl mx-auto text-center space-y-8">
-          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-600 px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-7xl mx-auto text-center space-y-8"
+        >
+          <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-100 text-blue-600 px-5 py-2 rounded-full text-xs font-black uppercase tracking-widest">
             <Sparkles size={14} className="text-blue-500" />
             Trợ lý ảo thông minh cho shop của bạn
           </div>
@@ -123,22 +129,35 @@ export default function LandingPage() {
           <div className="pt-12 opacity-60">
             <p className="text-[13px] font-black uppercase tracking-[0.3em] text-blue-900 whitespace-nowrap">Được tin dùng bởi 100+ shop bán hàng</p>
           </div>
-        </div>
+        </motion.div>
       </section>
 
       {/* ===== FEATURES SECTION ===== */}
       <section id="features" className="py-32 px-6 bg-slate-50/50 relative overflow-hidden">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-4 mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-4 mb-20"
+          >
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight">Tính Năng Tuyệt Vời</h2>
             <p className="text-slate-500 font-medium text-lg max-w-2xl mx-auto leading-relaxed">
               Vượt xa một khung chat thông thường, đây là trợ lý bán hàng thực thụ chuyên nghiệp.
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {features.map((f, i) => (
-              <div key={i} className="group bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+              <motion.div 
+                key={i} 
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="group bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:scale-[1.02] transition-all duration-500 relative overflow-hidden"
+              >
                 <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity scale-[3] -mr-10 -mt-10">
                    {f.icon}
                 </div>
@@ -151,7 +170,7 @@ export default function LandingPage() {
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 mb-4 tracking-tight">{f.title}</h3>
                 <p className="text-slate-500 font-medium leading-relaxed">{f.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -160,14 +179,26 @@ export default function LandingPage() {
       {/* ===== PRICING SECTION ===== */}
       <section id="pricing" className="py-32 px-6">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center space-y-4 mb-20">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center space-y-4 mb-20"
+          >
             <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-none">Gói Dịch Vụ Hợp Lý</h2>
             <p className="text-slate-500 font-medium text-lg">Phí duy trì cực thấp cho lợi nhuận cực cao.</p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
             {/* Free Tier */}
-            <div className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col hover:scale-[1.01] transition-all">
+            <motion.div 
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.6 }}
+              className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-xl flex flex-col hover:scale-[1.01] transition-all"
+            >
               <div className="flex items-center gap-3 mb-4">
                  <div className="w-10 h-10 bg-slate-100 text-slate-600 rounded-xl flex items-center justify-center">
                     <Gift size={20} />
@@ -198,10 +229,16 @@ export default function LandingPage() {
               <Link href="/login?mode=register" className="w-full py-5 rounded-[1.5rem] bg-slate-100 text-slate-900 font-black text-sm uppercase tracking-widest hover:bg-slate-200 transition-all text-center">
                 Bắt đầu ngay
               </Link>
-            </div>
+              </motion.div>
 
             {/* Pro Tier */}
-            <div className="bg-white p-1 rounded-[3.5rem] bg-gradient-to-b from-blue-500 to-indigo-600 shadow-2xl scale-105 relative z-10 flex flex-col animate-in fade-in slide-in-from-bottom-8 duration-1000">
+            <motion.div 
+              initial={{ opacity: 0, x: 30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ duration: 0.6 }}
+              className="bg-white p-1 rounded-[3.5rem] bg-gradient-to-b from-blue-500 to-indigo-600 shadow-2xl scale-105 relative z-10 flex flex-col"
+            >
               <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-blue-600 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest shadow-xl ring-4 ring-blue-50 dark:ring-blue-900/10">
                 ⭐ Được 90% các shop lựa chọn
               </div>
@@ -241,7 +278,7 @@ export default function LandingPage() {
                   Nâng cấp Pro ngay
                 </Link>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
