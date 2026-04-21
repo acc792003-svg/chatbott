@@ -18,20 +18,22 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Bạn không có quyền thực hiện thao tác này!' }, { status: 403 });
     }
 
-    // 2. Tìm user_id của chủ shop
-    const { data: shop } = await supabaseAdmin
-      .from('shops')
-      .select('user_id')
-      .eq('id', shopId)
-      .single();
+    // 2. Tìm user_id của chủ shop từ bảng users
+    const { data: shopOwner } = await supabaseAdmin
+      .from('users')
+      .select('id, email')
+      .eq('shop_id', shopId)
+      .limit(1);
 
-    if (!shop || !shop.user_id) {
+    if (!shopOwner || shopOwner.length === 0) {
       return NextResponse.json({ error: 'Không tìm thấy tài khoản chủ shop!' }, { status: 404 });
     }
 
+    const targetUserId = shopOwner[0].id;
+
     // 3. Cập nhật mật khẩu bằng Admin Auth
     const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-      shop.user_id,
+      targetUserId,
       { password: newPassword }
     );
 

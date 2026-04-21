@@ -351,8 +351,23 @@ export default function SuperAdminPage() {
   const handleResetPassword = async (shopId: string) => {
     const pass = prompt('Mật khẩu mới:');
     if (!pass) return;
-    const res = await fetch('/api/admin/reset-password', { method: 'POST', body: JSON.stringify({ shopId, newPassword: pass, requesterId: currentUserId }) });
-    if (res.ok) alert('Đã đổi mật khẩu thành công!');
+
+    addToast('Đang xử lý đổi mật khẩu...', 'info');
+    try {
+      const res = await fetch('/api/admin/reset-password', { 
+        method: 'POST', 
+        body: JSON.stringify({ shopId, newPassword: pass, requesterId: currentUserId }) 
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        addToast(`✅ Đã đổi mật khẩu thành công!`, 'success');
+      } else {
+        addToast(`❌ Lỗi: ${data.error || 'Server error'}`, 'error');
+      }
+    } catch (e: any) {
+      addToast(`❌ Lỗi kết nối: ${e.message}`, 'error');
+    }
   };
 
   const handleUpdateIcon = async (shopId: string, url: string) => {
