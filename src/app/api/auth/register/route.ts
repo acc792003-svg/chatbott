@@ -59,8 +59,11 @@ export async function POST(req: Request) {
         targetShopId = shop.id;
     } else {
         // Tạo shop dùng thử mới
-        const nums = '0123456789'; const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        generatedCode = `${nums[Math.floor(Math.random() * nums.length)]}${nums[Math.floor(Math.random() * nums.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}${letters[Math.floor(Math.random() * letters.length)]}`;
+        // Tạo shop dùng thử mới (Format CB-XXXXXX để đồng bộ hệ thống)
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        let res = '';
+        for (let i = 0; i < 6; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+        generatedCode = `CB-${res}`;
         
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 1);

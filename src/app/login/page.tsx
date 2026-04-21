@@ -163,15 +163,17 @@ function LoginForm() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5 px-1">
-             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Mã cửa hàng</label>
+             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+               {isLogin ? 'Mã cửa hàng' : 'Mã giới thiệu / Mã Shop (Nếu có)'}
+             </label>
              <div className="relative group">
                 <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
                 <input 
                   type="text" 
-                  placeholder="Ví dụ: SHOP123" 
+                  placeholder={isLogin ? "Ví dụ: SHOP123" : "Để trống nếu bạn muốn tạo Shop mới"} 
                   value={shopCode} 
                   onChange={e => setShopCode(e.target.value)} 
-                  required
+                  required={isLogin}
                   className="w-full bg-slate-50 border-2 border-slate-50 p-4 pl-12 rounded-2xl focus:border-blue-500/50 focus:bg-white outline-none font-bold text-slate-900 transition-all"
                 />
              </div>
