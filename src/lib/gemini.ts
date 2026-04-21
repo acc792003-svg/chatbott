@@ -340,39 +340,41 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
   const keys = await getDetailedApiKeys(isPro); 
   if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
   
-  const apiKey = keys[0].value;
-  // SỬA LỖI: Tên model chính xác từ Google là gemini-embedding-001
-  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
+  let lastError = '';
+  // Thử tối đa 2 key để tránh chờ quá lâu
+  for (const keyObj of keys.slice(0, 2)) {
+    const apiKey = keyObj.value;
+    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000); 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); 
 
-  try {
-    const response = await fetch(apiURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: "models/gemini-embedding-001",
-        content: { parts: [{ text }] }
-      }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch(apiURL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "models/gemini-embedding-001",
+          content: { parts: [{ text }] }
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
 
-    const data = await response.json();
-    console.log(`[EMBED_STEP] Finish: ${Date.now() - stepStart}ms`);
-
-    if (response.ok && data.embedding?.values) {
-      return data.embedding.values;
+      const data = await response.json();
+      if (response.ok && data.embedding?.values) {
+        console.log(`[EMBED_STEP] Finish with ${keyObj.name}: ${Date.now() - stepStart}ms`);
+        return data.embedding.values;
+      }
+      lastError = data.error?.message || 'Lỗi không xác định';
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      lastError = error.message;
+      console.warn(`[EMBED_RETRY] Key ${keyObj.name} thất bại: ${error.message}`);
     }
-    
-    // Bỏ retry đệ quy để tránh treo request lâu
-    throw new Error(data.error?.message || 'Lỗi tạo Embedding');
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-    console.error('Embedding Error:', error);
-    throw error;
   }
+
+  throw new Error(`Tất cả API Key tạo Embedding đều thất bại: ${lastError}`);
 }
 
 /**

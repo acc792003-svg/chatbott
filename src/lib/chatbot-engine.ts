@@ -288,9 +288,17 @@ ${phoneActionRule}
     return { answer: finalResponse, source: resultSource, latency, intent: detectedIntent };
 
   } catch (error: any) {
+    const latency = Date.now() - start;
+    const errorResponse = "Dạ, hiện tại kết nối mạng đang hơi chậm, bạn vui lòng chờ vài giây rồi nhắn lại nhe! 🙏";
+    
     console.error('Core Engine Error:', error);
+    
+    // LƯU LOG KỂ CẢ KHI LỖI để người dùng thấy tin nhắn họ đã gửi trong lịch sử
+    try {
+      await saveLogs(shopId, message, errorResponse, 'ai', latency, platform, externalUserId, 0);
+    } catch (e) {}
+
     if (client) {
-      // Dùng AWAIT để chắc chắn log được bay đi
       await client.from('system_errors').insert({
         shop_id: shopId,
         error_type: 'ENGINE_CRASH_STABLE',
@@ -299,7 +307,7 @@ ${phoneActionRule}
         metadata: { shopCode, platform, stack: error.stack, message: message.substring(0, 50) }
       });
     }
-    return { answer: "Dạ, chatbot hiện đang bận một chút, bạn chờ vài giây rồi nhắn lại nhe! 🙏", source: 'ai', latency: 0 };
+    return { answer: errorResponse, source: 'ai', latency: latency };
   }
 }
 
