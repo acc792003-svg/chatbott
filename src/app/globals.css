@@ -37,3 +37,17 @@ body {
     @apply bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold transition-all active:scale-95 hover:shadow-lg hover:opacity-90;
   }
 }
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.1);
+}
