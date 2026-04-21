@@ -271,14 +271,21 @@ export default function SuperAdminPage() {
     
     try {
       const codeToUse = code || generateCode(); 
-      const { error } = await supabase.from('shops').insert({ 
+      const { data: newShop, error } = await supabase.from('shops').insert({ 
         name: newShopName, 
         code: codeToUse, 
         plan: 'free',
         plan_expiry_date: tomorrow.toISOString()
-      });
+      }).select().single();
       
       if (error) throw error;
+
+      // Mặc định khóa cấu hình (Mã ngẫu nhiên)
+      const randomPin = Math.floor(1000 + Math.random() * 9000).toString();
+      await supabase.from('system_settings').insert({
+          key: `shop_config_pin_${newShop.id}`,
+          value: randomPin
+      });
 
       // Thông báo siêu lớn và rõ ràng
       addToast(`🎉 CHÚC MỪNG! ĐÃ TẠO THÀNH CÔNG SHOP: ${newShopName.toUpperCase()}`, 'success');
@@ -923,20 +930,21 @@ export default function SuperAdminPage() {
                                                     </div>
                                                 </div>
 
-                                                {/* PIN CONFIG (SECURITY) */}
+                                                {/* MÃ MỞ KHÓA CONFIG (Dành cho shop Free) */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-rose-400">
-                                                        <Lock size={12}/> Khóa an toàn Config
-                                                        {shop.pin_hash && <span className="ml-2 bg-rose-500 text-white px-1.5 py-0.5 rounded-md text-[8px]">ĐÃ KHÓA</span>}
+                                                        <Lock size={12}/> Mã mở khóa Cấu hình AI
+                                                        {shop.pin_hash && <span className="ml-2 bg-rose-500 text-white px-1.5 py-0.5 rounded-md text-[8px]">ĐANG KHÓA</span>}
                                                     </p>
                                                     <div className="space-y-4">
                                                         <div>
-                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Thiết lập mã / Để trống để bỏ khóa</label>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block italic opacity-70 underline decoration-rose-500/30">Nếu để trống, Shop Free sẽ bị KHÓA vĩnh viễn cho đến khi bạn đặt mã</label>
                                                             <input 
                                                                 type="text" 
-                                                                placeholder="Nhập mã bí mật..."
+                                                                placeholder="Thiết lập mã tại đây để cấp cho khách..."
                                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-rose-500"
                                                                 id={`pin-${shop.id}`}
+                                                                defaultValue={shop.pin_hash || ''}
                                                             />
                                                         </div>
                                                         <button 
@@ -947,13 +955,16 @@ export default function SuperAdminPage() {
                                                                         method: 'POST', body: JSON.stringify({ shopId: shop.id, newPin, requesterId: currentUserId })
                                                                     });
                                                                     const verify = await res.json();
-                                                                    if (verify.success) addToast(newPin ? 'Đã kích hoạt MÃ PIN an toàn!' : 'Đã gỡ MÃ PIN cho shop!', 'success');
+                                                                    if (verify.success) {
+                                                                        addToast(newPin ? 'Đã thiết lập MÃ MỞ KHÓA thành công!' : 'Đã GỠ KHÓA cấu hình cho shop!', 'success');
+                                                                        fetchShops(); // Refresh data to update badge
+                                                                    }
                                                                     else addToast('Lỗi: ' + verify.error, 'error');
                                                                 } catch (e) { addToast('Lỗi máy chủ', 'error'); }
                                                             }}
-                                                            className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
+                                                            className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all shadow-lg shadow-rose-900/20"
                                                         >
-                                                            Lưu Mã Khóa
+                                                            Lưu Mã Mở Khóa
                                                         </button>
                                                     </div>
                                                 </div>

@@ -78,6 +78,13 @@ export async function POST(req: Request) {
         if (shopErr) throw shopErr;
         targetShopId = newShop.id;
 
+        // Tự động tạo mã khóa Configuration (Mặc định shop free là khóa)
+        const pinCode = Math.floor(1000 + Math.random() * 9000).toString();
+        await supabaseAdmin.from('system_settings').insert({
+            key: `shop_config_pin_${targetShopId}`,
+            value: pinCode
+        });
+
         // Clone tri thức từ shop mẫu
         const { data: setting } = await supabaseAdmin.from('system_settings').select('value').eq('key', 'trial_template_shop_code').single();
         const templateCode = setting?.value || '70WPN';

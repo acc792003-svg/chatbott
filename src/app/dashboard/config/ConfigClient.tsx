@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Eye, EyeOff, HelpCircle, Brain, Settings, CheckCircle, XCircle, MessageSquare, Heart, Send, Lock } from 'lucide-react';
+import { 
+  Eye, EyeOff, HelpCircle, Brain, Settings, 
+  CheckCircle, XCircle, MessageSquare, Heart, 
+  Send, Lock, ArrowRight, Loader2, Zap 
+} from 'lucide-react';
 
 export default function ConfigClient() {
   const [activeTab, setActiveTab] = useState<'general' | 'ai_core'>('general');
@@ -76,60 +80,91 @@ export default function ConfigClient() {
   };
 
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isCheckingPin, setIsCheckingPin] = useState(true);
-  const [pinInput, setPinInput] = useState('');
-  const [pinError, setPinError] = useState('');
-  const [hasPinState, setHasPinState] = useState(false);
+  const [isCheckingLock, setIsCheckingLock] = useState(true);
+  const [shopPlan, setShopPlan] = useState('free');
+  const [activationInput, setActivationInput] = useState('');
+  const [activationError, setActivationError] = useState('');
+  const [activating, setActivating] = useState(false);
+  const [requiresCode, setRequiresCode] = useState(false);
 
-  const checkPinFirst = async () => {
+  const checkLockStatus = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     const { data: userData } = await supabase.from('users').select('shop_id').eq('id', session.user.id).single();
     if (userData?.shop_id) {
        setShopId(userData.shop_id);
        
+       // 1. Kiểm tra Plan
+       const { data: shopData } = await supabase.from('shops').select('plan').eq('id', userData.shop_id).single();
+       const currentPlan = shopData?.plan || 'free';
+       setShopPlan(currentPlan);
+
+       // 2. Logic Khóa: 
+       // - Nếu là Shop Pro: Mở luôn (Không dùng mã PIN)
+       // - Nếu là Shop Free: LUÔN LUÔN khóa, yêu cầu nhập mã từ Super Admin đặt
+       if (currentPlan === 'pro') {
+           setIsUnlocked(true);
+           fetchConfigData(userData.shop_id);
+           setIsCheckingLock(false);
+           return;
+       }
+
+       // Shop Free -> Bắt buộc khóa
+       setRequiresCode(true);
+
        try {
-           const res = await fetch('/api/config/check-pin', {
-               method: 'POST', body: JSON.stringify({ shopId: userData.shop_id, pin: '' })
-           });
-           const verify = await res.json();
-           if (verify.requiresPin === false) {
-               // No pin required
-               setIsUnlocked(true);
-               fetchConfigData(userData.shop_id);
-           } else {
-               setHasPinState(true);
+           // Kiểm tra xem đã mở khóa trước đó trong session này chưa (Dùng localStorage)
+           const savedUnlock = localStorage.getItem(`unlocked_${userData.shop_id}`);
+           if (savedUnlock) {
+              const res = await fetch('/api/config/check-pin', {
+                  method: 'POST', body: JSON.stringify({ shopId: userData.shop_id, pin: savedUnlock })
+              });
+              const verify = await res.json();
+              if (verify.success) {
+                  setIsUnlocked(true);
+                  fetchConfigData(userData.shop_id);
+              }
            }
        } catch (e) {
-           console.error('Lỗi kiểm tra PIN', e);
+           console.error('Lỗi kiểm tra khóa', e);
        } finally {
-           setIsCheckingPin(false);
+           setIsCheckingLock(false);
        }
     }
   };
 
-  const handleUnlock = async (e: any) => {
-      e.preventDefault();
-      setPinError('');
-      try {
-          const res = await fetch('/api/config/check-pin', {
-              method: 'POST', body: JSON.stringify({ shopId, pin: pinInput })
-          });
-          const verify = await res.json();
-          if (verify.success) {
-              setIsUnlocked(true);
-              fetchConfigData(shopId);
-          } else {
-              setPinError(verify.error || 'Sai mã PIN');
-          }
-      } catch (e) {
-          setPinError('Lỗi máy chủ');
-      }
+  const handleActivateWithCode = async (e: any) => {
+    e.preventDefault();
+    setActivationError('');
+    setActivating(true);
+    try {
+        const res = await fetch('/api/config/check-pin', {
+            method: 'POST', body: JSON.stringify({ shopId, pin: activationInput })
+        });
+        const verify = await res.json();
+        
+        if (verify.success) {
+            // Chỉ cho phép mở nếu mã không trống (để tránh trường hợp Admin chưa đặt mã mà khách nhấn bừa)
+            if (activationInput.trim() === '') {
+                setActivationError('Vui lòng liên hệ Admin để nhận mã kích hoạt');
+            } else {
+                setIsUnlocked(true);
+                localStorage.setItem(`unlocked_${shopId}`, activationInput);
+                fetchConfigData(shopId);
+            }
+        } else {
+            setActivationError('Mã kích hoạt không đúng hoặc Admin chưa thiết lập mã');
+        }
+    } catch (e) {
+        setActivationError('Lỗi kết nối server');
+    } finally {
+        setActivating(false);
+    }
   };
 
   useEffect(() => {
     setMounted(true);
-    checkPinFirst();
+    checkLockStatus();
   }, []);
 
   const fetchConfigData = async (targetShopId: string) => {
@@ -286,32 +321,54 @@ export default function ConfigClient() {
     }
   };
 
-  if (!mounted || isCheckingPin) return <div className="flex flex-col items-center justify-center p-20 opacity-50"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xs font-bold font-mono">Đang kiểm tra an ninh...</p></div>;
+  if (!mounted || isCheckingLock) return <div className="flex flex-col items-center justify-center p-20 opacity-50"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div><p className="text-xs font-bold font-mono">Đang kiểm tra an ninh...</p></div>;
 
-  if (!isUnlocked) {
+  if (requiresCode && !isUnlocked) {
       return (
-          <div className="max-w-md mx-auto mt-20 p-8 bg-white border border-slate-100 shadow-2xl rounded-3xl animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none"><Settings size={150}/></div>
-             <div className="relative z-10 text-center">
-                 <div className="w-16 h-16 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                 </div>
-                 <h2 className="text-2xl font-black text-slate-800 mb-2 tracking-tight">Khu Vực Bảo Mật</h2>
-                 <p className="text-xs text-slate-500 mb-8 font-medium">Bạn cần nhập mã PIN để xem và chỉnh sửa cấu hình Shop.</p>
-                 <form onSubmit={handleUnlock}>
-                    <input 
-                       type="password" 
-                       value={pinInput} 
-                       onChange={e => setPinInput(e.target.value)} 
-                       className="w-full text-center text-2xl tracking-[0.5em] font-black bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 focus:outline-none focus:border-rose-500 transition-all mb-2"
-                       placeholder="••••"
-                       autoFocus
-                    />
-                    {pinError && <p className="text-[10px] text-rose-500 font-bold mb-4">{pinError}</p>}
-                    <button type="submit" className="w-full mt-4 bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-slate-200">MỞ KHÓA CONFIG</button>
-                 </form>
-             </div>
-          </div>
+        <div className="max-w-2xl mx-auto mt-16 p-12 bg-white border border-slate-100 shadow-2xl rounded-[3rem] animate-in fade-in slide-in-from-bottom-8 duration-700 relative overflow-hidden">
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-20 -left-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl"></div>
+            
+            <div className="relative z-10 text-center">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-200 rotate-3">
+                   <Zap size={40} className="fill-white" />
+                </div>
+                <h2 className="text-4xl font-black text-slate-900 mb-4 tracking-tighter uppercase italic">Khu Vực Bị Giới Hạn</h2>
+                <div className="max-w-md mx-auto space-y-4 mb-10">
+                    <p className="text-slate-500 font-bold leading-relaxed">
+                        Cửa hàng của bạn đang được khóa phần <span className="text-slate-900 underline decoration-indigo-500 underline-offset-4 font-black">Cấu Hình AI</span>.
+                        Bạn cần nhập mã kích hoạt được cấp bởi Super Admin để tiếp tục.
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {['Cấu hình AI', 'Nạp tri thức', 'Báo Telegram', 'Tích hợp FB'].map(tag => (
+                            <span key={tag} className="text-[9px] font-black bg-slate-100 text-slate-500 px-3 py-1.5 rounded-full uppercase tracking-widest">{tag}</span>
+                        ))}
+                    </div>
+                </div>
+
+                <form onSubmit={handleActivateWithCode} className="max-w-sm mx-auto space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block ml-1 text-left">Nhập mã kích hoạt từ Admin</label>
+                        <input 
+                            type="text" 
+                            value={activationInput}
+                            onChange={e => setActivationInput(e.target.value)}
+                            placeholder="••••"
+                            className="w-full bg-slate-50 border-2 border-transparent focus:border-blue-500/30 p-5 rounded-2xl outline-none font-black text-xl text-center text-blue-600 tracking-widest transition-all shadow-inner"
+                        />
+                    </div>
+                    {activationError && <p className="text-xs font-bold text-red-500 animate-shake">{activationError}</p>}
+                    <button 
+                        disabled={activating}
+                        className="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl shadow-slate-200 hover:bg-blue-600 transition-all uppercase tracking-widest text-xs flex items-center justify-center gap-2 group active:scale-95"
+                    >
+                        {activating ? <Loader2 size={18} className="animate-spin" /> : 'Mở khóa cấu hình'}
+                        {!activating && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
+                    </button>
+                    <p className="text-[10px] text-slate-400 font-bold pt-4 uppercase tracking-[0.2em]">Mã này được Admin cấp riêng cho từng shop</p>
+                </form>
+            </div>
+        </div>
       );
   }
 
@@ -323,9 +380,14 @@ export default function ConfigClient() {
            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">Quản lý Tri thức & Tích hợp Mạng xã hội</p>
         </div>
         <div className="flex items-center gap-4 mt-4 sm:mt-0">
-           {hasPinState && isUnlocked && (
+           {requiresCode && isUnlocked && (
              <button 
-               onClick={() => { setIsUnlocked(false); setPinInput(''); setPinError(''); }} 
+               onClick={() => { 
+                  setIsUnlocked(false); 
+                  setActivationInput(''); 
+                  setActivationError('');
+                  localStorage.removeItem(`unlocked_${shopId}`);
+               }} 
                className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 transition-all border border-rose-200 shadow-sm"
                title="Khoá Cấu Hình Lại"
              >
