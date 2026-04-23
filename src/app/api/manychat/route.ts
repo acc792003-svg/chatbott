@@ -72,8 +72,20 @@ export async function POST(req: Request) {
       isPro: shop.plan === 'pro'
     });
 
-    // 4. Return formatted response for ManyChat
-    // We return a simple 'text' field which can be mapped to a Custom User Field in ManyChat
+    // 4. Return formatted response
+    const { searchParams } = new URL(req.url);
+    const platformParam = searchParams.get('platform');
+
+    // Nếu là Ahachat (JSON API block), trả về định dạng mảng tin nhắn để Bot tự hiển thị
+    if (platformParam === 'ahachat') {
+      return NextResponse.json({
+        messages: [
+          { text: result.answer }
+        ]
+      });
+    }
+
+    // Mặc định trả về định dạng đơn giản (Dùng cho ManyChat hoặc các bên khác tự map biến)
     return NextResponse.json({
       success: true,
       text: result.answer,

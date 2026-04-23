@@ -40,6 +40,10 @@ export async function POST(req: NextRequest) {
     const rawBody = await req.text();
     const signature = req.headers.get('x-hub-signature-256');
 
+    console.log("🔥 [FB WEBHOOK] RECEIVED HIT");
+    const body = JSON.parse(rawBody);
+    console.log("📦 Payload:", JSON.stringify(body, null, 2));
+
     // 1. VERIFY SIGNATURE (Bảo vệ khỏi hacker)
     if (!await verifySignature(rawBody, signature)) {
       console.error('❌ Invalid Webhook Signature!');
@@ -53,16 +57,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid Signature' }, { status: 401 });
     }
 
-    const body = JSON.parse(rawBody);
-
     if (body.object === 'page') {
       for (const entry of body.entry) {
         if (!entry.messaging) continue;
         
         const webhook_event = entry.messaging[0];
         const sender_id = webhook_event.sender.id;
-        const page_id = entry.id;
+        const page_id = entry.id; // Page ID
         const message_id = webhook_event.message?.mid;
+
+        console.log(`📩 New message from ${sender_id} to Page ${page_id}`);
 
         // 2. CHECK DUPLICATE (Chặn tin nhắn trùng lặp)
         if (message_id) {
@@ -71,6 +75,7 @@ export async function POST(req: NextRequest) {
                 console.warn(`♻️ Duplicate message detected: ${message_id}. Skipping.`);
                 continue;
             }
+            console.log(`✅ Message ${message_id} is unique. Proceeding...`);
         }
 
         if (webhook_event.message && webhook_event.message.text) {
@@ -144,7 +149,7 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
     .single();
 
   if (!config || !config.access_token) {
-    console.warn(`⚠️ Page ${page_id} chưa được gán cho bất kỳ Shop nào!`);
+    console.error(`❌ [Mapping Error] No Shop matches Page ID: ${page_id}`);
     await supabaseAdmin.from('system_errors').insert({
         shop_id: '1075624b-8941-418e-a0e9-ca8344379cc1', // fallback
         error_type: 'FB_WEBHOOK_PAGE_NOT_FOUND',
@@ -183,8 +188,16 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
     isPro: shop.plan === 'pro'
   });
 
+  console.log(`🤖 AI Result for ${sender_id}: ${result.answer.substring(0, 50)}...`);
+
   // 4. Phản hồi kèm Retry logic (Giai đoạn nhẹ)
   let success = await sendFacebookMessage(sender_id, config.access_token, result.answer);
+  
+  if (success) {
+      console.log(`✅ [Success] AI Response sent to ${sender_id}`);
+  } else {
+      console.error(`❌ [Error] Failed to send FB message to ${sender_id}. Check Access Token or App Permissions.`);
+  }
   
   // Retry đơn giản nếu thất bại (Lần 2 sau 2s)
   if (!success) {
