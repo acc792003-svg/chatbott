@@ -189,7 +189,7 @@ export default function ConfigClient() {
         .select('*')
         .eq('shop_id', userData.shop_id)
         .eq('channel_type', 'facebook')
-        .order('updated_at', { ascending: false })
+        .order('created_at', { ascending: false })
         .maybeSingle();
         
       if (fbConfig) {
