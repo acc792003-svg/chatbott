@@ -28,6 +28,7 @@ type Shop = {
   users?: { email: string; id: string }[]; // Tài khoản gán với shop
   fb_page_id?: string;
   fb_page_token?: string;
+  manychat_api_key?: string;
 };
 
 type KnowledgePackage = {
@@ -64,6 +65,7 @@ export default function SuperAdminPage() {
   const [addingShop, setAddingShop] = useState(false);
   const [openShopId, setOpenShopId] = useState<string | null>(null);
   const [activeIcons, setActiveIcons] = useState<{ [key: string]: string }>({});
+  const [showManyChatKeys, setShowManyChatKeys] = useState<{ [key: string]: boolean }>({});
 
   // Knowledge Workshop
   const [bulkRawFaq, setBulkRawFaq] = useState(''); // Ô nhập hàng loạt
@@ -413,6 +415,18 @@ export default function SuperAdminPage() {
         
         addToast(`Đã bọc thép cấu hình Facebook!`, 'success');
         fetchShops();
+    }
+  };
+
+  const handleRegenerateManyChatKey = async (shopId: string) => {
+    const newKey = "mc_" + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    try {
+        const { error } = await supabase.from('shops').update({ manychat_api_key: newKey }).eq('id', shopId);
+        if (error) throw error;
+        addToast('Đã tạo API Key mới thành công!', 'success');
+        fetchShops();
+    } catch (e: any) {
+        addToast('Lỗi khi tạo key: ' + e.message, 'error');
     }
   };
 
@@ -965,6 +979,75 @@ export default function SuperAdminPage() {
                                                             className="w-full bg-rose-600 hover:bg-rose-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all shadow-lg shadow-rose-900/20"
                                                         >
                                                             Lưu Mã Mở Khóa
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                                {/* MANYCHAT INTEGRATION (NEW) */}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-blue-400"><MessageCircle size={12}/> Kết nối ManyChat</p>
+                                                    <div className="space-y-4">
+                                                        <div className="bg-white/5 p-3 rounded-xl border border-white/10">
+                                                            <div className="flex justify-between items-center mb-1">
+                                                                <p className="text-[8px] font-black text-slate-500 uppercase">ManyChat API Key</p>
+                                                                <button 
+                                                                    onClick={() => setShowManyChatKeys(prev => ({ ...prev, [shop.id]: !prev[shop.id] }))}
+                                                                    className="text-[8px] text-blue-400 font-bold underline uppercase"
+                                                                >
+                                                                    {showManyChatKeys[shop.id] ? 'Ẩn' : 'Hiện'}
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <input 
+                                                                    type={showManyChatKeys[shop.id] ? "text" : "password"}
+                                                                    readOnly
+                                                                    value={shop.manychat_api_key || 'Chưa tạo key'}
+                                                                    className="flex-1 bg-transparent text-[10px] font-mono font-bold text-blue-300 outline-none"
+                                                                />
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        if (shop.manychat_api_key) {
+                                                                            navigator.clipboard.writeText(shop.manychat_api_key);
+                                                                            addToast('Đã copy API Key', 'success');
+                                                                        }
+                                                                    }}
+                                                                    className="text-slate-500 hover:text-white"
+                                                                >
+                                                                    <Copy size={12}/>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="bg-slate-800/50 p-3 rounded-xl border border-white/5">
+                                                            <p className="text-[8px] font-black text-slate-400 uppercase mb-2">Cấu hình External Request</p>
+                                                            <pre className="text-[8px] text-emerald-400 font-mono leading-tight overflow-x-auto custom-scrollbar">
+{`{
+  "shop_code": "${shop.code}",
+  "user_id": "{{user_id}}",
+  "message": "{{last_input}}"
+}`}
+                                                            </pre>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    const json = JSON.stringify({
+                                                                        shop_code: shop.code,
+                                                                        user_id: "{{user_id}}",
+                                                                        message: "{{last_input}}"
+                                                                    }, null, 2);
+                                                                    navigator.clipboard.writeText(json);
+                                                                    addToast('Đã copy JSON cấu hình', 'success');
+                                                                }}
+                                                                className="w-full mt-2 bg-white/5 hover:bg-white/10 text-slate-300 py-1.5 rounded-lg text-[8px] font-black uppercase transition-all"
+                                                            >
+                                                                Copy JSON Cấu hình
+                                                            </button>
+                                                        </div>
+
+                                                        <button 
+                                                            onClick={() => handleRegenerateManyChatKey(shop.id)}
+                                                            className="w-full bg-blue-600/20 hover:bg-blue-600/40 text-blue-300 border border-blue-600/30 rounded-xl py-2 text-[9px] font-black uppercase transition-all"
+                                                        >
+                                                            {shop.manychat_api_key ? 'Cấp lại API Key' : 'Tạo API Key'}
                                                         </button>
                                                     </div>
                                                 </div>

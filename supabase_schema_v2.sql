@@ -84,7 +84,9 @@ CREATE TABLE IF NOT EXISTS system_settings (
 -- 8. Tối ưu Facebook Routing cho shops
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS fb_page_id text;
 ALTER TABLE shops ADD COLUMN IF NOT EXISTS fb_page_token text;
+ALTER TABLE shops ADD COLUMN IF NOT EXISTS manychat_api_key text;
 CREATE INDEX IF NOT EXISTS idx_fb_page_id ON shops(fb_page_id);
+CREATE INDEX IF NOT EXISTS idx_manychat_key ON shops(manychat_api_key);
 
 ALTER TABLE chatbot_configs
 ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
