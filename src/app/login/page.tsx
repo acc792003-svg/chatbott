@@ -14,7 +14,9 @@ import {
   Zap,
   ShieldCheck,
   ChevronLeft,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +33,8 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successCode, setSuccessCode] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -195,9 +199,20 @@ function LoginForm() {
              <div className="relative group">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
                 <input 
-                  type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required
-                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 pl-12 rounded-2xl focus:border-blue-500/50 focus:bg-white outline-none font-bold text-slate-900 transition-all"
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="••••••••" 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  required
+                  className="w-full bg-slate-50 border-2 border-slate-50 p-4 pl-12 pr-12 rounded-2xl focus:border-blue-500/50 focus:bg-white outline-none font-bold text-slate-900 transition-all"
                 />
+                <button 
+                  type="button" 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
              </div>
           </div>
 
@@ -207,9 +222,20 @@ function LoginForm() {
                <div className="relative group">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-blue-500 transition-colors" size={20} />
                   <input 
-                    type="password" placeholder="••••••••" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required
-                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 pl-12 rounded-2xl focus:border-blue-500/50 focus:bg-white outline-none font-bold text-slate-900 transition-all"
+                    type={showConfirmPassword ? "text" : "password"} 
+                    placeholder="••••••••" 
+                    value={confirmPassword} 
+                    onChange={e => setConfirmPassword(e.target.value)} 
+                    required
+                    className="w-full bg-slate-50 border-2 border-slate-50 p-4 pl-12 pr-12 rounded-2xl focus:border-blue-500/50 focus:bg-white outline-none font-bold text-slate-900 transition-all"
                   />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                </div>
             </div>
           )}
