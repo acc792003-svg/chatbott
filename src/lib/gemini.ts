@@ -135,7 +135,7 @@ export async function callGeminiWithFallback(
   systemInstruction?: string
 ): Promise<{ text: string, tokens: number }> {
   const globalStart = Date.now();
-  const GLOBAL_TIMEOUT = 9000; // Giới hạn toàn bộ request trong 9s để tránh Vercel timeout (10s)
+  const GLOBAL_TIMEOUT = 14000; // Tăng giới hạn lên 14s để AI có thêm thời gian suy nghĩ
 
   // -- HỖ TRỢ CHUẨN HÓA ROLE (TRÁNH LỖI CONSECUTIVE ROLES) --
   let normalizedContents: any[] = [];
@@ -196,9 +196,9 @@ export async function callGeminiWithFallback(
 
   // 3. Vòng lặp thử từng API Key (Max 2)
   for (const keyObj of activeKeys) {
-    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 7s, ngừng thử key mới để trả fallback ngay
-    if (Date.now() - globalStart > 7000) {
-        console.warn(`[GLOBAL_TIMEOUT] Sắp hết hạn (7s). Dừng tìm Key mới.`);
+    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 13s, ngừng thử key mới để trả fallback ngay
+    if (Date.now() - globalStart > 13000) {
+        console.warn(`[GLOBAL_TIMEOUT] Sắp hết hạn (13s). Dừng tìm Key mới.`);
         break;
     }
 
@@ -218,7 +218,7 @@ export async function callGeminiWithFallback(
       
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // Timeout 8s/key
+        const timeoutId = setTimeout(() => controller.abort(), 12000); // Tăng Timeout lên 12s/key
 
         const body: any = { contents: normalizedContents, generationConfig: config };
         if (systemInstruction) {
