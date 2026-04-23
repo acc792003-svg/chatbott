@@ -44,7 +44,7 @@ export async function POST(req: Request) {
                 channel_type: 'facebook',
                 provider_id: fbPageId,
                 access_token: fbAccessToken
-            }, { onConflict: 'channel_type, provider_id' });
+            }, { onConflict: 'shop_id, channel_type' });
 
             if (fbErr) throw new Error('Lỗi cấu hình Facebook: ' + fbErr.message);
             

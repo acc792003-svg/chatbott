@@ -402,7 +402,7 @@ export default function SuperAdminPage() {
       channel_type: 'facebook',
       provider_id: pageId.trim(), 
       access_token: accessToken.trim() 
-    }, { onConflict: 'channel_type, provider_id' });
+    }, { onConflict: 'shop_id, channel_type' });
 
     if (error) {
         addToast(`Lỗi cấu hình FB: ${error.message}`, 'error');

@@ -189,7 +189,8 @@ export default function ConfigClient() {
         .select('*')
         .eq('shop_id', userData.shop_id)
         .eq('channel_type', 'facebook')
-        .single();
+        .order('updated_at', { ascending: false })
+        .maybeSingle();
         
       if (fbConfig) {
         setFbPageId(fbConfig.provider_id || '');

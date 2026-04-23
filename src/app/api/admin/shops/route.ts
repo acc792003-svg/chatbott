@@ -47,6 +47,8 @@ export async function GET(req: NextRequest) {
         created_at, 
         slug,
         manychat_api_key,
+        fb_page_id,
+        fb_page_token,
         users (email, id)
       `)
       .order('created_at', { ascending: false });
@@ -72,8 +74,8 @@ export async function GET(req: NextRequest) {
         return { 
             ...shop, 
             packages: pkgs,
-            fb_page_id: fbConf ? fbConf.provider_id : null,
-            fb_page_token: fbConf ? fbConf.access_token : null,
+            fb_page_id: fbConf ? fbConf.provider_id : (shop.fb_page_id || null),
+            fb_page_token: fbConf ? fbConf.access_token : (shop.fb_page_token || null),
             pin_hash: pinConf ? pinConf.value : null
         };
     });
