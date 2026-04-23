@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         plan_expiry_date, 
         created_at, 
         slug,
+        manychat_api_key,
         users (email, id)
       `)
       .order('created_at', { ascending: false });
