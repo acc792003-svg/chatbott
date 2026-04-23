@@ -13,7 +13,7 @@ export function ApiKeysView({
 }: any) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
-            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
+            <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
                 <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
                 <div className="space-y-8">
                     {[
@@ -49,7 +49,7 @@ export function ApiKeysView({
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white flex flex-col justify-between">
+            <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-indigo-100/50 border border-white flex flex-col justify-between">
                 <div>
                     <h2 className="text-sm font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Lock size={16} className="text-slate-700"/> Webhook & Security</h2>
                     <div className="space-y-6">
@@ -89,7 +89,7 @@ export function ApiKeysView({
 
 export function LogsView({errorLogs}: any) {
     return (
-        <div className="bg-white/80 backdrop-blur-2xl rounded-[3rem] p-10 shadow-2xl shadow-red-100/50 border border-white animate-in fade-in duration-500 min-h-[500px] mb-20 relative overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-10 shadow-2xl shadow-red-100/50 border border-white animate-in fade-in duration-500 min-h-[500px] mb-20 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-red-400/5 rounded-full blur-3xl -z-10"></div>
             <div className="flex items-center justify-between mb-10">
                 <h2 className="text-lg font-black bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent uppercase flex items-center gap-3">
@@ -142,7 +142,7 @@ export function LogsView({errorLogs}: any) {
 
 export function SettingsView({trialTemplateCode, setTrialTemplateCode, onSave}: any) {
     return (
-        <div className="max-w-xl bg-white/80 backdrop-blur-2xl rounded-[3rem] p-12 shadow-2xl shadow-indigo-100/50 border border-white mb-20 mx-auto">
+        <div className="max-w-xl bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[3rem] p-6 md:p-12 shadow-2xl shadow-indigo-100/50 border border-white mb-20 mx-auto">
             <div className="flex items-center gap-4 mb-10">
                 <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 text-white flex items-center justify-center rounded-2xl shadow-lg"><Settings size={20}/></div>
                 <div>

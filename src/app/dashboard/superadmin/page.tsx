@@ -747,7 +747,7 @@ export default function SuperAdminPage() {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                     <input type="text" placeholder="Tìm theo Tên, Mã hoặc Link (QLADY)..." className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs font-bold focus:border-indigo-500 outline-none shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 </div>
-                <div className="flex gap-2 items-end">
+                <div className="flex flex-wrap md:flex-nowrap gap-2 items-end w-full">
                     <button 
                         onClick={fetchShops} 
                         className="bg-white border border-slate-200 p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
@@ -759,13 +759,13 @@ export default function SuperAdminPage() {
                         <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest border-b-2 border-indigo-100 w-fit">
                             {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : 'Nhập tên cửa hàng mới'}
                         </label>
-                        <input type="text" placeholder="Ví dụ: Yến Sào Phương Nam..." className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                        <input type="text" placeholder="Ví dụ: Yến Sào Phương Nam..." className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold w-full md:w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
                     </div>
                     <button 
                         onClick={handleCreateShop} 
                         disabled={addingShop || userRole !== 'super_admin'} 
                         className={cn(
-                            "px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all h-[38px]",
+                            "px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all h-[38px] w-full md:w-auto",
                             userRole === 'super_admin' ? "bg-indigo-600 text-white active:scale-95" : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         )}
                     >
@@ -774,7 +774,7 @@ export default function SuperAdminPage() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
@@ -854,7 +854,7 @@ export default function SuperAdminPage() {
                                 </tr>
                                 {openShopId === shop.id && (
                                     <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
-                                        <td colSpan={5} className="p-6 pl-16 border-l-4 border-indigo-600 relative">
+                                        <td colSpan={5} className="p-4 md:p-6 pl-4 md:pl-16 border-l-4 border-indigo-600 relative">
                                             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 xl:gap-8">
                                                 {/* ICON CONFIG */}
                                                 <div>
