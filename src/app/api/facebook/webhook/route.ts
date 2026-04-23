@@ -12,26 +12,34 @@ import crypto from 'crypto';
  */
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const mode = searchParams.get('hub.mode');
-  const token = searchParams.get('hub.verify_token');
-  const challenge = searchParams.get('hub.challenge');
+  try {
+    const { searchParams } = new URL(req.url);
+    const mode = searchParams.get('hub.mode');
+    const token = searchParams.get('hub.verify_token');
+    const challenge = searchParams.get('hub.challenge');
 
-  const { data: setting } = await supabaseAdmin
-    .from('system_settings')
-    .select('value')
-    .eq('key', 'fb_verify_token')
-    .single();
+    if (!mode || !token) {
+      return new Response('✅ Facebook Webhook is active. Waiting for Facebook requests...', { status: 200 });
+    }
 
-  const VERIFY_TOKEN = setting?.value || 'antigravity_secret';
+    const { data: setting } = await supabaseAdmin
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'fb_verify_token')
+      .single();
 
-  if (mode && token) {
+    const VERIFY_TOKEN = setting?.value || 'antigravity_secret';
+
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       console.log('✅ Facebook Webhook Verified!');
       return new Response(challenge, { status: 200 });
     } else {
+      console.error('❌ Webhook Verification Failed: Token mismatch');
       return new Response('Forbidden', { status: 403 });
     }
+  } catch (error: any) {
+    console.error('GET Webhook Error:', error);
+    return new Response('Internal Server Error', { status: 500 });
   }
 }
 
@@ -90,7 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'EVENT_RECEIVED' });
     }
     
-    return NextResponse.json({ status: 'NOT_A_PAGE_EVENT' }, { status: 404 });
+    return NextResponse.json({ status: 'NOT_A_PAGE_EVENT' }, { status: 200 });
 
   } catch (e: any) {
     console.error('Webhook Root Error:', e);
