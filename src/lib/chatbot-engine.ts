@@ -67,12 +67,13 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   }
 
   const normalized = normalizeMessage(message);
-  
   let finalResponse = '';
   let resultSource: 'faq' | 'cache' | 'ai' = 'ai';
   let queryEmbedding: number[] | null = null;
   let totalUsageTokens = 0;
   let shopCode = 'unknown';
+  let faqContext = '';
+  let topScore = 0;
 
   const client = supabaseAdmin || supabase;
 
@@ -166,8 +167,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     }
 
     // 3. VECTOR SEARCH
-    let faqContext = "";
-    let topScore = 0;
+    faqContext = "";
+    topScore = 0;
     const { data: vectorFaqs } = await client.rpc('match_faqs', {
       query_embedding: queryEmbedding,
       match_threshold: 0.50, // Lấy rộng hơn để tính toán hybrid
