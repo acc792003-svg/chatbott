@@ -104,12 +104,12 @@ export function ApiKeysView({
                                                     k.status === 'disabled' ? "bg-slate-400" : "bg-red-500"
                                                 )}></div>
                                                 <span className={cn(
-                                                    "text-[10px] font-black uppercase",
+                                                    "text-[10px] font-black uppercase tracking-tighter",
                                                     k.status === 'active' ? "text-emerald-700" :
                                                     k.status === 'probing' ? "text-amber-700" :
                                                     k.status === 'disabled' ? "text-slate-500" : "text-red-700"
                                                 )}>
-                                                    {isCooldown ? 'COOLDOWN' : k.status}
+                                                    {k.status === 'cooldown' ? 'COOLDOWN' : k.status}
                                                 </span>
                                             </div>
                                         </td>
