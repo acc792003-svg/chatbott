@@ -28,16 +28,32 @@ export async function GET() {
         const stats = targetKeys.map((tk: any) => {
             const k = (dbKeys || []).find((dk: any) => dk.key === tk);
             
-            // Tên hiển thị thân thiện & Kiểm tra giá trị
+            // Logic kiểm tra giá trị (Database OR .env Fallback)
+            let hasValue = !!(k?.value && k.value.trim() !== '' && k.value !== 'DeepSeek free');
             let friendlyName = tk;
-            let hasValue = k?.value && k.value.trim() !== '' && k.value !== 'DeepSeek free';
 
-            if (tk === 'gemini_api_key_1') friendlyName = 'Ge Free 1';
-            else if (tk === 'gemini_api_key_2') friendlyName = 'Ge Free 2';
-            else if (tk === 'gemini_api_key_pro') friendlyName = 'Ge Pro';
-            else if (tk === 'deepseek_api_key_free1') friendlyName = 'Ds Free 1';
-            else if (tk === 'deepseek_api_key_free2') friendlyName = 'Ds Free 2';
-            else if (tk === 'deepseek_api_key_pro') friendlyName = 'Ds Pro';
+            // Kiểm tra từng Key cụ thể để mapping tên và check .env
+            if (tk === 'gemini_api_key_1') {
+                friendlyName = 'Ge Free 1';
+                if (!hasValue) hasValue = !!process.env.GEMINI_API_KEY_1;
+            }
+            else if (tk === 'gemini_api_key_2') {
+                friendlyName = 'Ge Free 2';
+                if (!hasValue) hasValue = !!process.env.GEMINI_API_KEY_2;
+            }
+            else if (tk === 'gemini_api_key_pro') {
+                friendlyName = 'Ge Pro';
+                if (!hasValue) hasValue = !!process.env.GEMINI_API_KEY_PRO;
+            }
+            else if (tk === 'deepseek_api_key_free1') {
+                friendlyName = 'Ds Free 1';
+            }
+            else if (tk === 'deepseek_api_key_free2') {
+                friendlyName = 'Ds Free 2';
+            }
+            else if (tk === 'deepseek_api_key_pro') {
+                friendlyName = 'Ds Pro';
+            }
             else if (tk === 'gemini_embedding_key_1') {
                 friendlyName = 'Ge Env 1';
                 hasValue = !!process.env.GEMINI_EMBEDDING_KEY_1;
@@ -48,8 +64,6 @@ export async function GET() {
             }
             else if (tk === 'deepseek_env_key') {
                 friendlyName = 'Ds Env';
-                // Kiểm tra xem process.env có chứa biến nào thay thế không
-                // Thường thì fallback DeepSeek được lấy từ GEMINI_API_KEY nếu là proxy hoặc DEEPSEEK_API_KEY
                 hasValue = !!process.env.DEEPSEEK_API_KEY || !!process.env.GEMINI_API_KEY; 
             }
 
@@ -68,7 +82,7 @@ export async function GET() {
             }
 
             return {
-                id: k?.id || tk, // Dùng UUID nếu có, ngược lại dùng string tk
+                id: k?.id || tk,
                 key: tk,
                 name: friendlyName,
                 status: currentStatus,
@@ -78,7 +92,7 @@ export async function GET() {
                 avg_latency: k?.avg_latency || 0,
                 last_used_at: k?.last_used_at,
                 last_error: k?.last_error,
-                is_env: tk.includes('embedding') || tk.includes('env')
+                is_env: tk.includes('embedding') || tk.includes('env') || (!k?.value && hasValue)
             };
         });
 
@@ -97,7 +111,7 @@ export async function GET() {
             keys: stats,
             metrics: {
                 total_messages_24h: total,
-                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : (0 as any)
+                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0
             }
         });
 
