@@ -167,10 +167,11 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     // 3. VECTOR SEARCH
     let faqContext = "";
+    let topScore = 0;
     const { data: vectorFaqs } = await client.rpc('match_faqs', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.60, // Lower threshold to allow routing logic (0.6 - 0.9)
-      match_count: 3,
+      match_threshold: 0.50, // Lấy rộng hơn để tính toán hybrid
+      match_count: 5, // Lấy tối đa 5 FAQ
       p_shop_id: shopId
     });
     
@@ -178,37 +179,33 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       const scoredFaqs = vectorFaqs.map((f: any) => ({ ...f, hybridScore: (f.similarity * 0.7) + (f.question.toLowerCase().includes(normalized) ? 0.3 : 0) }))
                                    .sort((a: any, b: any) => b.hybridScore - a.hybridScore);
 
-      const topScore = scoredFaqs[0].hybridScore;
+      topScore = scoredFaqs[0].hybridScore;
 
-      // 🥇 MỨC 1: >= 0.89 (rất khớp) -> Trả thẳng FAQ, không gọi AI
-      if (topScore >= 0.89) {
-        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.89) - FAST PATH, SKIP AI!`);
+      // 🥇 MỨC 1: >= 0.92 (rất khớp) -> Trả thẳng FAQ, không gọi AI
+      if (topScore >= 0.92) {
+        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.92) - FAST PATH, SKIP AI!`);
         finalResponse = scoredFaqs[0].answer;
         resultSource = 'faq';
       } 
-      // 🥈 MỨC 2: 0.80 - 0.89 -> Inject Vector only
-      else if (topScore >= 0.80) {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.80~0.89) - Lazy Inject: Vector Only`);
-         const validFaqs = scoredFaqs.filter((f: any) => f.hybridScore >= 0.80);
-         faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
-      }
-      // 🥉 MỨC 3: 0.60 - 0.80 -> Inject Vector + partial Fallback
-      else if (topScore >= 0.60) {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.60~0.80) - Lazy Inject: Vector + Partial`);
-         const validFaqs = scoredFaqs.filter((f: any) => f.hybridScore >= 0.60);
+      // 🥈 MỨC 2: 0.75 - 0.91 -> Inject Vector (Trim)
+      else if (topScore >= 0.75) {
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.75~0.91) - Vector Trim`);
+         const takeCount = topScore >= 0.90 ? 2 : 5;
+         const validFaqs = scoredFaqs.slice(0, takeCount);
          faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
       else {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.60) - FULL FALLBACK MODE`);
+         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.75) - No Vector Injection`);
+         faqContext = '';
       }
     } else {
-        console.log(`[Engine] No Vector Match - FULL FALLBACK MODE`);
+        console.log(`[Engine] No Vector Match`);
     }
 
     if (!finalResponse) {
       const { data: cacheMatches } = await client.rpc('match_cache', {
         query_embedding: queryEmbedding,
-        match_threshold: 0.95,
+        match_threshold: 0.92,
         match_count: 1,
         p_shop_id: shopId
       });
@@ -232,52 +229,42 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
             phoneActionRule = `- NẾU khách hàng vừa để lại số điện thoại hợp lệ, BẮT BUỘC TRONG CÂU TRẢ LỜI PHẢI CÓ LỜI CẢM ƠN và xác nhận sẽ có nhân viên liên hệ tư vấn sớm nhất.`;
         }
 
-        // Tối ưu Payload: Nếu Vector Match đủ tốt (>0.80), cắt bỏ globalFaq (tuyệt chiêu Context Layering)
         let injectedGlobalFaq = globalFaq;
         let injectedGlobalProduct = globalProductInfo;
-        const currentTopScore = (vectorFaqs && vectorFaqs.length > 0) 
-             ? ((vectorFaqs[0].similarity * 0.7) + (vectorFaqs[0].question.toLowerCase().includes(normalized) ? 0.3 : 0))
-             : 0;
 
-        if (currentTopScore >= 0.80) {
-             injectedGlobalFaq = ''; // Bỏ hoàn toàn rác FAQ thô vì Vector đã lo
-        } else if (currentTopScore >= 0.60) {
-             // Giữ nguyên product info, nhưng FAQ thô vẫn kìm bớt
-             injectedGlobalFaq = injectedGlobalFaq ? "--- Ghi chú: Hãy tra trong TRI THỨC VECTOR là chính ---" : '';
+        if (topScore >= 0.75) {
+             injectedGlobalFaq = ''; 
+             injectedGlobalProduct = ''; 
         }
 
-        const systemPrompt = `BẠN LÀ Trợ lý shop chuyên nghiệp của "${shopConfig?.shop_name || shopData?.name || 'Shop'}". 
-GIỌNG ĐIỆU CỦA BẠN: ${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép, hỗ trợ tận tình'}
-CHIẾN LƯỢC BÁN HÀNG & THẤU HIỂU KHÁCH HÀNG: ${shopConfig?.customer_insights || ''}
-${globalInsights ? `\nCHIẾN LƯỢC TOÀN CỤC:\n${globalInsights}` : ''}
+        // Schema YAML-like ngắn gọn và giới hạn Token mềm
+        const systemPrompt = `SHOP:
+  Name: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
+  Voice: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
+  Insights: "${shopConfig?.customer_insights || ''}"
+  
+SERVICES_AND_PRODUCTS:
+${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1500)}
 
-HÃY TUÂN THỦ THỨ TỰ ƯU TIÊN DỮ LIỆU SAU:
-1. 🥇 ƯU TIÊN 1 (TỐI CAO): Các thông tin trong "THÔNG TIN CHUNG", "GIÁ CẢ" và "FAQ VĂN BẢN" bên dưới.
-2. 🥈 ƯU TIÊN 2: Dữ liệu từ "TRI THỨC VECTOR" (dùng để bổ trợ nếu Ưu tiên 1 không có).
+PRICING:
+${(shopConfig?.pricing_info || '').substring(0, 800)}
 
-THÔNG TIN CHUNG (Nguồn chính):
-${injectedGlobalProduct}
-${shopConfig?.product_info || ''}
-
-GIÁ CẢ (Nguồn chính):
-${shopConfig?.pricing_info || ''}
-
-FAQ VĂN BẢN (Nguồn chính):
-${injectedGlobalFaq}
-${shopConfig?.faq || ''}
-
-TRI THỨC VECTOR (Tham khảo thêm): ${faqContext}
-${bookingContext}
-${happyHourContext}
-
-QUY TẮC PHẢN HỒI:
-- Phải nhập vai theo đúng GIỌNG ĐIỆU và CHIẾN LƯỢC BÁN HÀNG ở trên.
-- Ưu tiên lệnh tại Shop Config hơn Global Config.
-- Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata", "Config".
+RULES:
+- Ưu tiên trả lời theo dữ liệu shop.
+- Nếu thiếu dữ liệu -> hỏi lại hoặc báo nhân viên.
+- Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata".
 ${phoneActionRule}
-- Nếu không có bất kỳ thông tin nào, trả lời lịch sự: "Dạ mình chưa có thông tin chính xác, mình xin phép báo quản lý hỗ trợ bạn ngay nhe!"`;
+
+VECTOR_KNOWLEDGE (FAQ):
+${faqContext}
+
+LIVE_CONTEXT:
+${bookingContext}
+${happyHourContext}`;
+
+        // Trimming History: Sliding window 8 messages
         const aiResult = await callGeminiWithFallback([
-          ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
+          ...(history || []).slice(-8).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }
         ], { temperature: 0.7, isPro }, shopId, 'API_CHAT_WIDGET', systemPrompt);
 
@@ -312,7 +299,14 @@ ${phoneActionRule}
 
   } catch (error: any) {
     const latency = Date.now() - start;
-    const errorResponse = "Dạ, hiện tại kết nối mạng đang hơi chậm, bạn vui lòng chờ vài giây rồi nhắn lại nhe! 🙏";
+    let errorResponse = "Dạ, hiện tại kết nối mạng đang hơi chậm, bạn vui lòng chờ vài giây rồi nhắn lại nhe! 🙏";
+    
+    // 🔥 Graceful Degradation: Fallback to Vector FAQ if AI fails
+    if (typeof topScore !== 'undefined' && topScore >= 0.60 && faqContext) {
+      // Lấy câu FAQ đầu tiên trong faqContext
+      const firstFaq = faqContext.split('---')[0].replace('Q:', '').replace('A:', '').trim();
+      errorResponse = `Dạ hệ thống đang hơi quá tải, em gửi bạn thông tin phù hợp nhé:\n- ${firstFaq}`;
+    }
     
     console.error('Core Engine Error:', error);
     
@@ -331,7 +325,7 @@ ${phoneActionRule}
         metadata: { shopCode, platform, stack: error.stack, message: message.substring(0, 50) }
       }).catch(() => {});
     }
-    return { answer: errorResponse, source: 'ai', latency: latency };
+    return { answer: errorResponse, source: 'faq', latency: latency };
   }
 }
 

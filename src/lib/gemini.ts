@@ -47,12 +47,7 @@ export async function callGeminiWithFallback(
     for (const keyObj of keys.slice(0, 2)) { 
       const stepStart = Date.now();
       try {
-        // Chuẩn bị payload bao gồm System Prompt
-        const fullHistory = systemPrompt 
-          ? [{ role: 'user', parts: [{ text: `SYSTEM_INSTRUCTION: ${systemPrompt}` }] }, ...history]
-          : history;
-
-        const result = await callSpecificAI(step.provider, step.tier, keyObj.value, fullHistory, options.temperature || 0.7);
+        const result = await callSpecificAI(step.provider, step.tier, keyObj.value, history, options.temperature || 0.7, systemPrompt);
         
         if (result) {
           const stepLatency = Date.now() - stepStart;
@@ -74,34 +69,79 @@ export async function callGeminiWithFallback(
   throw new Error("Tất cả các tầng AI đều thất bại.");
 }
 
+export function normalizeChatPipeline(history: any[], provider: string) {
+  // 1) Lọc message rỗng
+  const cleaned = history.filter(m => (m.parts?.[0]?.text || m.content || '').trim());
+
+  // 2) Gộp liên tiếp cùng role nhưng giữ intent
+  const merged: any[] = [];
+  for (const m of cleaned) {
+    const last = merged[merged.length - 1];
+    const textContent = m.parts?.[0]?.text || m.content || '';
+    const currentRole = m.role === 'assistant' || m.role === 'model' ? 'model' : 'user';
+    
+    if (last && last.role === currentRole) {
+      last.text += `\n[+] ${textContent}`;
+    } else {
+      merged.push({ role: currentRole, text: textContent });
+    }
+  }
+
+  // 3) Chuẩn hóa theo provider
+  if (provider === 'gemini') {
+    return merged.map(m => ({
+       role: m.role, // 'model' hoặc 'user'
+       parts: [{ text: m.text }]
+    }));
+  }
+
+  if (provider === 'deepseek') {
+    return merged.map(m => ({
+       role: m.role === 'model' ? 'assistant' : 'user',
+       content: m.text
+    }));
+  }
+
+  return merged;
+}
+
 /**
  * Gọi API cụ thể (Gemini hoặc DeepSeek)
  */
-async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number) {
+async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string) {
   const timeout = tier === 'pro' ? 8000 : 5000;
+  
+  const normalizedHistory = normalizeChatPipeline(history, provider);
 
   if (provider === 'gemini') {
     const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
+    
+    const payload: any = {
+      contents: normalizedHistory,
+      generationConfig: { temperature }
+    };
+    
+    if (systemPrompt) {
+      payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+    }
+
     const response = await fetchWithTimeout(apiURL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: history,
-        generationConfig: { temperature }
-      })
+      body: JSON.stringify(payload)
     }, timeout);
 
     const data = await response.json();
     if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
       return { text: data.candidates[0].content.parts[0].text, tokens: data.usageMetadata?.totalTokenCount || 0 };
+    } else if (!response.ok) {
+       console.error(`Gemini Error:`, data);
     }
   } else {
     // DeepSeek API
-    // Chuyển đổi định dạng history Gemini sang DeepSeek (role: model -> assistant)
-    const dsHistory = history.map(h => ({
-      role: h.role === 'model' ? 'assistant' : 'user',
-      content: h.parts?.[0]?.text || ""
-    }));
+    if (systemPrompt) {
+       normalizedHistory.unshift({ role: 'system', content: systemPrompt });
+    }
 
     const response = await fetchWithTimeout('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -111,7 +151,7 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
       },
       body: JSON.stringify({
         model: "deepseek-chat",
-        messages: dsHistory,
+        messages: normalizedHistory,
         temperature
       })
     }, timeout);
