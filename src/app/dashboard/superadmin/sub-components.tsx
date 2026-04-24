@@ -12,7 +12,17 @@ import { supabase } from '@/lib/supabase';
  * 📊 VIEW 1: AI KEY MONITOR (REAL-TIME COMMAND CENTER)
  */
 export function ApiKeysView({
-    systemStats, onSave, addToast
+    systemStats, onSave, addToast,
+    apiKey1, setApiKey1, 
+    apiKey2, setApiKey2, 
+    apiKeyPro, setApiKeyPro, 
+    deepSeekKeyFree1, setDeepSeekKeyFree1,
+    deepSeekKeyFree2, setDeepSeekKeyFree2,
+    deepSeekKeyPro, setDeepSeekKeyPro,
+    fbVerifyToken, setFbVerifyToken,
+    fbAppSecret, setFbAppSecret,
+    systemTelegramToken, setSystemTelegramToken,
+    showKeys, setShowKeys
 }: any) {
     const keys = systemStats?.keys || [];
     const metrics = systemStats?.metrics || { total_messages_24h: 0, cache_hit_rate: 0 };
@@ -135,10 +145,10 @@ export function ApiKeysView({
                                         </td>
                                         <td className="py-6 pr-8 text-right w-px whitespace-nowrap">
                                             {!k.is_env ? (
-                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <div className="flex items-center justify-end gap-2 transition-all">
                                                     <button 
                                                         onClick={() => handleAction(k.db_id || k.id, 'reset')}
-                                                        className="p-2 bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm"
+                                                        className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm border border-indigo-100"
                                                         title="Reset lỗi & Cooldown"
                                                     >
                                                         <RefreshCcw size={14}/>
@@ -146,8 +156,8 @@ export function ApiKeysView({
                                                     <button 
                                                         onClick={() => handleAction(k.db_id || k.id, 'toggle')}
                                                         className={cn(
-                                                            "p-2 rounded-xl transition-all shadow-sm",
-                                                            k.status === 'disabled' ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-600 hover:text-white"
+                                                            "p-2 rounded-xl transition-all shadow-sm border",
+                                                            k.status === 'disabled' ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white" : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white"
                                                         )}
                                                         title={k.status === 'disabled' ? "Bật Key" : "Tắt Key"}
                                                     >
@@ -163,6 +173,42 @@ export function ApiKeysView({
                             })}
                         </tbody>
                     </table>
+                </div>
+            </div>
+            
+            {/* 3. API CONFIGURATION INPUTS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* GEMINI KEYS */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Brain size={20}/></div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Google Gemini Keys</h3>
+                    </div>
+                    <KeyInput label="Gemini Key 1 (Free)" value={apiKey1} onChange={setApiKey1} show={showKeys?.k1} toggle={() => setShowKeys({...showKeys, k1: !showKeys?.k1})} />
+                    <KeyInput label="Gemini Key 2 (Free)" value={apiKey2} onChange={setApiKey2} show={showKeys?.k2} toggle={() => setShowKeys({...showKeys, k2: !showKeys?.k2})} />
+                    <KeyInput label="Gemini Key Pro" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.kp} toggle={() => setShowKeys({...showKeys, kp: !showKeys?.kp})} />
+                </div>
+
+                {/* DEEPSEEK KEYS */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Zap size={20}/></div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">DeepSeek Keys</h3>
+                    </div>
+                    <KeyInput label="DeepSeek Key 1 (Free)" value={deepSeekKeyFree1} onChange={setDeepSeekKeyFree1} show={showKeys?.ds1} toggle={() => setShowKeys({...showKeys, ds1: !showKeys?.ds1})} />
+                    <KeyInput label="DeepSeek Key 2 (Free)" value={deepSeekKeyFree2} onChange={setDeepSeekKeyFree2} show={showKeys?.ds2} toggle={() => setShowKeys({...showKeys, ds2: !showKeys?.ds2})} />
+                    <KeyInput label="DeepSeek Key Pro" value={deepSeekKeyPro} onChange={setDeepSeekKeyPro} show={showKeys?.dsp} toggle={() => setShowKeys({...showKeys, dsp: !showKeys?.dsp})} />
+                </div>
+
+                {/* FACEBOOK & TELEGRAM SYSTEM */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-3 bg-rose-100 text-rose-600 rounded-2xl"><Settings size={20}/></div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Hệ thống (FB & Telegram)</h3>
+                    </div>
+                    <KeyInput label="Facebook Verify Token" value={fbVerifyToken} onChange={setFbVerifyToken} show={showKeys?.fbv} toggle={() => setShowKeys({...showKeys, fbv: !showKeys?.fbv})} />
+                    <KeyInput label="Facebook App Secret" value={fbAppSecret} onChange={setFbAppSecret} show={showKeys?.fbs} toggle={() => setShowKeys({...showKeys, fbs: !showKeys?.fbs})} />
+                    <KeyInput label="System Telegram Bot Token" value={systemTelegramToken} onChange={setSystemTelegramToken} show={showKeys?.tgt} toggle={() => setShowKeys({...showKeys, tgt: !showKeys?.tgt})} />
                 </div>
             </div>
 
@@ -268,6 +314,28 @@ export function SettingsView({ trialTemplateCode, setTrialTemplateCode, onSave }
                         <ShieldCheck size={20}/> Cập nhật cấu hình hệ thống
                     </button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function KeyInput({ label, value, onChange, show, toggle }: any) {
+    return (
+        <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
+            <div className="relative">
+                <input 
+                    type={show ? "text" : "password"}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500 transition-all"
+                    value={value || ''}
+                    onChange={e => onChange(e.target.value)}
+                />
+                <button 
+                    onClick={toggle}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-600 transition-colors"
+                >
+                    {show ? <Lock size={16} className="text-indigo-600"/> : <Settings size={16}/>}
+                </button>
             </div>
         </div>
     );

@@ -1049,6 +1049,51 @@ export default function SuperAdminPage() {
                                                     </div>
                                                 </div>
 
+                                                {/* TELEGRAM CONFIG (NEW) */}
+                                                <div>
+                                                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-sky-400"><Send size={12}/> Cấu hình Telegram</p>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Chat ID (Admin)</label>
+                                                            <input 
+                                                                type="text" 
+                                                                placeholder="Nhập Chat ID Telegram..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500"
+                                                                defaultValue={shopConfigs[shop.id]?.telegram_chat_id || ''}
+                                                                id={`tg-chat-id-${shop.id}`}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Bot Token (Riêng - Nếu có)</label>
+                                                            <input 
+                                                                type="password" 
+                                                                placeholder="Để trống nếu dùng Bot hệ thống..."
+                                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500"
+                                                                defaultValue={shopConfigs[shop.id]?.telegram_bot_token || ''}
+                                                                id={`tg-bot-token-${shop.id}`}
+                                                            />
+                                                        </div>
+                                                        <button 
+                                                            onClick={async () => {
+                                                                const chatId = (document.getElementById(`tg-chat-id-${shop.id}`) as HTMLInputElement).value;
+                                                                const botToken = (document.getElementById(`tg-bot-token-${shop.id}`) as HTMLInputElement).value;
+                                                                const { error } = await supabase.from('chatbot_configs').update({
+                                                                    telegram_chat_id: chatId.trim(),
+                                                                    telegram_bot_token: botToken.trim()
+                                                                }).eq('shop_id', shop.id);
+                                                                
+                                                                if (!error) {
+                                                                    addToast('Đã bọc thép cấu hình Telegram!', 'success');
+                                                                    fetchShops();
+                                                                } else addToast('Lỗi: ' + error.message, 'error');
+                                                            }}
+                                                            className="w-full bg-sky-600 hover:bg-sky-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
+                                                        >
+                                                            Lưu Cấu Hình TG
+                                                        </button>
+                                                    </div>
+                                                </div>
+
                                                 {/* MÃ MỞ KHÓA CONFIG (Dành cho shop Free) */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline text-rose-400">
