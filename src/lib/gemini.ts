@@ -180,23 +180,46 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, us
   throw new Error(`${provider} ${tier} API failed or timeout`);
 }
 
-/**
- * Tạo Vector Embedding (Tận dụng Gemini - Chỉ 1 lần/request)
- */
+const embeddingCache = new Map<string, number[]>();
+
 export async function generateEmbedding(text: string): Promise<number[]> {
-  const envKey = process.env.GEMINI_API_KEY;
-  if (!envKey) throw new Error('Missing Gemini API Key for Embedding');
-  
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${envKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: "models/text-embedding-004",
-      content: { parts: [{ text }] }
-    })
-  });
-  const data = await res.json();
-  return data.embedding.values;
+  const validKeys = [
+    process.env.GEMINI_EMBEDDING_KEY_1,
+    process.env.GEMINI_EMBEDDING_KEY_2,
+    process.env.GEMINI_API_KEY
+  ].filter(k => k && k.trim() !== '') as string[];
+
+  if (validKeys.length === 0) {
+    throw new Error('Hệ thống thiếu cấu hình Embedding Key (Gemini).');
+  }
+
+  const normalizedText = text.trim().toLowerCase();
+  if (embeddingCache.has(normalizedText)) return embeddingCache.get(normalizedText)!;
+
+  for (const key of validKeys) {
+    try {
+      const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: "models/text-embedding-004",
+          content: { parts: [{ text: normalizedText }] }
+        })
+      }, 2000);
+
+      const data = await res.json();
+      if (res.ok && data.embedding?.values) {
+        const vector = data.embedding.values;
+        if (embeddingCache.size > 100) embeddingCache.clear();
+        embeddingCache.set(normalizedText, vector);
+        return vector;
+      }
+    } catch (e) {
+      console.error(`[EMBEDDING_RETRY] Key failed, trying next...`);
+    }
+  }
+
+  throw new Error('Tất cả các Key Embedding đều thất bại.');
 }
 
 async function saveToCache(shopId: string | null, question: string, answer: string) {
