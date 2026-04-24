@@ -171,7 +171,7 @@ export default function SuperAdminPage() {
 
   useEffect(() => {
     if (userRole === 'super_admin') {
-      const interval = setInterval(fetchSystemStats, 30000);
+      const interval = setInterval(fetchSystemStats, 10000);
       return () => clearInterval(interval);
     }
   }, [userRole]);
