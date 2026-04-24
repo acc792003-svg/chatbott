@@ -74,11 +74,6 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
 
     const now = new Date().toISOString();
 
-    // Query lấy key Active HOẶC đã hết hạn Cooldown (Self-healing)
-    const { data, error } = await client
-      .from('system_settings')
-      .select('*')
-      .in('key', searchKeys)
     // Query lấy key Active HOẶC Probing (đã hết hạn Cooldown)
     const { data, error } = await client
       .from('system_settings')

@@ -1,6 +1,3 @@
-import { Brain, Lock, Settings, AlertTriangle, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
-
 import { Brain, Lock, Settings, AlertTriangle, Info, RefreshCcw, Power, ShieldCheck, Zap, Activity } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
