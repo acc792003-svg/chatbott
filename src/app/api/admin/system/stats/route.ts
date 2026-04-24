@@ -67,17 +67,21 @@ export async function GET() {
                 hasValue = !!process.env.DEEPSEEK_ENV_KEY || !!process.env.DEEPSEEK_API_KEY || !!process.env.GEMINI_API_KEY; 
             }
 
-            let currentStatus = k?.status || 'active';
+            let currentStatus = k?.status;
             
-            // Logic Trạng thái thông minh
-            if (!hasValue) {
-                currentStatus = 'disabled'; // Chưa điền key -> Màu xám
+            // Logic Trạng thái chuẩn mực (Không tự đoán)
+            if (!k && hasValue) {
+                currentStatus = 'active'; // Lấy từ .ENV -> Luôn active
+            } else if (!hasValue) {
+                currentStatus = 'disabled'; // Không có dữ liệu
             } else {
                 const isCooldown = k?.cooldown_until && new Date(k.cooldown_until) > now;
                 if (currentStatus !== 'disabled' && isCooldown) {
                     currentStatus = 'cooldown';
                 } else if (currentStatus === 'error' && !isCooldown) {
                     currentStatus = 'probing';
+                } else if (!currentStatus) {
+                    currentStatus = 'disabled'; // Khắt khe: NULL trong DB -> Hiển thị Disabled
                 }
             }
 

@@ -79,6 +79,7 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     const now = new Date().toISOString();
 
     // Query lấy key Active HOẶC Probing (đã hết hạn Cooldown)
+    // Đã loại bỏ 'status.is.null' vì DB bắt buộc phải có giá trị
     const { data, error } = await client
       .from('system_settings')
       .select('*')
@@ -89,26 +90,54 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
       .not('status', 'eq', 'disabled') // Không lấy key đã bị Admin tắt
       .or(`status.eq.active,cooldown_until.lt.${now}`);
 
-    if (error) return [];
-
-    const filteredKeys = (data as AIKey[]).map(k => {
+    let dbKeys = (data || []).map((k: any) => {
       // Nếu đã hết hạn cooldown -> Tự động chuyển sang trạng thái probing
       if (k.status !== 'active' && k.status !== 'disabled' && k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
         return { ...k, status: 'probing' };
       }
-      return k;
-    });
+      return { ...k, status: k.status || 'active' }; // Dù đã chặn NULL nhưng vẫn fallback an toàn
+    }) as AIKey[];
 
-    // Sắp xếp thông minh:
-    // 1. Ưu tiên key active trước probing
-    // 2. Ưu tiên key có fail_count thấp
-    // 3. Ưu tiên key ít dùng nhất (usage_count) để load balance
-    return filteredKeys.sort((a, b) => {
-      if (a.status === 'active' && b.status !== 'active') return -1;
-      if (a.status !== 'active' && b.status === 'active') return 1;
-      if (a.fail_count !== b.fail_count) return a.fail_count - b.fail_count;
-      return (a.usage_count || 0) - (b.usage_count || 0);
-    });
+    // 1 & 2. NẾU DB CÓ KEY HỢP LỆ -> TRẢ VỀ NGAY LẬP TỨC
+    if (dbKeys.length > 0) {
+      return dbKeys.sort((a, b) => {
+        if (a.status === 'active' && b.status !== 'active') return -1;
+        if (a.status !== 'active' && b.status === 'active') return 1;
+        if (a.fail_count !== b.fail_count) return a.fail_count - b.fail_count;
+        return (a.usage_count || 0) - (b.usage_count || 0);
+      });
+    }
+
+    // 3. FALLBACK .ENV (Chỉ khi DB không có key nào dùng được)
+    console.error({ reason: "NO_DB_KEYS", provider, tier, fallback_used: true });
+    
+    // 🔥 Báo cáo Radar: Hệ thống đang phải sống sót bằng ENV
+    reportError({
+      errorType: 'AI_KEY_ENV_FALLBACK',
+      errorMessage: `CẢNH BÁO: Không có API Key hợp lệ trong Database cho ${provider} (${tier}). Hệ thống đang tự động kích hoạt key dự phòng từ file .env để sinh tồn.`,
+      fileSource: 'ai-manager.ts',
+      severity: 'high',
+      metadata: { provider, tier }
+    }).catch(() => {});
+
+    let envKeys: AIKey[] = [];
+    if (provider === 'gemini') {
+      if (tier === 'free') {
+        if (process.env.GEMINI_API_KEY_1) envKeys.push({ id: '', key: 'gemini_api_key_1', value: process.env.GEMINI_API_KEY_1, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+        if (process.env.GEMINI_API_KEY_2) envKeys.push({ id: '', key: 'gemini_api_key_2', value: process.env.GEMINI_API_KEY_2, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+      } else {
+        if (process.env.GEMINI_API_KEY_PRO) envKeys.push({ id: '', key: 'gemini_api_key_pro', value: process.env.GEMINI_API_KEY_PRO, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+      }
+    } else if (provider === 'deepseek') {
+       if (tier === 'free' && process.env.DEEPSEEK_API_KEY) {
+         envKeys.push({ id: '', key: 'deepseek_api_key_free1', value: process.env.DEEPSEEK_API_KEY, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+       }
+    }
+
+    if (envKeys.length > 0) return envKeys;
+
+    // 4. THẤT BẠI HOÀN TOÀN
+    throw new Error(`NO_AI_KEYS_AVAILABLE for ${provider} ${tier}`);
   } catch (e) {
     return [];
   }

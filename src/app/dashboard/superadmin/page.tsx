@@ -753,6 +753,44 @@ export default function SuperAdminPage() {
 
         </div>
 
+        {/* --- CẢNH BÁO HỆ THỐNG (RADAR ALERTS) --- */}
+        {userRole === 'super_admin' && systemStats && (
+            (() => {
+                const activeKeys = systemStats.keys?.filter((k: any) => k.status === 'active') || [];
+                const activeDBKeys = activeKeys.filter((k: any) => !k.is_env);
+                const activeEnvKeys = activeKeys.filter((k: any) => k.is_env);
+                
+                if (activeKeys.length === 0) {
+                    return (
+                        <div className="mx-2 mb-6 bg-red-50 border border-red-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm animate-pulse">
+                            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="text-red-600" size={24} />
+                            </div>
+                            <div>
+                                <h4 className="text-red-700 font-black text-sm uppercase tracking-tight mb-1">CẢNH BÁO ĐỎ: HỆ THỐNG KHÔNG CÓ API KEY HOẠT ĐỘNG</h4>
+                                <p className="text-red-600 text-xs font-medium">Toàn bộ Chatbot trên hệ thống đang bị vô hiệu hóa. Vui lòng thêm API Key vào phần "Cấu hình API" ngay lập tức!</p>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                if (activeDBKeys.length === 0 && activeEnvKeys.length > 0) {
+                    return (
+                        <div className="mx-2 mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-4 shadow-sm">
+                            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                <AlertTriangle className="text-amber-600" size={24} />
+                            </div>
+                            <div>
+                                <h4 className="text-amber-700 font-black text-sm uppercase tracking-tight mb-1">CẢNH BÁO: HỆ THỐNG ĐANG SỐNG SÓT BẰNG .ENV FALLBACK</h4>
+                                <p className="text-amber-600 text-xs font-medium">Database không có key nào hợp lệ. Chatbot đang phải dùng Key dự phòng từ file hệ thống. Hãy bổ sung Key vào Database!</p>
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()
+        )}
+
         {/* --- SYSTEM RADAR (QUICK INSIGHTS) --- */}
         {userRole === 'super_admin' && systemStats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-2">
