@@ -1,6 +1,7 @@
 import { supabase, supabaseAdmin } from './supabase';
 import { callGeminiWithFallback, generateEmbedding } from './gemini';
 import { detectAndSaveLead } from './leads';
+import { validateRateLimit } from './rate-limiter';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -15,6 +16,7 @@ export interface ChatRequest {
   platform: 'widget' | 'facebook' | 'telegram';
   isPro?: boolean;
   metadata?: any;
+  ip?: string; // Thêm IP để check Rate Limit
 }
 
 export interface ChatResponse {
@@ -48,7 +50,21 @@ function detectNearPhone(message: string): { hasNearPhone: boolean; rawNumber: s
 
 export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   const start = Date.now();
-  const { shopId, message, history, externalUserId, platform, isPro } = req;
+  const { shopId, message, history, externalUserId, platform, isPro, ip } = req;
+
+  // 🛡️ LỚP BẢO VỆ REDIS: ĐÁNH CHẶN 4 TẦNG (BLACKLIST, WELCOME, USER, SHOP, IP)
+  const rateLimitResult = await validateRateLimit(shopId, externalUserId, ip || '127.0.0.1', message);
+  if (!rateLimitResult.allowed) {
+    if (rateLimitResult.reason === 'silence') {
+       return { answer: "", source: 'cache', latency: 0 };
+    }
+    return { 
+      answer: rateLimitResult.reason || "Bạn đang nhắn quá nhanh, vui lòng đợi một chút nhe! 🙏", 
+      source: 'faq', 
+      latency: 0 
+    };
+  }
+
   const normalized = normalizeMessage(message);
   
   let finalResponse = '';

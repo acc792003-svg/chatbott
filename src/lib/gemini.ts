@@ -88,11 +88,13 @@ export async function callAIHub(
     if (keys.length === 0) continue;
 
     for (const keyObj of keys.slice(0, 2)) { 
+      const stepStart = Date.now();
       try {
         const result = await callSpecificAI(step.provider, step.tier, keyObj.value, userInput, history);
         
         if (result) {
-          reportKeySuccess(keyObj.id);
+          const stepLatency = Date.now() - stepStart;
+          reportKeySuccess(keyObj.id, stepLatency);
           
           // 5. LƯU CACHE (NẾU AN TOÀN)
           if (isSafeToCache(result.text)) {

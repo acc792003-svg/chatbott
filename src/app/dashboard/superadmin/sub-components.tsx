@@ -1,6 +1,10 @@
 import { Brain, Lock, Settings, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+import { Brain, Lock, Settings, AlertTriangle, Info, RefreshCcw, Power, ShieldCheck, Zap, Activity } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { supabase } from '@/lib/supabase';
+
 export function ApiKeysView({
     showKeys, setShowKeys, 
     apiKey1, setApiKey1, 
@@ -12,121 +16,219 @@ export function ApiKeysView({
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
-    systemStats, onSave
+    systemStats, onSave, addToast
 }: any) {
-    return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
-            <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
-                <div className="space-y-12">
-                    {/* GEMINI SECTION */}
-                    <div>
-                        <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
-                        <div className="space-y-8">
-                            {[
-                                {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
-                                {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
-                                {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
-                            ].map((k: any) => {
-                                const stats = systemStats?.keys?.find((sk: any) => {
-                                    const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
-                                    return sk.name === targetName;
-                                });
-                                return (
-                                    <div key={k.id} className="space-y-2 relative group">
-                                        <div className="flex justify-between items-end px-1">
-                                            <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
-                                                {k.label}
-                                                <span className={cn(
-                                                    "px-2 py-0.5 rounded-full text-[8px] border font-black",
-                                                    (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
-                                                    stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
-                                                    stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
-                                                    "bg-red-50 text-red-700 border-red-200"
-                                                )}>
-                                                    {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
-                                                </span>
-                                            </label>
-                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
-                                        </div>
-                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'error' ? "border-red-200 focus:border-red-600" : "border-slate-200 focus:border-indigo-600")} placeholder={`${k.label} token...`} />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
 
-                    {/* DEEPSEEK SECTION */}
-                    <div className="pt-8 border-t border-slate-100">
-                        <h2 className="text-sm font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Settings size={16} className="text-blue-600"/> AI Service Keys (DeepSeek)</h2>
-                        <div className="space-y-8">
-                            {[
-                                {id: 'ds1', label: 'DeepSeek Free 1', val: deepSeekKeyFree1, set: setDeepSeekKeyFree1}, 
-                                {id: 'ds2', label: 'DeepSeek Free 2', val: deepSeekKeyFree2, set: setDeepSeekKeyFree2}, 
-                                {id: 'dsp', label: 'DeepSeek PRO', val: deepSeekKeyPro, set: setDeepSeekKeyPro}
-                            ].map((k: any) => {
-                                const stats = systemStats?.keys?.find((sk: any) => {
-                                    const targetName = k.label.includes('PRO') ? 'DS PRO' : k.label.includes('1') ? 'DS Free 1' : 'DS Free 2';
-                                    return sk.name === targetName;
-                                });
-                                return (
-                                    <div key={k.id} className="space-y-2 relative group">
-                                        <div className="flex justify-between items-end px-1">
-                                            <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
-                                                {k.label}
-                                                <span className={cn(
-                                                    "px-2 py-0.5 rounded-full text-[8px] border font-black",
-                                                    (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
-                                                    stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
-                                                    stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
-                                                    "bg-red-50 text-red-700 border-red-200"
-                                                )}>
-                                                    {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
-                                                </span>
-                                            </label>
-                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
-                                        </div>
-                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'error' ? "border-red-200 focus:border-red-600" : "border-slate-200 focus:border-indigo-600")} placeholder={`${k.label} token...`} />
-                                        {stats?.lastError && <p className="text-[9px] text-red-500 mt-1 font-bold italic line-clamp-1">Lỗi: {stats.lastError}</p>}
-                                    </div>
-                                );
-                            })}
+    const handleKeyAction = async (keyId: string, action: 'reset' | 'disable' | 'active' | 'force_cooldown') => {
+        if (!keyId) return;
+        try {
+            const updates: any = {};
+            if (action === 'reset') {
+                updates.fail_count = 0;
+                updates.status = 'active';
+                updates.cooldown_until = null;
+            } else if (action === 'disable') {
+                updates.status = 'disabled';
+            } else if (action === 'active') {
+                updates.status = 'active';
+            } else if (action === 'force_cooldown') {
+                const date = new Date();
+                date.setMinutes(date.getMinutes() + 15);
+                updates.cooldown_until = date.toISOString();
+                updates.status = 'error';
+            }
+
+            const { error } = await supabase.from('system_settings').update(updates).eq('id', keyId);
+            if (error) throw error;
+            addToast(`Đã ${action === 'reset' ? 'khởi động lại' : action === 'disable' ? 'vô hiệu hóa' : 'cập nhật'} Key`, 'success');
+        } catch (e: any) {
+            addToast(e.message, 'error');
+        }
+    };
+
+    return (
+        <div className="space-y-10 pb-20">
+            {/* 🎯 PHẦN 1: BẢNG CHI TIẾT SỨC KHỎE KEY (NEW) */}
+            <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white overflow-hidden">
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center text-white shadow-xl">
+                            <Activity size={28}/>
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent uppercase tracking-tight">AI Key Monitor</h2>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Theo dõi hiệu suất & sức khỏe thời gian thực</p>
                         </div>
                     </div>
+                </div>
+
+                <div className="overflow-x-auto -mx-10 px-10">
+                    <table className="w-full text-left border-separate border-spacing-y-4">
+                        <thead>
+                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                <th className="pb-4 pl-4">Tên Key</th>
+                                <th className="pb-4">Loại</th>
+                                <th className="pb-4">Trạng thái</th>
+                                <th className="pb-4 text-center">Calls</th>
+                                <th className="pb-4 text-center">Lỗi</th>
+                                <th className="pb-4 text-center">Tỷ lệ</th>
+                                <th className="pb-4 text-center">Độ trễ</th>
+                                <th className="pb-4">Dùng cuối</th>
+                                <th className="pb-4 text-right pr-4">Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {(systemStats?.keys || []).map((k: any) => {
+                                const failRate = k.usage_count > 0 ? (k.error_count / k.usage_count * 100).toFixed(1) : '0';
+                                const isCooldown = k.status === 'error' || (k.cooldown_until && new Date(k.cooldown_until) > new Date());
+                                
+                                return (
+                                    <tr key={k.id} className="bg-slate-50/50 hover:bg-slate-50 transition-colors group">
+                                        <td className="py-5 pl-4 rounded-l-2xl border-y border-l border-slate-100">
+                                            <p className="text-xs font-black text-slate-800 uppercase">{k.name}</p>
+                                        </td>
+                                        <td className="py-5 border-y border-slate-100">
+                                            <span className={cn(
+                                                "text-[9px] font-black px-2 py-1 rounded-md uppercase",
+                                                k.provider === 'gemini' ? "bg-indigo-100 text-indigo-700" : "bg-blue-100 text-blue-700"
+                                            )}>{k.provider}</span>
+                                        </td>
+                                        <td className="py-5 border-y border-slate-100">
+                                            <div className="flex items-center gap-2">
+                                                <div className={cn(
+                                                    "w-2 h-2 rounded-full",
+                                                    k.status === 'active' ? "bg-emerald-500 animate-pulse" :
+                                                    k.status === 'probing' ? "bg-amber-400" :
+                                                    k.status === 'disabled' ? "bg-slate-400" : "bg-red-500"
+                                                )}></div>
+                                                <span className={cn(
+                                                    "text-[10px] font-black uppercase",
+                                                    k.status === 'active' ? "text-emerald-700" :
+                                                    k.status === 'probing' ? "text-amber-700" :
+                                                    k.status === 'disabled' ? "text-slate-500" : "text-red-700"
+                                                )}>
+                                                    {isCooldown ? 'COOLDOWN' : k.status}
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td className="py-5 border-y border-slate-100 text-center text-xs font-bold text-slate-600">{k.usage_count || 0}</td>
+                                        <td className="py-5 border-y border-slate-100 text-center text-xs font-bold text-red-500">{k.error_count || 0}</td>
+                                        <td className="py-5 border-y border-slate-100 text-center">
+                                            <span className={cn(
+                                                "text-[10px] font-black px-2 py-0.5 rounded border",
+                                                Number(failRate) < 3 ? "text-emerald-600 bg-emerald-50 border-emerald-100" :
+                                                Number(failRate) < 10 ? "text-amber-600 bg-amber-50 border-amber-100" :
+                                                "text-red-600 bg-red-50 border-red-100"
+                                            )}>{failRate}%</span>
+                                        </td>
+                                        <td className="py-5 border-y border-slate-100 text-center">
+                                            <div className="flex items-center justify-center gap-1">
+                                                <Zap size={10} className="text-amber-400"/>
+                                                <span className="text-xs font-black text-slate-700">{k.avg_latency || '---'}ms</span>
+                                            </div>
+                                        </td>
+                                        <td className="py-5 border-y border-slate-100 text-[10px] font-bold text-slate-400">
+                                            {k.last_used_at ? new Date(k.last_used_at).toLocaleTimeString('vi-VN') : 'Chưa dùng'}
+                                        </td>
+                                        <td className="py-5 pr-4 rounded-r-2xl border-y border-r border-slate-100 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => handleKeyAction(k.db_id, 'reset')} title="Reset lỗi" className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><RefreshCcw size={14}/></button>
+                                                <button 
+                                                    onClick={() => handleKeyAction(k.db_id, k.status === 'disabled' ? 'active' : 'disable')} 
+                                                    title={k.status === 'disabled' ? "Kích hoạt" : "Vô hiệu hóa"}
+                                                    className={cn("p-2 rounded-lg transition-all", k.status === 'disabled' ? "text-emerald-400 hover:text-emerald-600 hover:bg-emerald-50" : "text-slate-400 hover:text-red-600 hover:bg-red-50")}
+                                                >
+                                                    <Power size={14}/>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-indigo-100/50 border border-white flex flex-col justify-between">
-                <div>
-                    <h2 className="text-sm font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Lock size={16} className="text-slate-700"/> Webhook & Security</h2>
-                    <div className="space-y-6">
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="text-[10px] font-black text-slate-700 uppercase leading-none">FB Webhook Verify Token</label>
-                                <button onClick={() => setShowKeys({...showKeys, fb: !showKeys.fb})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fb ? 'Ẩn' : 'Hiện'}</button>
+            {/* 🎯 PHẦN 2: Ô NHẬP KEY (GỌN GÀNG HƠN) */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
+                    <div className="space-y-12">
+                        {/* GEMINI SECTION */}
+                        <div>
+                            <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
+                            <div className="space-y-6">
+                                {[
+                                    {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
+                                    {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
+                                    {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
+                                ].map((k: any) => (
+                                    <div key={k.id} className="space-y-2">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[10px] font-black text-slate-700 uppercase">{k.label}</label>
+                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                        </div>
+                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600 transition-all" placeholder={`${k.label} token...`} />
+                                    </div>
+                                ))}
                             </div>
-                            <input type={showKeys.fb ? "text" : "password"} value={fbVerifyToken} onChange={e => setFbVerifyToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Verify Token cho Webhook FB..." />
                         </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="text-[10px] font-black text-slate-700 uppercase">Facebook App Secret</label>
-                                <button onClick={() => setShowKeys({...showKeys, fbs: !showKeys.fbs})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fbs ? 'Ẩn' : 'Hiện'}</button>
+
+                        {/* DEEPSEEK SECTION */}
+                        <div className="pt-8 border-t border-slate-100">
+                            <h2 className="text-sm font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Settings size={16} className="text-blue-600"/> AI Service Keys (DeepSeek)</h2>
+                            <div className="space-y-6">
+                                {[
+                                    {id: 'ds1', label: 'DeepSeek Free 1', val: deepSeekKeyFree1, set: setDeepSeekKeyFree1}, 
+                                    {id: 'ds2', label: 'DeepSeek Free 2', val: deepSeekKeyFree2, set: setDeepSeekKeyFree2}, 
+                                    {id: 'dsp', label: 'DeepSeek PRO', val: deepSeekKeyPro, set: setDeepSeekKeyPro}
+                                ].map((k: any) => (
+                                    <div key={k.id} className="space-y-2">
+                                        <div className="flex justify-between items-center px-1">
+                                            <label className="text-[10px] font-black text-slate-700 uppercase">{k.label}</label>
+                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                        </div>
+                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-4 font-mono text-xs outline-none focus:border-blue-600 transition-all" placeholder={`${k.label} token...`} />
+                                    </div>
+                                ))}
                             </div>
-                            <input type={showKeys.fbs ? "text" : "password"} value={fbAppSecret} onChange={e => setFbAppSecret(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Facebook App Secret..." />
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center mb-1">
-                                <label className="text-[10px] font-black text-slate-700 uppercase">System Telegram Bot Token (Fallback)</label>
-                                <button onClick={() => setShowKeys({...showKeys, stg: !showKeys.stg})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.stg ? 'Ẩn' : 'Hiện'}</button>
-                            </div>
-                            <input type={showKeys.stg ? "text" : "password"} value={systemTelegramToken} onChange={e => setSystemTelegramToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Bot Token dự phòng toàn hệ thống..." />
                         </div>
                     </div>
                 </div>
-                
-                <div className="mt-8">
-                    <button onClick={onSave} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black py-5 rounded-3xl shadow-[0_10px_20px_-5px_rgba(79,70,229,0.5)] hover:shadow-[0_10px_20px_-5px_rgba(79,70,229,0.8)] hover:scale-[1.01] transition-all text-sm uppercase flex items-center justify-center gap-3">
-                        <Settings size={20}/> LƯU CẤU HÌNH API
-                    </button>
+
+                <div className="bg-white/80 backdrop-blur-2xl rounded-[2.5rem] p-10 shadow-2xl shadow-indigo-100/50 border border-white flex flex-col justify-between h-fit">
+                    <div>
+                        <h2 className="text-sm font-black bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Lock size={16} className="text-slate-700"/> Webhook & Security</h2>
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black text-slate-700 uppercase leading-none">FB Webhook Verify Token</label>
+                                    <button onClick={() => setShowKeys({...showKeys, fb: !showKeys.fb})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fb ? 'Ẩn' : 'Hiện'}</button>
+                                </div>
+                                <input type={showKeys.fb ? "text" : "password"} value={fbVerifyToken} onChange={e => setFbVerifyToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Verify Token cho Webhook FB..." />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black text-slate-700 uppercase">Facebook App Secret</label>
+                                    <button onClick={() => setShowKeys({...showKeys, fbs: !showKeys.fbs})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.fbs ? 'Ẩn' : 'Hiện'}</button>
+                                </div>
+                                <input type={showKeys.fbs ? "text" : "password"} value={fbAppSecret} onChange={e => setFbAppSecret(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Facebook App Secret..." />
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center mb-1">
+                                    <label className="text-[10px] font-black text-slate-700 uppercase">System Telegram Bot Token (Fallback)</label>
+                                    <button onClick={() => setShowKeys({...showKeys, stg: !showKeys.stg})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys.stg ? 'Ẩn' : 'Hiện'}</button>
+                                </div>
+                                <input type={showKeys.stg ? "text" : "password"} value={systemTelegramToken} onChange={e => setSystemTelegramToken(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-4 font-mono text-xs outline-none focus:border-indigo-600" placeholder="Bot Token dự phòng toàn hệ thống..." />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div className="mt-12">
+                        <button onClick={onSave} className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black py-5 rounded-3xl shadow-[0_15px_30px_-10px_rgba(79,70,229,0.6)] hover:shadow-[0_15px_40px_-10px_rgba(79,70,229,0.8)] hover:scale-[1.01] transition-all text-sm uppercase flex items-center justify-center gap-3">
+                            <ShieldCheck size={20}/> CẬP NHẬT TOÀN BỘ API
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

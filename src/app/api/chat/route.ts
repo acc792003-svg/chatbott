@@ -5,6 +5,9 @@ import { processChat } from '@/lib/chatbot-engine';
 export async function POST(req: Request) {
   try {
     const { message, history, shopId, sessionId, platform } = await req.json();
+    
+    // Lấy IP từ headers để phục vụ Anti-Spam
+    const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
 
     if (!shopId || !message) {
       return NextResponse.json({ error: 'Missing shopId or message' }, { status: 400 });
@@ -19,7 +22,8 @@ export async function POST(req: Request) {
         content: m.content || m.text || ''
       })),
       externalUserId: sessionId || 'unknown',
-      platform: platform || 'widget'
+      platform: platform || 'widget',
+      ip: ip.split(',')[0].trim() // Lấy IP gốc nếu qua Proxy
     });
 
     // Trả về định dạng mà Widget mong đợi

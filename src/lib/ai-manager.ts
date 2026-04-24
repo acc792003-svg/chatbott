@@ -79,26 +79,37 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
       .from('system_settings')
       .select('*')
       .in('key', searchKeys)
+    // Query lấy key Active HOẶC Probing (đã hết hạn Cooldown)
+    const { data, error } = await client
+      .from('system_settings')
+      .select('*')
+      .in('key', searchKeys)
       .neq('value', '')
       .not('value', 'is', null)
-      .not('value', 'eq', 'DeepSeek free') // Loại bỏ placeholder
+      .not('value', 'eq', 'DeepSeek free')
+      .not('status', 'eq', 'disabled') // Không lấy key đã bị Admin tắt
       .or(`status.eq.active,cooldown_until.lt.${now}`);
 
     if (error) return [];
 
-    // Filter nâng cao: Nếu key đang trong diện "thử nghiệm phục hồi" (probing)
-    // Chỉ cho phép 1 request đi qua nếu success_rate gần đây thấp
-    const filteredKeys = (data as AIKey[]).filter(k => {
-      if (k.status === 'active') return true;
-      if (k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
-        // Đây là key đang tự phục hồi -> ưu tiên cho nó 1 cơ hội
-        return true;
+    const filteredKeys = (data as AIKey[]).map(k => {
+      // Nếu đã hết hạn cooldown -> Tự động chuyển sang trạng thái probing
+      if (k.status !== 'active' && k.status !== 'disabled' && k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
+        return { ...k, status: 'probing' };
       }
-      return false;
+      return k;
     });
 
-    // Load balance: Xáo trộn
-    return filteredKeys.sort(() => Math.random() - 0.5);
+    // Sắp xếp thông minh:
+    // 1. Ưu tiên key active trước probing
+    // 2. Ưu tiên key có fail_count thấp
+    // 3. Ưu tiên key ít dùng nhất (usage_count) để load balance
+    return filteredKeys.sort((a, b) => {
+      if (a.status === 'active' && b.status !== 'active') return -1;
+      if (a.status !== 'active' && b.status === 'active') return 1;
+      if (a.fail_count !== b.fail_count) return a.fail_count - b.fail_count;
+      return (a.usage_count || 0) - (b.usage_count || 0);
+    });
   } catch (e) {
     return [];
   }
@@ -108,11 +119,13 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
   const client = supabaseAdmin || supabase;
   if (!client) return;
 
-  const { data: keyData } = await client.from('system_settings').select('fail_count, success_count').eq('id', keyId).single();
+  const { data: keyData } = await client.from('system_settings').select('fail_count, error_count').eq('id', keyId).single();
   const newFailCount = (keyData?.fail_count || 0) + 1;
+  const newErrorCount = (keyData?.error_count || 0) + 1;
   
   const updates: any = {
     fail_count: newFailCount,
+    error_count: newErrorCount,
     last_error: errorMessage,
     last_used_at: new Date().toISOString()
   };
@@ -121,7 +134,7 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
   if (newFailCount >= 5) {
     const retryLevel = newFailCount - 5; 
     const baseMinutes = 2;
-    const cooldownMinutes = Math.min(baseMinutes * Math.pow(2, retryLevel), 1440); // Max nghỉ 1 ngày (1440p)
+    const cooldownMinutes = Math.min(baseMinutes * Math.pow(2, retryLevel), 1440);
     
     const cooldownDate = new Date();
     cooldownDate.setMinutes(cooldownDate.getMinutes() + cooldownMinutes);
@@ -133,15 +146,25 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
   await client.from('system_settings').update(updates).eq('id', keyId);
 }
 
-export async function reportKeySuccess(keyId: string) {
+export async function reportKeySuccess(keyId: string, latencyMs?: number) {
   const client = supabaseAdmin || supabase;
   if (!client) return;
 
-  await client.from('system_settings').update({
+  const { data: keyData } = await client.from('system_settings').select('usage_count, avg_latency').eq('id', keyId).single();
+  
+  const updates: any = {
     fail_count: 0,
     status: 'active',
     cooldown_until: null,
     last_used_at: new Date().toISOString(),
-    // success_count: supabase.sql`success_count + 1` // Tăng số lần thành công
-  }).eq('id', keyId);
+    usage_count: (keyData?.usage_count || 0) + 1
+  };
+
+  // Tính Moving Average cho Latency (0.9 cũ + 0.1 mới)
+  if (latencyMs) {
+    const oldAvg = keyData?.avg_latency || latencyMs;
+    updates.avg_latency = Math.round(oldAvg * 0.9 + latencyMs * 0.1);
+  }
+
+  await client.from('system_settings').update(updates).eq('id', keyId);
 }

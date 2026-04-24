@@ -1,60 +1,59 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { keyStatsMap, getDetailedApiKeys, getDeepSeekApiKeys } from '@/lib/gemini';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        // 1. Lấy danh sách định danh của các Key
-        const proKeys = await getDetailedApiKeys(true);
-        const freeKeys = await getDetailedApiKeys(false);
-        const dsProKeys = await getDeepSeekApiKeys(true);
-        const dsFreeKeys = await getDeepSeekApiKeys(false);
-        const allKeys = [...proKeys, ...freeKeys, ...dsProKeys, ...dsFreeKeys];
+        if (!supabaseAdmin) throw new Error('Missing Supabase Admin');
 
-        const now = Date.now();
-        const keyNames = ['Key 1', 'Key 2', 'Key PRO', 'DS Free 1', 'DS Free 2', 'DS PRO'];
-        const stats = keyNames.map(name => {
-            const k = allKeys.find(ak => ak.name === name);
-            if (!k) return { name, usage: 0, error: 0, status: 'missing', lastUsed: 0 };
+        // 1. Lấy dữ liệu từ Database (Nguồn sự thật duy nhất)
+        const { data: keys, error } = await supabaseAdmin
+            .from('system_settings')
+            .select('*')
+            .in('key', [
+                'gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro',
+                'deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro'
+            ]);
 
-            const s = keyStatsMap.get(k.value) || { 
-                usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 
-            };
+        if (error) throw error;
 
-            // Ưu tiên trạng thái từ DB nếu có
-            let currentStatus = s.isDisabled ? 'disabled' : (now - s.lastUsedTime < 2000 ? 'cooldown' : 'healthy');
+        const now = new Date();
+        const stats = (keys || []).map(k => {
+            // Định dạng tên hiển thị thân thiện
+            let friendlyName = k.key.replace('gemini_api_key_', 'Gemini ').replace('deepseek_api_key_', 'DeepSeek ');
+            if (friendlyName.includes('free')) friendlyName = friendlyName.replace('free', 'Free ');
+            if (friendlyName.includes('pro')) friendlyName = friendlyName.replace('pro', 'PRO');
             
-            // Nếu Key có trong DB và đang bị cooldown thực sự (fail_count cao hoặc cooldown_until chưa tới)
-            if ((k as any).id) {
-               const dbKey = k as any;
-               if (dbKey.fail_count >= 5) currentStatus = 'error';
-               if (dbKey.cooldown_until && new Date(dbKey.cooldown_until).getTime() > now) currentStatus = 'cooldown';
+            // Xử lý Provider
+            const provider = k.key.includes('gemini') ? 'gemini' : 'deepseek';
+
+            // Xử lý Status thực tế
+            let currentStatus = k.status || 'active';
+            const isCooldown = k.cooldown_until && new Date(k.cooldown_until) > now;
+            
+            if (currentStatus !== 'disabled' && isCooldown) {
+                currentStatus = 'cooldown';
+            } else if (currentStatus === 'error' && !isCooldown) {
+                currentStatus = 'probing';
             }
 
             return {
-                name: k.name,
-                usage: s.usageCount,
-                error: (k as any).fail_count || s.errorCount,
+                db_id: k.id,
+                name: friendlyName,
+                provider: provider,
                 status: currentStatus,
-                lastUsed: s.lastUsedTime,
-                lastError: (k as any).last_error
+                usage_count: k.usage_count || 0,
+                error_count: k.error_count || 0,
+                fail_count: k.fail_count || 0,
+                avg_latency: k.avg_latency || 0,
+                last_used_at: k.last_used_at,
+                cooldown_until: k.cooldown_until,
+                last_error: k.last_error
             };
         });
 
-        // Thêm key .env nếu có
-        const envKey = allKeys.find(ak => ak.name === 'Key .ENV');
-        if (envKey) {
-            const es = keyStatsMap.get(envKey.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-            stats.push({
-                name: envKey.name,
-                usage: es.usageCount,
-                error: es.errorCount,
-                status: es.isDisabled ? 'disabled' : (now - es.lastUsedTime < 2000 ? 'cooldown' : 'healthy'),
-                lastUsed: es.lastUsedTime
-            });
-        }
-
-        // 2. Thống kê thêm từ Database về hiệu quả Cache (trong 24h qua)
+        // 2. Thống kê Cache trong 24h
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: messages } = await supabaseAdmin
             .from('messages')
@@ -63,23 +62,20 @@ export async function GET() {
         
         const total = messages?.length || 0;
         const cacheHits = messages?.filter((m: any) => m.metadata?.source?.includes('cache') || m.metadata?.source === 'faq').length || 0;
-        const aiCalls = total - cacheHits;
+        
+        const fallbackRate = total > 0 ? ((total - cacheHits) / total * 100).toFixed(1) : 0;
 
         return NextResponse.json({
             success: true,
-            keys: stats,
-            radar: {
-                cache_hit_rate: 65, // Placeholder - cần query từ log/cache table
-                avg_response_time: 2.4, // Giây
-                fallback_rate: 5 // Phần trăm
-            },
-            system: {
-                total_usage: stats.reduce((acc, k) => acc + k.usage, 0),
-                active_nodes: stats.filter(k => k.status === 'healthy').length,
-                total_nodes: stats.length
+            keys: stats.sort((a, b) => a.name.localeCompare(b.name)),
+            metrics: {
+                total_messages_24h: total,
+                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0,
+                fallback_rate: fallbackRate
             }
         });
-    } catch (e: any) {
-        return NextResponse.json({ error: e.message }, { status: 500 });
+
+    } catch (error: any) {
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
