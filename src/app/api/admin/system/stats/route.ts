@@ -19,7 +19,7 @@ export async function GET() {
         if (error) throw error;
 
         const now = new Date();
-        const stats = (keys || []).map(k => {
+        const stats = (keys || []).map((k: any) => {
             // Định dạng tên hiển thị thân thiện
             let friendlyName = k.key.replace('gemini_api_key_', 'Gemini ').replace('deepseek_api_key_', 'DeepSeek ');
             if (friendlyName.includes('free')) friendlyName = friendlyName.replace('free', 'Free ');
@@ -67,10 +67,10 @@ export async function GET() {
 
         return NextResponse.json({
             success: true,
-            keys: stats.sort((a, b) => a.name.localeCompare(b.name)),
+            keys: stats.sort((a: any, b: any) => a.name.localeCompare(b.name)),
             metrics: {
                 total_messages_24h: total,
-                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0,
+                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : (0 as any),
                 fallback_rate: fallbackRate
             }
         });

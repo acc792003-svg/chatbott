@@ -39,20 +39,23 @@ export function calculateComplexityScore(userInput: string): number {
 /**
  * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ
  */
-export function getRetryPath(provider: AIProvider, tier: AITier): {provider: AIProvider, tier: AITier}[] {
-  if (tier === 'pro') {
-    // Pro Shop: Ưu tiên Pro, fallback chéo giữa 2 ông lớn
+/**
+ * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ thông minh
+ */
+export function getRetryPath(isPro: boolean, complexity: number): {provider: AIProvider, tier: AITier}[] {
+  if (isPro || complexity > 7) {
+    // Ưu tiên Pro cho shop Pro hoặc câu hỏi khó
     return [
-      { provider, tier: 'pro' },
-      { provider: provider === 'gemini' ? 'deepseek' : 'gemini', tier: 'pro' },
-      { provider: 'gemini', tier: 'free' } // Tầng cứu hộ cuối
+      { provider: 'deepseek', tier: 'pro' },
+      { provider: 'gemini', tier: 'pro' },
+      { provider: 'gemini', tier: 'free' }
     ];
   } else {
-    // Free Shop: Ưu tiên DeepSeek Free (tiết kiệm) -> Gemini Free -> DeepSeek Pro (phao cứu sinh)
+    // Shop thường / Câu hỏi dễ: Tiết kiệm
     return [
       { provider: 'deepseek', tier: 'free' },
       { provider: 'gemini', tier: 'free' },
-      { provider: 'deepseek', tier: 'pro' } 
+      { provider: 'deepseek', tier: 'pro' }
     ];
   }
 }

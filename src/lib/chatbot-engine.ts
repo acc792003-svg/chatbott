@@ -279,7 +279,7 @@ ${phoneActionRule}
         const aiResult = await callGeminiWithFallback([
           ...(history || []).slice(-3).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
           { role: 'user', parts: [{ text: message }] }
-        ], { temperature: 0.7 }, shopId, 'API_CHAT_WIDGET', systemPrompt);
+        ], { temperature: 0.7, isPro }, shopId, 'API_CHAT_WIDGET', systemPrompt);
 
        finalResponse = aiResult.text;
        totalUsageTokens = aiResult.tokens;

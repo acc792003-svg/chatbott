@@ -36,7 +36,7 @@ export async function callGeminiWithFallback(
   // Trích xuất nội dung tin nhắn cuối cùng từ history
   const lastMsg = history[history.length - 1]?.parts?.[0]?.text || "";
   const complexity = calculateComplexityScore(lastMsg);
-  const path = getRetryPath(complexity);
+  const path = getRetryPath(options.isPro || false, complexity);
 
   let finalResult = null;
 
@@ -132,7 +132,7 @@ async function fetchWithTimeout(resource: string, options: any, timeout: number)
   return response;
 }
 
-export async function generateEmbedding(text: string): Promise<number[]> {
+export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
   const validKeys = [
     process.env.GEMINI_EMBEDDING_KEY_1,
     process.env.GEMINI_EMBEDDING_KEY_2,
