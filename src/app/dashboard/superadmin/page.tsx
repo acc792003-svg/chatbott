@@ -750,7 +750,7 @@ export default function SuperAdminPage() {
                                 {rowKeys.map((k: any, i: number) => {
                                     const isMissing = k.status === 'disabled';
                                     let shortName = k.name.replace('Ge ', '').replace('Ds ', '');
-                                    let initial = isMissing ? '∅' : (k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E');
+                                    let initial = k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E';
                                     return (
                                         <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}`}>
                                             <div 
