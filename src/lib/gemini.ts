@@ -1,437 +1,205 @@
-// Hệ thống tự động phát hiện và gọi model Gemini khả dụng
-// Với cơ chế retry thông minh, API key từ DB, và ghi log lỗi
-
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import { getHealthyKeys, reportKeyFailure, reportKeySuccess } from './ai-manager';
-
-const MODEL_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút
-let cachedModels: string[] = [];
-let cacheTimestamp = 0;
-
-// Bộ nhớ theo dõi sức khỏe và hiệu suất API Key (Circuit Breaker + Least Used)
-export const keyStatsMap = new Map<string, { 
-    errorCount: number, 
-    lastErrorTime: number, 
-    isDisabled: boolean,
-    usageCount: number,
-    lastUsedTime: number 
-}>();
+import { 
+  getHealthyKeys, 
+  reportKeyFailure, 
+  reportKeySuccess, 
+  calculateComplexityScore, 
+  getRetryPath 
+} from './ai-manager';
 
 export type DetailedKey = {
+  id?: string;
   name: string;
   value: string;
 };
 
-// Lấy API Keys từ database (Smart Manager), fallback về .env.local
-export async function getDetailedApiKeys(isPro: boolean = false): Promise<DetailedKey[]> {
-  const healthyKeys = await getHealthyKeys('gemini', isPro ? 'pro' : 'free');
-  
-  const keys: DetailedKey[] = healthyKeys.map(k => ({
-    id: k.id, // Lưu ID để report sau này
-    name: k.key.includes('pro') ? 'Key PRO' : (k.key.includes('1') ? 'Key 1' : 'Key 2'),
-    value: k.value.trim()
-  }));
-
-  // Luôn thêm key từ .env.local vào cuối danh sách như phương án dự phòng cuối cùng
-  const envKey = (process.env.GEMINI_API_KEY || '').trim();
-  if (envKey && !keys.find(k => k.value === envKey)) {
-    keys.push({ name: 'Key .ENV', value: envKey });
-  }
-  
-  return keys;
+// --- CACHE ANTI-POISONING ---
+const UNCERTAIN_KEYWORDS = ['có thể', 'có lẽ', 'tôi nghĩ', 'không chắc', 'tùy thuộc'];
+function isSafeToCache(text: string): boolean {
+  if (text.length < 10 || text.length > 2000) return false;
+  const lowerText = text.toLowerCase();
+  return !UNCERTAIN_KEYWORDS.some(word => lowerText.includes(word));
 }
 
-export async function getDeepSeekApiKeys(isPro: boolean = false): Promise<DetailedKey[]> {
-  const healthyKeys = await getHealthyKeys('deepseek', isPro ? 'pro' : 'free');
-  return healthyKeys.map(k => ({
-    id: k.id,
-    name: k.key.includes('pro') ? 'DS PRO' : (k.key.includes('1') ? 'DS Free 1' : 'DS Free 2'),
-    value: k.value.trim()
-  }));
-}
-
-// Ghi log lỗi vào database (Ưu tiên dùng supabaseAdmin, nếu không có thì dùng supabase anon)
-async function logError(shopId: string | null, errorType: string, errorMessage: string, source: string) {
-  try {
-    const client = supabaseAdmin || supabase;
-    if (client) {
-      await client.from('system_errors').insert({
-        shop_id: shopId,
-        error_type: errorType,
-        error_message: errorMessage,
-        file_source: 'gemini.ts',
-        metadata: { source }
-      });
-    }
-  } catch (e) {
-    console.error('Lỗi khi ghi system_error:', e);
-  }
-}
-
-async function getAvailableModels(apiKey: string): Promise<string[]> {
-  if (cachedModels.length > 0 && Date.now() - cacheTimestamp < MODEL_CACHE_TTL) {
-    return cachedModels;
-  }
-
-  try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
-        next: { revalidate: 300 }
-    });
-    
-    const contentType = res.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-        throw new Error(`Invalid content type: ${contentType}`);
-    }
-
-    const data = await res.json();
-    if (data.models) {
-      const models = data.models
-        .filter((m: any) => 
-          m.supportedGenerationMethods?.includes('generateContent') &&
-          !m.name.includes('-tts') &&
-          !m.name.includes('-image') &&
-          !m.name.includes('-audio') &&
-          !m.name.includes('-predict')
-        )
-        .map((m: any) => m.name as string)
-        .sort((a: string, b: string) => {
-          const score = (name: string) => {
-            if (name.includes('2.0-flash')) return 150; // Priority for Latest Stable
-            if (name.includes('1.5-flash-8b')) return 140; // Extremely fast
-            if (name.includes('1.5-flash')) return 130;
-            if (name.includes('flash-lite')) return 125;
-            return 10;
-          };
-          return score(b) - score(a);
-        });
-      
-      if (models.length > 0) {
-        cachedModels = models;
-        cacheTimestamp = Date.now();
-        return models;
-      }
-    }
-  } catch (e) {}
-  return ['models/gemini-2.0-flash', 'models/gemini-1.5-flash', 'models/gemini-1.5-flash-8b'];
-}
-
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-export async function callGeminiWithFallback(
-  contents: any[],
-  generationConfig?: any,
-  shopId?: string | null,
-  source: string = "API_CHAT_WIDGET",
-  systemInstruction?: string
-): Promise<{ text: string, tokens: number }> {
+/**
+ * HÀM GỌI AI TỔNG LỰC (SMART HUB)
+ * - Tự động định tuyến (Routing)
+ * - Tự động cứu hộ (Failover)
+ * - Kiểm soát thời gian (Timeout Budget)
+ */
+export async function callAIHub(
+  userInput: string,
+  history: any[],
+  shopId: string | null,
+  source: string = "WIDGET_CHAT"
+): Promise<{ text: string, tokens: number, source: string }> {
   const globalStart = Date.now();
-  const GLOBAL_TIMEOUT = 14000; // Tăng giới hạn lên 14s để AI có thêm thời gian suy nghĩ
-
-  // -- HỖ TRỢ CHUẨN HÓA ROLE (TRÁNH LỖI CONSECUTIVE ROLES) --
-  let normalizedContents: any[] = [];
-  contents.forEach(item => {
-    if (normalizedContents.length > 0 && normalizedContents[normalizedContents.length - 1].role === item.role) {
-        // Gộp nội dung nếu trùng role liên tiếp
-        normalizedContents[normalizedContents.length - 1].parts[0].text += "\n" + item.parts[0].text;
-    } else {
-        normalizedContents.push(JSON.parse(JSON.stringify(item)));
-    }
-  });
-  let shopPlan: 'free' | 'pro' = 'free';
-  const client = supabaseAdmin || supabase;
-  if (shopId && client) {
-    const { data: shop } = await client.from('shops').select('plan, plan_expiry_date').eq('id', shopId).single();
-    if (shop?.plan === 'pro') {
-      const expiry = shop.plan_expiry_date ? new Date(shop.plan_expiry_date) : null;
-      if (!expiry || expiry > new Date()) shopPlan = 'pro';
-      else {
-        client.from('shops').update({ plan: 'free' }).eq('id', shopId)
-          .then(({error}: any) => { if(error) console.error('Downgrade error:', error.message) });
-      }
-    }
-  }
-
-  // 2. Lấy danh sách Key cần thử
-  let keysToTry: DetailedKey[] = [];
-  if (shopPlan === 'pro') {
-    const proKeys = await getDetailedApiKeys(true);
-    const freeKeys = await getDetailedApiKeys(false);
-    keysToTry = [...proKeys, ...freeKeys];
-  } else {
-    keysToTry = await getDetailedApiKeys(false);
-    keysToTry = keysToTry.sort(() => Math.random() - 0.5);
-  }
+  const TIMEOUT_BUDGET = 8500; // 8.5 giây cho toàn bộ quá trình
   
-  if (keysToTry.length === 0) {
-    return { text: "Hệ thống đang bảo trì dịch vụ AI, bạn vui lòng quay lại sau ít phút nhé! 🙏", tokens: 0 };
+  // 1. CHUẨN HÓA & EMBEDDING (CHỈ LÀM 1 LẦN DUY NHẤT)
+  const embedding = await generateEmbedding(userInput);
+  
+  // 2. SEARCH CACHE (FAQ > AI CACHE)
+  // --- Ưu tiên tuyệt đối FAQ (Độ tin cậy 100%) ---
+  const { data: faqMatch } = await supabase.rpc('match_faqs', {
+    query_embedding: embedding,
+    match_threshold: 0.85,
+    match_count: 1,
+    p_shop_id: shopId
+  });
+
+  if (faqMatch?.[0]) {
+    return { text: faqMatch[0].answer, tokens: 0, source: 'faq_cache' };
   }
 
-  const config = generationConfig || { temperature: 0.8, maxOutputTokens: 1000 };
+  // --- Search AI Cache (Độ tin cậy 95%) ---
+  const { data: aiCacheMatch } = await supabase.from('cache_answers')
+    .select('answer')
+    .eq('shop_id', shopId)
+    .ilike('question', userInput) // Simple match for now, could use vector search later
+    .limit(1)
+    .single();
+
+  if (aiCacheMatch) {
+    return { text: aiCacheMatch.answer, tokens: 0, source: 'ai_cache' };
+  }
+
+  // 3. ROUTER & RETRY MATRIX
+  const score = calculateComplexityScore(userInput);
+  const initialProvider = score > 1.2 ? 'gemini' : 'deepseek';
+  
+  // Lấy thông tin shop để biết tier (Free/Pro)
+  let shopTier: 'free' | 'pro' = 'free';
+  if (shopId) {
+    const { data: shop } = await supabase.from('shops').select('plan').eq('id', shopId).single();
+    if (shop?.plan === 'pro') shopTier = 'pro';
+  }
+
+  const retryPath = getRetryPath(initialProvider, shopTier);
   let lastError = '';
 
-  // --- CHIẾN THUẬT CHỌN KEY: LEAST-USED + COOLDOWN + SHUFFLE ---
-  const sortedKeys = [...keysToTry].sort((a, b) => {
-    const now = Date.now();
-    const statsA = keyStatsMap.get(a.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-    const statsB = keyStatsMap.get(b.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-    const isCoolingA = now - statsA.lastUsedTime < 2000;
-    const isCoolingB = now - statsB.lastUsedTime < 2000;
-    if (isCoolingA !== isCoolingB) return isCoolingA ? 1 : -1;
-    if (statsA.usageCount !== statsB.usageCount) return statsA.usageCount - statsB.usageCount;
-    return Math.random() - 0.5;
-  });
+  // 4. VÒNG LẶP CỨU HỘ THÔNG MINH (TIMEOUT-CONTROLLED)
+  for (const step of retryPath) {
+    // Kiểm tra Budget thời gian
+    const elapsed = Date.now() - globalStart;
+    if (elapsed > TIMEOUT_BUDGET - 1000) break; 
 
-  // GIỚI HẠN: Chỉ thử tối đa 2 Key tốt nhất để fail nhanh,UX tốt
-  const activeKeys = sortedKeys.slice(0, 2);
+    const keys = await getHealthyKeys(step.provider, step.tier);
+    if (keys.length === 0) continue;
 
-  // 3. Vòng lặp thử từng API Key (Max 2)
-  for (const keyObj of activeKeys) {
-    // ANTI-TIMEOUT: Nếu tổng thời gian đã trôi qua > 13s, ngừng thử key mới để trả fallback ngay
-    if (Date.now() - globalStart > 13000) {
-        console.warn(`[GLOBAL_TIMEOUT] Sắp hết hạn (13s). Dừng tìm Key mới.`);
-        break;
-    }
-
-    const stats = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-    if (stats.isDisabled) {
-        if (Date.now() - stats.lastErrorTime > 120000) {
-            stats.isDisabled = false; 
-            stats.errorCount = 3; 
-        } else continue; 
-    }
-
-    const models = await getAvailableModels(keyObj.value);
-
-    for (const fullModelName of models) {
-      const apiURL = `https://generativelanguage.googleapis.com/v1beta/${fullModelName}:generateContent?key=${keyObj.value}`;
-      const stepStart = Date.now();
-      
+    for (const keyObj of keys.slice(0, 2)) { 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000); // Tăng Timeout lên 12s/key
-
-        const body: any = { contents: normalizedContents, generationConfig: config };
-        if (systemInstruction) {
-            body.system_instruction = { parts: [{ text: systemInstruction }] };
-        }
-
-        const response = await fetch(apiURL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            const text = await response.text();
-            throw new Error(`API returned non-JSON (${response.status}): ${text.substring(0, 50)}`);
-        }
-
-        const data = await response.json();
-        console.log(`[AI_STEP] ${keyObj.name} (${fullModelName}): ${Date.now() - stepStart}ms`);
-
-        if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          // Báo cáo thành công để reset chỉ số sức khỏe của Key
-          if ((keyObj as any).id) {
-            reportKeySuccess((keyObj as any).id);
+        const result = await callSpecificAI(step.provider, step.tier, keyObj.value, userInput, history);
+        
+        if (result) {
+          reportKeySuccess(keyObj.id);
+          
+          // 5. LƯU CACHE (NẾU AN TOÀN)
+          if (isSafeToCache(result.text)) {
+            saveToCache(shopId, userInput, result.text);
           }
           
-          const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-          s.usageCount += 1;
-          s.lastUsedTime = Date.now();
-          s.errorCount = Math.max(0, s.errorCount - 3);
-          s.isDisabled = false;
-          keyStatsMap.set(keyObj.value, s);
-          return { 
-            text: data.candidates[0].content.parts[0].text, 
-            tokens: data.usageMetadata?.totalTokenCount || 0 
-          };
+          return { ...result, source: `ai_${step.provider}` };
         }
-
-        // XỬ LÝ LỖI
-        const errorMsg = data.error?.message || 'Lỗi không xác định';
-        const errorCode = data.error?.status || response.status;
-        lastError = `${keyObj.name}: ${errorMsg}`;
-
-        if (errorCode === 'INVALID_ARGUMENT' || errorCode === 400) {
-           if (errorMsg.includes('API key not valid') || errorMsg.includes('API_KEY_INVALID')) {
-              await logError(shopId || null, 'API_KEY_INVALID', `[${keyObj.name}] hư: ${errorMsg}`, source);
-              break; // Thử Key tiếp theo
-           }
-           // Nếu là lỗi liên quan model (như multiturn không hỗ trợ), thử model tiếp theo của Key này
-           console.warn(`[AI_MODEL_ERROR] ${keyObj.name} (${fullModelName}): ${errorMsg}`);
-           continue; 
-        }
-
-        if (response.status === 429 || response.status === 503 || errorMsg.includes('high demand')) {
-           // Retry nội bộ 1 lần nếu còn dư thời gian
-           if (Date.now() - globalStart < 6000) {
-               const retryDelay = Math.min(1000 + Math.floor(Math.random() * 500), 2000);
-               await delay(retryDelay);
-
-               const controller = new AbortController();
-               const timeoutId = setTimeout(() => controller.abort(), 4000);
-               const retryResponse = await fetch(apiURL, {
-                 method: 'POST',
-                 headers: { 'Content-Type': 'application/json' },
-                 body: JSON.stringify({ contents, generationConfig: config }),
-                 signal: controller.signal
-               });
-               clearTimeout(timeoutId);
-               
-               const retryData = await retryResponse.json();
-               if (retryResponse.ok && retryData.candidates?.[0]?.content?.parts?.[0]?.text) {
-                 const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-                 s.usageCount += 1;
-                 s.lastUsedTime = Date.now();
-                 s.errorCount = Math.max(0, s.errorCount - 3);
-                 keyStatsMap.set(keyObj.value, s);
-                 return { 
-                    text: retryData.candidates[0].content.parts[0].text, 
-                    tokens: retryData.usageMetadata?.totalTokenCount || 0 
-                 };
-               }
-           }
-
-           if (keyObj.name === 'Key PRO') {
-              await logError(shopId || null, 'PRO_KEY_OVERLOAD', `Key PRO quá tải.`, source);
-           }
-        }
-
-        // CIRCUIT BREAKER & DB LOGGING
-        if ((keyObj as any).id) {
-            reportKeyFailure((keyObj as any).id, errorMsg);
-        }
-
-        const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
-        s.errorCount += 1;
-        s.lastErrorTime = Date.now();
-        s.lastUsedTime = Date.now();
-        if (s.errorCount >= 5) {
-            s.isDisabled = true;
-            await logError(shopId || null, 'CIRCUIT_BREAKER_OPEN', `Key ${keyObj.name} lỗi liên tục -> Nghỉ 2p.`, source);
-        }
-        keyStatsMap.set(keyObj.value, s);
-        
-        lastError = `${keyObj.name}: ${errorMsg}`;
-        continue; 
-
       } catch (e: any) {
-        lastError = `${keyObj.name}: ${e.message}`;
-        await logError(shopId || null, 'FETCH_FAILED', `[${keyObj.name}] Lỗi: ${e.message}`, source);
-        continue;
+        lastError = e.message;
+        reportKeyFailure(keyObj.id, e.message);
       }
     }
   }
 
-  // FALLBACK CUỐI CÙNG (An toàn, không để client dính Failed to fetch)
-  console.log(`[GLOBAL_FINISH] Tổng thời gian xử lý: ${Date.now() - globalStart}ms`);
-  return { text: "Hiện tại hệ thống đang kết nối hơi chậm, bạn vui lòng đợi vài giây và gửi lại tin nhắn nhé! 🙏", tokens: 0 };
+  return { 
+    text: "Hiện tại các chuyên gia AI đang bận một chút, bạn vui lòng đợi vài giây và gửi lại tin nhắn nhé! 🙏", 
+    tokens: 0, 
+    source: 'fallback' 
+  };
 }
 
 /**
- * Tạo Vector Embedding cho văn bản sử dụng model text-embedding-004
+ * Hàm gọi API với Timeout để kiểm soát Budget thời gian
  */
-export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
-  const stepStart = Date.now();
-  const keys = await getDetailedApiKeys(isPro); 
-  if (keys.length === 0) throw new Error('Không có API Key để tạo Embedding');
-  
-  let lastError = '';
-  // Thử tối đa 2 key để tránh chờ quá lâu
-  for (const keyObj of keys.slice(0, 2)) {
-    const apiKey = keyObj.value;
-    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${apiKey}`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); 
-
-    try {
-      const response = await fetch(apiURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: "models/gemini-embedding-001",
-          content: { parts: [{ text }] }
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      const data = await response.json();
-      if (response.ok && data.embedding?.values) {
-        console.log(`[EMBED_STEP] Finish with ${keyObj.name}: ${Date.now() - stepStart}ms`);
-        return data.embedding.values;
-      }
-      lastError = data.error?.message || 'Lỗi không xác định';
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      lastError = error.message;
-      console.warn(`[EMBED_RETRY] Key ${keyObj.name} thất bại: ${error.message}`);
-    }
-  }
-
-  throw new Error(`Tất cả API Key tạo Embedding đều thất bại: ${lastError}`);
-}
-
-/**
- * Batch Tạo Vector Embedding cho mảng văn bản (gom 10-20 câu / lần)
- * Sử dụng API batchEmbedContents để tiết kiệm quota và tăng tốc độ.
- */
-export async function batchGenerateEmbeddings(texts: string[], isPro: boolean = false): Promise<number[][]> {
-  if (texts.length === 0) return [];
-  const stepStart = Date.now();
-  const keys = await getDetailedApiKeys(isPro); 
-  if (keys.length === 0) throw new Error('Không có API Key để tạo Batch Embedding');
-  
-  const apiKey = keys[0].value;
-  const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:batchEmbedContents?key=${apiKey}`;
-
+async function fetchWithTimeout(url: string, options: any, timeout: number) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s cho batch
-
-  const requests = texts.map(text => ({
-    model: "models/gemini-embedding-001",
-    content: { parts: [{ text }] }
-  }));
-
+  const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(apiURL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requests }),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-
-    const data = await response.json();
-    console.log(`[BATCH_EMBED_STEP] Finish ${texts.length} items: ${Date.now() - stepStart}ms`);
-
-    if (response.ok && data.embeddings) {
-      return data.embeddings.map((embed: any) => embed.values);
-    }
-    
-    throw new Error(data.error?.message || 'Lỗi tạo Batch Embedding');
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(id);
+    return response;
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    console.error('Batch Embedding Error:', error);
-    
-    // Ghi log vào system_errors để không bị mất dấu
-    try {
-      const client = supabaseAdmin || supabase;
-      if (client) {
-        await client.from('system_errors').insert({
-          error_type: 'EMBEDDING_FAIL',
-          error_message: error.message,
-          file_source: 'gemini.ts - batchGenerateEmbeddings'
-        });
-      }
-    } catch(e) {}
-    
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error(`Timeout after ${timeout}ms`);
+    }
     throw error;
   }
+}
+
+/**
+ * Gọi API cụ thể (Gemini hoặc DeepSeek) với Timeout riêng biệt
+ */
+async function callSpecificAI(provider: string, tier: string, apiKey: string, userInput: string, history: any[]) {
+  // Định nghĩa Timeout cho từng loại Provider/Tier
+  let timeout = 2500; // Mặc định 2.5s (Gemini)
+  if (provider === 'deepseek') {
+    timeout = tier === 'pro' ? 2000 : 1500; // DS Pro: 2s, DS Free: 1.5s
+  }
+
+  if (provider === 'gemini') {
+    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const response = await fetchWithTimeout(apiURL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [...history, { role: 'user', parts: [{ text: userInput }] }]
+      })
+    }, timeout);
+
+    const data = await response.json();
+    if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return { text: data.candidates[0].content.parts[0].text, tokens: data.usageMetadata?.totalTokenCount || 0 };
+    }
+  } else {
+    // DeepSeek API
+    const response = await fetchWithTimeout('https://api.deepseek.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [...history, { role: 'user', content: userInput }]
+      })
+    }, timeout);
+
+    const data = await response.json();
+    if (response.ok && data.choices?.[0]?.message?.content) {
+      return { text: data.choices[0].message.content, tokens: data.usageMetadata?.total_tokens || 0 };
+    }
+  }
+  throw new Error(`${provider} ${tier} API failed or timeout`);
+}
+
+/**
+ * Tạo Vector Embedding (Tận dụng Gemini - Chỉ 1 lần/request)
+ */
+export async function generateEmbedding(text: string): Promise<number[]> {
+  const envKey = process.env.GEMINI_API_KEY;
+  if (!envKey) throw new Error('Missing Gemini API Key for Embedding');
+  
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${envKey}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: "models/text-embedding-004",
+      content: { parts: [{ text }] }
+    })
+  });
+  const data = await res.json();
+  return data.embedding.values;
+}
+
+async function saveToCache(shopId: string | null, question: string, answer: string) {
+  if (!shopId) return;
+  await supabase.from('cache_answers').insert({ shop_id: shopId, question, answer });
 }

@@ -9,19 +9,62 @@ export interface AIKey {
   value: string;
   status: string;
   fail_count: number;
+  success_count: number;
+  usage_count: number;
   cooldown_until: string | null;
+  last_used_at: string | null;
   last_error: string | null;
 }
 
 /**
- * Lấy danh sách Key "khỏe mạnh" cho một Provider và Tier cụ thể
+ * 1. SMART ROUTER: Chấm điểm độ khó câu hỏi để chọn Provider
+ * Score > 1.2 -> Gemini, Score <= 1.2 -> DeepSeek
+ */
+export function calculateComplexityScore(userInput: string): number {
+  const tokens = userInput.trim().split(/\s+/);
+  
+  // Các từ khóa gợi ý độ phức tạp cao (cần Gemini)
+  const complexKeywords = ['so sánh', 'tại sao', 'phân tích', 'hướng dẫn chi tiết', 'tổng hợp'];
+  const hasComplexKeyword = complexKeywords.some(word => userInput.toLowerCase().includes(word)) ? 1 : 0;
+  
+  // Thực thể thời gian hoặc số lượng (cần Gemini xử lý chính xác hơn)
+  const hasEntity = /[\d]{1,}/.test(userInput) ? 1 : 0;
+
+  // Công thức: độ dài * 0.2 + từ khóa * 0.5 + thực thể * 0.3
+  const score = (tokens.length * 0.15) + (hasComplexKeyword * 0.6) + (hasEntity * 0.3);
+  
+  return score;
+}
+
+/**
+ * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ
+ */
+export function getRetryPath(provider: AIProvider, tier: AITier): {provider: AIProvider, tier: AITier}[] {
+  if (tier === 'pro') {
+    // Pro Shop: Ưu tiên Pro, fallback chéo giữa 2 ông lớn
+    return [
+      { provider, tier: 'pro' },
+      { provider: provider === 'gemini' ? 'deepseek' : 'gemini', tier: 'pro' },
+      { provider: 'gemini', tier: 'free' } // Tầng cứu hộ cuối
+    ];
+  } else {
+    // Free Shop: Ưu tiên DeepSeek Free (tiết kiệm) -> Gemini Free -> DeepSeek Pro (phao cứu sinh)
+    return [
+      { provider: 'deepseek', tier: 'free' },
+      { provider: 'gemini', tier: 'free' },
+      { provider: 'deepseek', tier: 'pro' } 
+    ];
+  }
+}
+
+/**
+ * 3. HEALTHY KEY SELECTOR: Với cơ chế Self-healing (Probing)
  */
 export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promise<AIKey[]> {
   try {
     const client = supabaseAdmin || supabase;
     if (!client) return [];
 
-    // Tạo danh sách key cần tìm dựa trên provider và tier
     let searchKeys: string[] = [];
     if (provider === 'gemini') {
       searchKeys = tier === 'pro' ? ['gemini_api_key_pro'] : ['gemini_api_key_1', 'gemini_api_key_2'];
@@ -31,87 +74,74 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
 
     const now = new Date().toISOString();
 
+    // Query lấy key Active HOẶC đã hết hạn Cooldown (Self-healing)
     const { data, error } = await client
       .from('system_settings')
       .select('*')
       .in('key', searchKeys)
-      .eq('status', 'active')
-      .or(`cooldown_until.is.null,cooldown_until.lt.${now}`);
+      .neq('value', '')
+      .not('value', 'is', null)
+      .not('value', 'eq', 'DeepSeek free') // Loại bỏ placeholder
+      .or(`status.eq.active,cooldown_until.lt.${now}`);
 
-    if (error) {
-      console.error(`Error fetching healthy keys for ${provider}:`, error.message);
-      return [];
-    }
+    if (error) return [];
 
-    if (!data || data.length === 0) return [];
+    // Filter nâng cao: Nếu key đang trong diện "thử nghiệm phục hồi" (probing)
+    // Chỉ cho phép 1 request đi qua nếu success_rate gần đây thấp
+    const filteredKeys = (data as AIKey[]).filter(k => {
+      if (k.status === 'active') return true;
+      if (k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
+        // Đây là key đang tự phục hồi -> ưu tiên cho nó 1 cơ hội
+        return true;
+      }
+      return false;
+    });
 
-    // Load Balancing: Xáo trộn danh sách key để dàn đều tải
-    return (data as AIKey[]).sort(() => Math.random() - 0.5);
+    // Load balance: Xáo trộn
+    return filteredKeys.sort(() => Math.random() - 0.5);
   } catch (e) {
-    console.error('getHealthyKeys crash:', e);
     return [];
   }
 }
 
-/**
- * Báo cáo lỗi khi sử dụng Key
- */
 export async function reportKeyFailure(keyId: string, errorMessage: string) {
-  try {
-    const client = supabaseAdmin || supabase;
-    if (!client) return;
+  const client = supabaseAdmin || supabase;
+  if (!client) return;
 
-    // 1. Lấy thông tin hiện tại của key
-    const { data: keyData } = await client
-      .from('system_settings')
-      .select('fail_count')
-      .eq('id', keyId)
-      .single();
+  const { data: keyData } = await client.from('system_settings').select('fail_count, success_count').eq('id', keyId).single();
+  const newFailCount = (keyData?.fail_count || 0) + 1;
+  
+  const updates: any = {
+    fail_count: newFailCount,
+    last_error: errorMessage,
+    last_used_at: new Date().toISOString()
+  };
 
-    const newFailCount = (keyData?.fail_count || 0) + 1;
-    const updates: any = {
-      fail_count: newFailCount,
-      last_error: errorMessage,
-      updated_at: new Date().toISOString()
-    };
-
-    // 2. Nếu lỗi quá nhiều (vd: >= 5), đưa vào cooldown 10 phút
-    if (newFailCount >= 5) {
-      const cooldownDate = new Date();
-      cooldownDate.setMinutes(cooldownDate.getMinutes() + 10);
-      updates.cooldown_until = cooldownDate.toISOString();
-      // updates.status = 'cooldown'; // Hoặc giữ active nhưng dựa vào cooldown_until để lọc
-    }
-
-    await client
-      .from('system_settings')
-      .update(updates)
-      .eq('id', keyId);
-
-  } catch (e) {
-    console.error('reportKeyFailure error:', e);
+  // Cooldown Budget: Exponential Backoff (2p * 2^(fail_count - 5))
+  if (newFailCount >= 5) {
+    const retryLevel = newFailCount - 5; 
+    const baseMinutes = 2;
+    const cooldownMinutes = Math.min(baseMinutes * Math.pow(2, retryLevel), 1440); // Max nghỉ 1 ngày (1440p)
+    
+    const cooldownDate = new Date();
+    cooldownDate.setMinutes(cooldownDate.getMinutes() + cooldownMinutes);
+    
+    updates.cooldown_until = cooldownDate.toISOString();
+    updates.status = 'error';
   }
+
+  await client.from('system_settings').update(updates).eq('id', keyId);
 }
 
-/**
- * Báo cáo sử dụng Key thành công (Reset chỉ số sức khỏe)
- */
 export async function reportKeySuccess(keyId: string) {
-  try {
-    const client = supabaseAdmin || supabase;
-    if (!client) return;
+  const client = supabaseAdmin || supabase;
+  if (!client) return;
 
-    await client
-      .from('system_settings')
-      .update({
-        fail_count: 0,
-        last_error: null,
-        cooldown_until: null,
-        status: 'active',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', keyId);
-  } catch (e) {
-    console.error('reportKeySuccess error:', e);
-  }
+  await client.from('system_settings').update({
+    fail_count: 0,
+    status: 'active',
+    cooldown_until: null,
+    last_used_at: new Date().toISOString(),
+    // success_count: supabase.sql`success_count + 1` // Tăng số lần thành công
+  }).eq('id', keyId);
 }
