@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { keyStatsMap, getDetailedApiKeys } from '@/lib/gemini';
+import { keyStatsMap, getDetailedApiKeys, getDeepSeekApiKeys } from '@/lib/gemini';
 
 export async function GET() {
     try {
         // 1. Lấy danh sách định danh của các Key
         const proKeys = await getDetailedApiKeys(true);
         const freeKeys = await getDetailedApiKeys(false);
-        const allKeys = [...proKeys, ...freeKeys];
+        const dsProKeys = await getDeepSeekApiKeys(true);
+        const dsFreeKeys = await getDeepSeekApiKeys(false);
+        const allKeys = [...proKeys, ...freeKeys, ...dsProKeys, ...dsFreeKeys];
 
         const now = Date.now();
-        const keyNames = ['Key 1', 'Key 2', 'Key PRO'];
+        const keyNames = ['Key 1', 'Key 2', 'Key PRO', 'DS Free 1', 'DS Free 2', 'DS PRO'];
         const stats = keyNames.map(name => {
             const k = allKeys.find(ak => ak.name === name);
             if (!k) return { name, usage: 0, error: 0, status: 'missing', lastUsed: 0 };
@@ -19,12 +21,23 @@ export async function GET() {
                 usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 
             };
 
+            // Ưu tiên trạng thái từ DB nếu có
+            let currentStatus = s.isDisabled ? 'disabled' : (now - s.lastUsedTime < 2000 ? 'cooldown' : 'healthy');
+            
+            // Nếu Key có trong DB và đang bị cooldown thực sự (fail_count cao hoặc cooldown_until chưa tới)
+            if ((k as any).id) {
+               const dbKey = k as any;
+               if (dbKey.fail_count >= 5) currentStatus = 'error';
+               if (dbKey.cooldown_until && new Date(dbKey.cooldown_until).getTime() > now) currentStatus = 'cooldown';
+            }
+
             return {
                 name: k.name,
                 usage: s.usageCount,
-                error: s.errorCount,
-                status: s.isDisabled ? 'disabled' : (now - s.lastUsedTime < 2000 ? 'cooldown' : 'healthy'),
-                lastUsed: s.lastUsedTime
+                error: (k as any).fail_count || s.errorCount,
+                status: currentStatus,
+                lastUsed: s.lastUsedTime,
+                lastError: (k as any).last_error
             };
         });
 

@@ -2,6 +2,7 @@
 // Với cơ chế retry thông minh, API key từ DB, và ghi log lỗi
 
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { getHealthyKeys, reportKeyFailure, reportKeySuccess } from './ai-manager';
 
 const MODEL_CACHE_TTL = 5 * 60 * 1000; // Cache 5 phút
 let cachedModels: string[] = [];
@@ -21,33 +22,15 @@ export type DetailedKey = {
   value: string;
 };
 
-// Lấy API Keys từ database (Super Admin quản lý), fallback về .env.local
+// Lấy API Keys từ database (Smart Manager), fallback về .env.local
 export async function getDetailedApiKeys(isPro: boolean = false): Promise<DetailedKey[]> {
-  const keys: DetailedKey[] = [];
+  const healthyKeys = await getHealthyKeys('gemini', isPro ? 'pro' : 'free');
   
-  try {
-    const client = supabaseAdmin || supabase;
-    if (client) {
-      const searchKeys = isPro ? ['gemini_api_key_pro'] : ['gemini_api_key_1', 'gemini_api_key_2'];
-      const { data } = await client
-        .from('system_settings')
-        .select('key, value')
-        .in('key', searchKeys);
-      
-      if (data) {
-        // Thứ tự ưu tiên đúng như searchKeys
-        searchKeys.forEach(sk => {
-           const found = data.find((d: any) => d.key === sk);
-           if (found && found.value && found.value.trim()) {
-              let displayName = 'Key 1';
-              if (sk === 'gemini_api_key_2') displayName = 'Key 2';
-              if (sk === 'gemini_api_key_pro') displayName = 'Key PRO';
-              keys.push({ name: displayName, value: found.value.trim() });
-           }
-        });
-      }
-    }
-  } catch (e) {}
+  const keys: DetailedKey[] = healthyKeys.map(k => ({
+    id: k.id, // Lưu ID để report sau này
+    name: k.key.includes('pro') ? 'Key PRO' : (k.key.includes('1') ? 'Key 1' : 'Key 2'),
+    value: k.value.trim()
+  }));
 
   // Luôn thêm key từ .env.local vào cuối danh sách như phương án dự phòng cuối cùng
   const envKey = (process.env.GEMINI_API_KEY || '').trim();
@@ -56,6 +39,15 @@ export async function getDetailedApiKeys(isPro: boolean = false): Promise<Detail
   }
   
   return keys;
+}
+
+export async function getDeepSeekApiKeys(isPro: boolean = false): Promise<DetailedKey[]> {
+  const healthyKeys = await getHealthyKeys('deepseek', isPro ? 'pro' : 'free');
+  return healthyKeys.map(k => ({
+    id: k.id,
+    name: k.key.includes('pro') ? 'DS PRO' : (k.key.includes('1') ? 'DS Free 1' : 'DS Free 2'),
+    value: k.value.trim()
+  }));
 }
 
 // Ghi log lỗi vào database (Ưu tiên dùng supabaseAdmin, nếu không có thì dùng supabase anon)
@@ -243,6 +235,11 @@ export async function callGeminiWithFallback(
         console.log(`[AI_STEP] ${keyObj.name} (${fullModelName}): ${Date.now() - stepStart}ms`);
 
         if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          // Báo cáo thành công để reset chỉ số sức khỏe của Key
+          if ((keyObj as any).id) {
+            reportKeySuccess((keyObj as any).id);
+          }
+          
           const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
           s.usageCount += 1;
           s.lastUsedTime = Date.now();
@@ -305,7 +302,11 @@ export async function callGeminiWithFallback(
            }
         }
 
-        // CIRCUIT BREAKER
+        // CIRCUIT BREAKER & DB LOGGING
+        if ((keyObj as any).id) {
+            reportKeyFailure((keyObj as any).id, errorMsg);
+        }
+
         const s = keyStatsMap.get(keyObj.value) || { usageCount: 0, lastUsedTime: 0, errorCount: 0, isDisabled: false, lastErrorTime: 0 };
         s.errorCount += 1;
         s.lastErrorTime = Date.now();

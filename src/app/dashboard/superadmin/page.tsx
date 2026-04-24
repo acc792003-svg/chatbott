@@ -49,6 +49,9 @@ export default function SuperAdminPage() {
   const [apiKey1, setApiKey1] = useState('');
   const [apiKey2, setApiKey2] = useState('');
   const [apiKeyPro, setApiKeyPro] = useState('');
+  const [deepSeekKeyFree1, setDeepSeekKeyFree1] = useState('');
+  const [deepSeekKeyFree2, setDeepSeekKeyFree2] = useState('');
+  const [deepSeekKeyPro, setDeepSeekKeyPro] = useState('');
   const [fbVerifyToken, setFbVerifyToken] = useState('');
   const [fbAppSecret, setFbAppSecret] = useState('');
   const [systemTelegramToken, setSystemTelegramToken] = useState('');
@@ -251,6 +254,9 @@ export default function SuperAdminPage() {
       setApiKey1(data.find((d: any) => d.key === 'gemini_api_key_1')?.value || '');
       setApiKey2(data.find((d: any) => d.key === 'gemini_api_key_2')?.value || '');
       setApiKeyPro(data.find((d: any) => d.key === 'gemini_api_key_pro')?.value || '');
+      setDeepSeekKeyFree1(data.find((d: any) => d.key === 'deepseek_api_key_free1')?.value || '');
+      setDeepSeekKeyFree2(data.find((d: any) => d.key === 'deepseek_api_key_free2')?.value || '');
+      setDeepSeekKeyPro(data.find((d: any) => d.key === 'deepseek_api_key_pro')?.value || '');
       setFbVerifyToken(data.find((d: any) => d.key === 'fb_verify_token')?.value || '');
       setFbAppSecret(data.find((d: any) => d.key === 'fb_app_secret')?.value || '');
       setSystemTelegramToken(data.find((d: any) => d.key === 'system_telegram_bot_token')?.value || '');
@@ -562,6 +568,9 @@ export default function SuperAdminPage() {
             settings.push({ key: 'gemini_api_key_1', value: apiKey1 });
             settings.push({ key: 'gemini_api_key_2', value: apiKey2 });
             settings.push({ key: 'gemini_api_key_pro', value: apiKeyPro });
+            settings.push({ key: 'deepseek_api_key_free1', value: deepSeekKeyFree1 });
+            settings.push({ key: 'deepseek_api_key_free2', value: deepSeekKeyFree2 });
+            settings.push({ key: 'deepseek_api_key_pro', value: deepSeekKeyPro });
             settings.push({ key: 'fb_verify_token', value: fbVerifyToken });
             settings.push({ key: 'fb_app_secret', value: fbAppSecret });
             settings.push({ key: 'system_telegram_bot_token', value: systemTelegramToken });
@@ -1255,6 +1264,9 @@ export default function SuperAdminPage() {
             apiKey1={apiKey1} setApiKey1={setApiKey1} 
             apiKey2={apiKey2} setApiKey2={setApiKey2} 
             apiKeyPro={apiKeyPro} setApiKeyPro={setApiKeyPro} 
+            deepSeekKeyFree1={deepSeekKeyFree1} setDeepSeekKeyFree1={setDeepSeekKeyFree1}
+            deepSeekKeyFree2={deepSeekKeyFree2} setDeepSeekKeyFree2={setDeepSeekKeyFree2}
+            deepSeekKeyPro={deepSeekKeyPro} setDeepSeekKeyPro={setDeepSeekKeyPro}
             fbVerifyToken={fbVerifyToken} setFbVerifyToken={setFbVerifyToken}
             fbAppSecret={fbAppSecret} setFbAppSecret={setFbAppSecret}
             systemTelegramToken={systemTelegramToken} setSystemTelegramToken={setSystemTelegramToken}

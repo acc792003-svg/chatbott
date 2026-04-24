@@ -6,6 +6,9 @@ export function ApiKeysView({
     apiKey1, setApiKey1, 
     apiKey2, setApiKey2, 
     apiKeyPro, setApiKeyPro, 
+    deepSeekKeyFree1, setDeepSeekKeyFree1,
+    deepSeekKeyFree2, setDeepSeekKeyFree2,
+    deepSeekKeyPro, setDeepSeekKeyPro,
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
@@ -14,38 +17,81 @@ export function ApiKeysView({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-20">
             <div className="bg-white/80 backdrop-blur-2xl rounded-3xl md:rounded-[2.5rem] p-6 md:p-10 shadow-2xl shadow-indigo-100/50 border border-white h-fit">
-                <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
-                <div className="space-y-8">
-                    {[
-                        {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
-                        {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
-                        {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
-                    ].map((k: any) => {
-                        const stats = systemStats?.keys?.find((sk: any) => {
-                            const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
-                            return sk.name === targetName;
-                        });
-                        return (
-                            <div key={k.id} className="space-y-2 relative group">
-                                <div className="flex justify-between items-end px-1">
-                                    <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
-                                        {k.label}
-                                        <span className={cn(
-                                            "px-2 py-0.5 rounded-full text-[8px] border font-black",
-                                            (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
-                                            stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
-                                            stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
-                                            "bg-red-50 text-red-700 border-red-200"
-                                        )}>
-                                            {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
-                                        </span>
-                                    </label>
-                                    <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
-                                </div>
-                                <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'error' ? "border-red-200 focus:border-red-600" : "border-slate-200 focus:border-indigo-600")} placeholder={`${k.label} token...`} />
-                            </div>
-                        );
-                    })}
+                <div className="space-y-12">
+                    {/* GEMINI SECTION */}
+                    <div>
+                        <h2 className="text-sm font-black bg-gradient-to-r from-indigo-600 to-blue-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Brain size={16} className="text-indigo-600"/> AI Service Keys (Gemini)</h2>
+                        <div className="space-y-8">
+                            {[
+                                {id: 'k1', label: 'Gemini Free 1', val: apiKey1, set: setApiKey1}, 
+                                {id: 'k2', label: 'Gemini Free 2', val: apiKey2, set: setApiKey2}, 
+                                {id: 'kp', label: 'Gemini PRO', val: apiKeyPro, set: setApiKeyPro}
+                            ].map((k: any) => {
+                                const stats = systemStats?.keys?.find((sk: any) => {
+                                    const targetName = k.label.includes('PRO') ? 'Key PRO' : k.label.includes('1') ? 'Key 1' : 'Key 2';
+                                    return sk.name === targetName;
+                                });
+                                return (
+                                    <div key={k.id} className="space-y-2 relative group">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
+                                                {k.label}
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded-full text-[8px] border font-black",
+                                                    (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
+                                                    stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                                                    stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
+                                                    "bg-red-50 text-red-700 border-red-200"
+                                                )}>
+                                                    {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
+                                                </span>
+                                            </label>
+                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                        </div>
+                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'error' ? "border-red-200 focus:border-red-600" : "border-slate-200 focus:border-indigo-600")} placeholder={`${k.label} token...`} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* DEEPSEEK SECTION */}
+                    <div className="pt-8 border-t border-slate-100">
+                        <h2 className="text-sm font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent mb-8 flex items-center gap-2"><Settings size={16} className="text-blue-600"/> AI Service Keys (DeepSeek)</h2>
+                        <div className="space-y-8">
+                            {[
+                                {id: 'ds1', label: 'DeepSeek Free 1', val: deepSeekKeyFree1, set: setDeepSeekKeyFree1}, 
+                                {id: 'ds2', label: 'DeepSeek Free 2', val: deepSeekKeyFree2, set: setDeepSeekKeyFree2}, 
+                                {id: 'dsp', label: 'DeepSeek PRO', val: deepSeekKeyPro, set: setDeepSeekKeyPro}
+                            ].map((k: any) => {
+                                const stats = systemStats?.keys?.find((sk: any) => {
+                                    const targetName = k.label.includes('PRO') ? 'DS PRO' : k.label.includes('1') ? 'DS Free 1' : 'DS Free 2';
+                                    return sk.name === targetName;
+                                });
+                                return (
+                                    <div key={k.id} className="space-y-2 relative group">
+                                        <div className="flex justify-between items-end px-1">
+                                            <label className="text-[10px] font-black text-slate-700 uppercase flex items-center gap-2">
+                                                {k.label}
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded-full text-[8px] border font-black",
+                                                    (!stats || stats.status === 'missing') ? "bg-slate-100 text-slate-600 border-slate-200" :
+                                                    stats.status === 'healthy' ? "bg-emerald-50 text-emerald-700 border-emerald-200" : 
+                                                    stats.status === 'cooldown' ? "bg-amber-50 text-amber-700 border-amber-200 animate-pulse" : 
+                                                    "bg-red-50 text-red-700 border-red-200"
+                                                )}>
+                                                    {(!stats || stats.status === 'missing') ? 'MISSING' : stats.status.toUpperCase()}
+                                                </span>
+                                            </label>
+                                            <button onClick={() => setShowKeys({...showKeys, [k.id]: !showKeys[k.id]})} className="text-[10px] text-indigo-700 font-black uppercase underline">{showKeys[k.id] ? 'Ẩn' : 'Hiện'}</button>
+                                        </div>
+                                        <input type={showKeys[k.id] ? "text" : "password"} value={k.val} onChange={e => k.set(e.target.value)} className={cn("w-full bg-slate-50 border-2 rounded-xl p-4 font-mono text-xs outline-none transition-all", stats?.status === 'error' ? "border-red-200 focus:border-red-600" : "border-slate-200 focus:border-indigo-600")} placeholder={`${k.label} token...`} />
+                                        {stats?.lastError && <p className="text-[9px] text-red-500 mt-1 font-bold italic line-clamp-1">Lỗi: {stats.lastError}</p>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
                 </div>
             </div>
 
