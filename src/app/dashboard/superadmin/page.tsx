@@ -215,7 +215,7 @@ export default function SuperAdminPage() {
             pkgMap[s.id] = pkgs;
         });
 
-        setShops(shopsData?.map(s => ({ ...s, packages: pkgMap[s.id] })) || []);
+        setShops(shopsData?.map((s: any) => ({ ...s, packages: pkgMap[s.id] })) || []);
         setActiveIcons(iconMap);
         setShopConfigs(configMap);
         setShopPackages(pkgMap);
