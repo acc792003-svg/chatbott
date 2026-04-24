@@ -82,36 +82,38 @@ export function ApiKeysView({
                                 return (
                                     <tr key={k.id} className="bg-slate-50/50 hover:bg-slate-50 transition-colors group">
                                         <td className="py-5 pl-4 rounded-l-2xl border-y border-l border-slate-100">
-                                            <p className="text-xs font-black text-slate-800 uppercase">{k.name}</p>
-                                            {k.last_error && (
-                                                <p className="text-[8px] text-red-500 font-bold italic mt-0.5 line-clamp-1 max-w-[120px]" title={k.last_error}>
-                                                    ⚠ {k.last_error}
-                                                </p>
-                                            )}
+                                            <div className="flex flex-col items-center gap-1.5 min-w-[70px]">
+                                                <div className={cn(
+                                                    "w-4 h-4 rounded-full shadow-sm border-2 border-white",
+                                                    k.status === 'active' ? "bg-emerald-500 animate-pulse shadow-emerald-200" :
+                                                    k.status === 'probing' ? "bg-amber-400" :
+                                                    k.status === 'disabled' ? "bg-slate-300" : "bg-red-500 shadow-red-200"
+                                                )}></div>
+                                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-tighter leading-none">{k.name}</p>
+                                                <span className={cn(
+                                                    "text-[8px] font-bold uppercase",
+                                                    k.status === 'active' ? "text-emerald-600" :
+                                                    k.status === 'probing' ? "text-amber-600" :
+                                                    k.status === 'disabled' ? "text-slate-400" : "text-red-600"
+                                                )}>
+                                                    {k.status}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td className="py-5 border-y border-slate-100">
                                             <span className={cn(
                                                 "text-[9px] font-black px-2 py-1 rounded-md uppercase",
                                                 k.provider === 'gemini' ? "bg-indigo-100 text-indigo-700" : "bg-blue-100 text-blue-700"
-                                            )}>{k.provider}</span>
+                                            )}>{k.name.includes('Ge') ? 'gemini' : 'deepseek'}</span>
                                         </td>
                                         <td className="py-5 border-y border-slate-100">
-                                            <div className="flex items-center gap-2">
-                                                <div className={cn(
-                                                    "w-2 h-2 rounded-full",
-                                                    k.status === 'active' ? "bg-emerald-500 animate-pulse" :
-                                                    k.status === 'probing' ? "bg-amber-400" :
-                                                    k.status === 'disabled' ? "bg-slate-400" : "bg-red-500"
-                                                )}></div>
-                                                <span className={cn(
-                                                    "text-[10px] font-black uppercase tracking-tighter",
-                                                    k.status === 'active' ? "text-emerald-700" :
-                                                    k.status === 'probing' ? "text-amber-700" :
-                                                    k.status === 'disabled' ? "text-slate-500" : "text-red-700"
-                                                )}>
-                                                    {k.status === 'cooldown' ? 'COOLDOWN' : k.status}
-                                                </span>
-                                            </div>
+                                            {k.last_error && k.status === 'error' ? (
+                                                <p className="text-[9px] text-red-500 font-bold italic line-clamp-2 max-w-[150px]" title={k.last_error}>
+                                                    ⚠ {k.last_error}
+                                                </p>
+                                            ) : (
+                                                <p className="text-[10px] text-slate-400 italic">No issues detected</p>
+                                            )}
                                         </td>
                                         <td className="py-5 border-y border-slate-100 text-center text-xs font-bold text-slate-600">{k.usage_count || 0}</td>
                                         <td className="py-5 border-y border-slate-100 text-center text-xs font-bold text-red-500">{k.error_count || 0}</td>

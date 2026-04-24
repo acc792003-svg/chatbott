@@ -7,61 +7,70 @@ export async function GET() {
     try {
         if (!supabaseAdmin) throw new Error('Missing Supabase Admin');
 
-        // 1. Lấy dữ liệu từ Database (Nguồn sự thật duy nhất)
-        const { data: keys, error } = await supabaseAdmin
+        // 1. Danh sách tất cả các Key cần theo dõi
+        const targetKeys = [
+            'gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro',
+            'deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro',
+            'gemini_embedding_key_1', 'gemini_embedding_key_2', 'deepseek_env_key'
+        ];
+
+        // 2. Lấy dữ liệu từ Database
+        const { data: dbKeys, error } = await supabaseAdmin
             .from('system_settings')
             .select('*')
-            .in('key', [
-                'gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro',
-                'deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro',
-                'gemini_embedding_key_1', 'gemini_embedding_key_2', 'deepseek_env_key'
-            ]);
+            .in('key', targetKeys);
 
         if (error) throw error;
 
         const now = new Date();
-        const stats = (keys || []).map((k: any) => {
-            // 🏷️ ĐẶT TÊN LẠI CHO ĐÚNG TÊN KEY (FRIENDLY NAMES)
-            let friendlyName = k.key;
-            if (k.key === 'gemini_api_key_1') friendlyName = 'Ge Free 1';
-            else if (k.key === 'gemini_api_key_2') friendlyName = 'Ge Free 2';
-            else if (k.key === 'gemini_api_key_pro') friendlyName = 'Ge Pro';
-            else if (k.key === 'deepseek_api_key_free1') friendlyName = 'Ds Free 1';
-            else if (k.key === 'deepseek_api_key_free2') friendlyName = 'Ds Free 2';
-            else if (k.key === 'deepseek_api_key_pro') friendlyName = 'Ds Pro';
-            else if (k.key === 'gemini_embedding_key_1') friendlyName = 'Ge Embed 1';
-            else if (k.key === 'gemini_embedding_key_2') friendlyName = 'Ge Embed 2';
-            else if (k.key === 'deepseek_env_key') friendlyName = 'Ds Env (Fallback)';
+        
+        // 3. Map dữ liệu, đảm bảo luôn trả về đủ 9 key kể cả khi chưa có trong DB
+        const stats = targetKeys.map(tk => {
+            const k = (dbKeys || []).find(dk => dk.key === tk);
             
-            // Xử lý Provider
-            const provider = k.key.includes('gemini') ? 'gemini' : 'deepseek';
+            // Tên hiển thị thân thiện
+            let friendlyName = tk;
+            if (tk === 'gemini_api_key_1') friendlyName = 'Ge Free 1';
+            else if (tk === 'gemini_api_key_2') friendlyName = 'Ge Free 2';
+            else if (tk === 'gemini_api_key_pro') friendlyName = 'Ge Pro';
+            else if (tk === 'deepseek_api_key_free1') friendlyName = 'Ds Free 1';
+            else if (tk === 'deepseek_api_key_free2') friendlyName = 'Ds Free 2';
+            else if (tk === 'deepseek_api_key_pro') friendlyName = 'Ds Pro';
+            else if (tk === 'gemini_embedding_key_1') friendlyName = 'Ge Embed 1';
+            else if (tk === 'gemini_embedding_key_2') friendlyName = 'Ge Embed 2';
+            else if (tk === 'deepseek_env_key') friendlyName = 'Ds Env';
 
-            // Xử lý Status thực tế
-            let currentStatus = k.status || 'active';
-            const isCooldown = k.cooldown_until && new Date(k.cooldown_until) > now;
+            // Kiểm tra xem đã điền giá trị chưa
+            const hasValue = k?.value && k.value.trim() !== '' && k.value !== 'DeepSeek free';
             
-            if (currentStatus !== 'disabled' && isCooldown) {
-                currentStatus = 'cooldown';
-            } else if (currentStatus === 'error' && !isCooldown) {
-                currentStatus = 'probing';
+            let currentStatus = k?.status || 'active';
+            
+            // Logic Trạng thái thông minh
+            if (!hasValue) {
+                currentStatus = 'disabled'; // Chưa điền key -> Màu xám
+            } else {
+                const isCooldown = k?.cooldown_until && new Date(k.cooldown_until) > now;
+                if (currentStatus !== 'disabled' && isCooldown) {
+                    currentStatus = 'cooldown';
+                } else if (currentStatus === 'error' && !isCooldown) {
+                    currentStatus = 'probing';
+                }
             }
 
             return {
-                db_id: k.id,
+                id: k?.id || tk,
                 name: friendlyName,
-                provider: provider,
                 status: currentStatus,
-                usage_count: k.usage_count || 0,
-                error_count: k.error_count || 0,
-                fail_count: k.fail_count || 0,
-                avg_latency: k.avg_latency || 0,
-                last_used_at: k.last_used_at,
-                cooldown_until: k.cooldown_until,
-                last_error: k.last_error
+                usage_count: k?.usage_count || 0,
+                error_count: k?.error_count || 0,
+                fail_count: k?.fail_count || 0,
+                avg_latency: k?.avg_latency || 0,
+                last_used_at: k?.last_used_at,
+                last_error: k?.last_error
             };
         });
 
-        // 2. Thống kê Cache trong 24h
+        // 4. Thống kê Cache trong 24h
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
         const { data: messages } = await supabaseAdmin
             .from('messages')
@@ -70,16 +79,13 @@ export async function GET() {
         
         const total = messages?.length || 0;
         const cacheHits = messages?.filter((m: any) => m.metadata?.source?.includes('cache') || m.metadata?.source === 'faq').length || 0;
-        
-        const fallbackRate = total > 0 ? ((total - cacheHits) / total * 100).toFixed(1) : 0;
 
         return NextResponse.json({
             success: true,
-            keys: stats.sort((a: any, b: any) => a.name.localeCompare(b.name)),
+            keys: stats,
             metrics: {
                 total_messages_24h: total,
-                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : (0 as any),
-                fallback_rate: fallbackRate
+                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0
             }
         });
 
