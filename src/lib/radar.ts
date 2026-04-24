@@ -19,18 +19,15 @@ export async function reportError(params: {
     if (!supabaseAdmin) return;
 
     // 1. Ghi vào Database
-    const { data: errorLog, error: dbError } = await supabaseAdmin
+    const { error: dbError } = await supabaseAdmin
       .from('system_errors')
       .insert({
         shop_id: shopId,
         error_type: errorType,
         error_message: errorMessage,
         file_source: fileSource,
-        metadata: metadata,
-        severity: severity // Nếu bảng có cột này
-      })
-      .select()
-      .single();
+        metadata: metadata
+      });
 
     if (dbError) {
       console.error('Radar DB Error:', dbError.message);
@@ -57,8 +54,8 @@ async function notifyAdmin(params: {
       .select('key, value')
       .in('key', ['system_telegram_bot_token', 'admin_telegram_chat_id']);
 
-    const botToken = settings?.find(s => s.key === 'system_telegram_bot_token')?.value;
-    const adminChatId = settings?.find(s => s.key === 'admin_telegram_chat_id')?.value;
+    const botToken = settings?.find((s: any) => s.key === 'system_telegram_bot_token')?.value;
+    const adminChatId = settings?.find((s: any) => s.key === 'admin_telegram_chat_id')?.value;
 
     if (!botToken || !adminChatId) {
       console.warn('Radar: Thiếu system_telegram_bot_token hoặc admin_telegram_chat_id để gửi thông báo.');
