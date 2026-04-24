@@ -64,7 +64,7 @@ export async function GET() {
             }
             else if (tk === 'deepseek_env_key') {
                 friendlyName = 'Ds Env';
-                hasValue = !!process.env.DEEPSEEK_API_KEY || !!process.env.GEMINI_API_KEY; 
+                hasValue = !!process.env.DEEPSEEK_ENV_KEY || !!process.env.DEEPSEEK_API_KEY || !!process.env.GEMINI_API_KEY; 
             }
 
             let currentStatus = k?.status || 'active';
