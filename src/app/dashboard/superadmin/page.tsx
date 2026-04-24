@@ -793,65 +793,112 @@ export default function SuperAdminPage() {
 
         {/* --- SYSTEM RADAR (QUICK INSIGHTS) --- */}
         {userRole === 'super_admin' && systemStats && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 px-2">
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-600"/> Tỷ lệ Cache (Tiết kiệm)</p>
-                    <div className="flex items-end gap-2">
-                        <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.cache_hit_rate || 0}%</h3>
-                        <span className="text-[10px] font-bold text-emerald-600 mb-1 lg:block hidden">Tiết kiệm API</span>
+            <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 px-2">
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-600"/> Tỷ lệ Cache (Tiết kiệm)</p>
+                        <div className="flex items-end gap-2">
+                            <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.cache_hit_rate || 0}%</h3>
+                            <span className="text-[10px] font-bold text-emerald-600 mb-1 lg:block hidden">Tiết kiệm API</span>
+                        </div>
                     </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Plus size={12} className="text-amber-600"/> AI Generation</p>
-                    <div className="flex items-end gap-2">
-                        <h3 className="text-3xl font-black text-slate-900">{(100 - Number(systemStats.metrics?.cache_hit_rate || 0)).toFixed(1)}%</h3>
-                        <span className="text-[10px] font-bold text-slate-500 mb-1 lg:block hidden">Lượt gọi AI</span>
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Plus size={12} className="text-amber-600"/> AI Generation</p>
+                        <div className="flex items-end gap-2">
+                            <h3 className="text-3xl font-black text-slate-900">{(100 - Number(systemStats.metrics?.cache_hit_rate || 0)).toFixed(1)}%</h3>
+                            <span className="text-[10px] font-bold text-slate-500 mb-1 lg:block hidden">Lượt gọi AI</span>
+                        </div>
                     </div>
-                </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
-                    <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.total_messages_24h || 0}</h3>
-                </div>
-                <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm group hover:scale-[1.02] transition-transform">
-                    <div className="flex justify-between items-center mb-4">
-                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12} className="text-indigo-600"/> AI Status</p>
-                        <span className="text-[8px] font-black uppercase text-indigo-700 tracking-tighter bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">{systemStats.keys?.filter((k: any) => k.status === 'active').length || 0}/9</span>
+                    <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
+                        <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.total_messages_24h || 0}</h3>
                     </div>
-                    <div className="flex flex-col gap-3 mt-2">
-                        {[
-                            systemStats.keys?.filter((k: any) => k.name.includes('Ge Free') || k.name.includes('Ge Pro')) || [],
-                            systemStats.keys?.filter((k: any) => k.name.includes('Ds Free') || k.name.includes('Ds Pro')) || [],
-                            systemStats.keys?.filter((k: any) => k.name.includes('Env')) || []
-                        ].map((rowKeys, rowIndex) => (
-                            <div key={rowIndex} className="flex items-center justify-between gap-2 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
-                                {rowKeys.map((k: any, i: number) => {
-                                    const isMissing = k.status === 'disabled';
-                                    let shortName = k.name.replace('Ge ', '').replace('Ds ', '');
-                                    let initial = k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E';
-                                    return (
-                                        <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}`}>
-                                            <div 
-                                                className={cn(
-                                                    "w-3 h-3 rounded-full flex-shrink-0 relative shadow-sm border", 
-                                                    k.status === 'active' ? "bg-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
-                                                    k.status === 'probing' ? "bg-amber-400 border-amber-500" : 
-                                                    k.status === 'cooldown' ? "bg-orange-500 border-orange-600" : 
-                                                    isMissing ? "bg-slate-300 border-slate-400" :
-                                                    "bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
-                                                )} 
-                                            />
-                                            <div className="flex items-center gap-0.5 flex-1 min-w-0">
+                    <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm group hover:scale-[1.02] transition-transform">
+                        <div className="flex justify-between items-center mb-4">
+                            <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12} className="text-indigo-600"/> AI Key Health</p>
+                            <span className="text-[8px] font-black uppercase text-indigo-700 tracking-tighter bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">{systemStats.keys?.filter((k: any) => k.status === 'active').length || 0}/9</span>
+                        </div>
+                        <div className="flex flex-col gap-3 mt-2">
+                            {[
+                                systemStats.keys?.filter((k: any) => k.name.includes('Ge Free') || k.name.includes('Ge Pro')) || [],
+                                systemStats.keys?.filter((k: any) => k.name.includes('Ds Free') || k.name.includes('Ds Pro')) || [],
+                                systemStats.keys?.filter((k: any) => k.name.includes('Env')) || []
+                            ].map((rowKeys, rowIndex) => (
+                                <div key={rowIndex} className="flex items-center justify-between gap-2 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
+                                    {rowKeys.map((k: any, i: number) => {
+                                        const isMissing = k.status === 'disabled';
+                                        let initial = k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E';
+                                        return (
+                                            <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}`}>
+                                                <div className={cn(
+                                                        "w-3 h-3 rounded-full flex-shrink-0 relative shadow-sm border", 
+                                                        k.status === 'active' ? "bg-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
+                                                        k.status === 'probing' ? "bg-amber-400 border-amber-500" : 
+                                                        k.status === 'cooldown' ? "bg-orange-500 border-orange-600" : 
+                                                        isMissing ? "bg-slate-300 border-slate-400" :
+                                                        "bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                                    )} 
+                                                />
                                                 <span className="text-[10px] font-black text-slate-900 leading-none">{initial}</span>
-                                                <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter truncate leading-none pt-0.5">{shortName}</span>
                                             </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ))}
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
-            </div>
+
+                {/* --- RADAR ACTIVITY FEED --- */}
+                <div className="px-2 mb-8 animate-in slide-in-from-bottom-4 duration-500">
+                    <div className="bg-slate-900 rounded-[2.5rem] p-6 shadow-2xl border border-slate-800 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] -z-0"></div>
+                        <div className="flex items-center justify-between mb-6 relative z-10">
+                            <div>
+                                <h3 className="text-white font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3">
+                                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
+                                    Radar Real-time Monitoring
+                                </h3>
+                                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-1">Theo dõi sự cố & Hiệu năng AI toàn hệ thống</p>
+                            </div>
+                            <button onClick={() => setActiveTab('errors')} className="text-indigo-400 text-[10px] font-black uppercase hover:text-white transition-colors">Xem tất cả nhật ký →</button>
+                        </div>
+
+                        <div className="space-y-3 relative z-10">
+                            {errorLogs.filter((l: any) => l.type === 'critical').slice(0, 5).map((log: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all group">
+                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                        <div className={cn(
+                                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
+                                            log.severity === 'critical' ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-amber-500/20 text-amber-500 border border-amber-500/30"
+                                        )}>
+                                            <ShieldAlert size={20} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-white text-[11px] font-black uppercase tracking-tight truncate">{log.error_type}</span>
+                                                <span className="text-slate-500 text-[9px] font-bold">• {new Date(log.created_at).toLocaleTimeString()}</span>
+                                            </div>
+                                            <p className="text-slate-400 text-[10px] font-medium truncate italic">“{log.error_message}”</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right ml-4">
+                                        <span className="text-indigo-400 text-[9px] font-black uppercase bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20">{log.shops?.name || 'SYSTEM'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                            {errorLogs.filter((l: any) => l.type === 'critical').length === 0 && (
+                                <div className="text-center py-12">
+                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                                        <Zap className="text-emerald-500" size={24} />
+                                    </div>
+                                    <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.2em]">Hệ thống ổn định - Không có sự cố Radar</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </>
         )}
 
         {/* ==================== TAB: SHOPS ==================== */}
