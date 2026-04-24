@@ -1271,6 +1271,7 @@ export default function SuperAdminPage() {
             fbAppSecret={fbAppSecret} setFbAppSecret={setFbAppSecret}
             systemTelegramToken={systemTelegramToken} setSystemTelegramToken={setSystemTelegramToken}
             systemStats={systemStats} onSave={() => handleSaveSystemSettings('api')}
+            addToast={addToast}
           />
         </div>
       )}

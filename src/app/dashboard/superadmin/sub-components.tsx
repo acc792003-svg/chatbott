@@ -83,6 +83,11 @@ export function ApiKeysView({
                                     <tr key={k.id} className="bg-slate-50/50 hover:bg-slate-50 transition-colors group">
                                         <td className="py-5 pl-4 rounded-l-2xl border-y border-l border-slate-100">
                                             <p className="text-xs font-black text-slate-800 uppercase">{k.name}</p>
+                                            {k.last_error && (
+                                                <p className="text-[8px] text-red-500 font-bold italic mt-0.5 line-clamp-1 max-w-[120px]" title={k.last_error}>
+                                                    ⚠ {k.last_error}
+                                                </p>
+                                            )}
                                         </td>
                                         <td className="py-5 border-y border-slate-100">
                                             <span className={cn(

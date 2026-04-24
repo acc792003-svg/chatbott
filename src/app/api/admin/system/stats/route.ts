@@ -20,10 +20,17 @@ export async function GET() {
 
         const now = new Date();
         const stats = (keys || []).map((k: any) => {
-            // Định dạng tên hiển thị thân thiện
-            let friendlyName = k.key.replace('gemini_api_key_', 'Gemini ').replace('deepseek_api_key_', 'DeepSeek ');
-            if (friendlyName.includes('free')) friendlyName = friendlyName.replace('free', 'Free ');
-            if (friendlyName.includes('pro')) friendlyName = friendlyName.replace('pro', 'PRO');
+            // 🏷️ ĐẶT TÊN LẠI CHO ĐÚNG TÊN KEY (FRIENDLY NAMES)
+            let friendlyName = k.key;
+            if (k.key === 'gemini_api_key_1') friendlyName = 'Ge Free 1';
+            else if (k.key === 'gemini_api_key_2') friendlyName = 'Ge Free 2';
+            else if (k.key === 'gemini_api_key_pro') friendlyName = 'Ge Pro';
+            else if (k.key === 'deepseek_api_key_free1') friendlyName = 'Ds Free 1';
+            else if (k.key === 'deepseek_api_key_free2') friendlyName = 'Ds Free 2';
+            else if (k.key === 'deepseek_api_key_pro') friendlyName = 'Ds Pro';
+            else if (k.key === 'gemini_embedding_key_1') friendlyName = 'Ge Embed 1';
+            else if (k.key === 'gemini_embedding_key_2') friendlyName = 'Ge Embed 2';
+            else if (k.key === 'deepseek_env_key') friendlyName = 'Ds Env (Fallback)';
             
             // Xử lý Provider
             const provider = k.key.includes('gemini') ? 'gemini' : 'deepseek';
