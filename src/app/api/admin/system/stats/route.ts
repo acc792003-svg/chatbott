@@ -25,8 +25,8 @@ export async function GET() {
         const now = new Date();
         
         // 3. Map dữ liệu, đảm bảo luôn trả về đủ 9 key kể cả khi chưa có trong DB
-        const stats = targetKeys.map(tk => {
-            const k = (dbKeys || []).find(dk => dk.key === tk);
+        const stats = targetKeys.map((tk: any) => {
+            const k = (dbKeys || []).find((dk: any) => dk.key === tk);
             
             // Tên hiển thị thân thiện
             let friendlyName = tk;
