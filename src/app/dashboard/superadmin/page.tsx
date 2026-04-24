@@ -749,12 +749,12 @@ export default function SuperAdminPage() {
                                 <div key={i} className="flex flex-col items-center gap-1 w-8" title={`${k.name}: ${k.status.toUpperCase()}`}>
                                     <div 
                                         className={cn(
-                                            "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center text-[9px] font-black shadow-sm transition-all relative", 
-                                            k.status === 'active' ? "bg-emerald-400 text-emerald-900 border-indigo-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
-                                            k.status === 'probing' ? "bg-amber-400 text-amber-900 border-indigo-400" : 
-                                            k.status === 'cooldown' ? "bg-orange-500 text-orange-900 border-indigo-400" : 
-                                            isMissing ? "bg-indigo-800/50 text-indigo-400 border-indigo-500/50" :
-                                            "bg-red-500 text-white border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                            "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center text-[9px] font-black shadow-sm transition-all relative text-slate-900", 
+                                            k.status === 'active' ? "bg-emerald-400 border-indigo-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
+                                            k.status === 'probing' ? "bg-amber-400 border-indigo-400" : 
+                                            k.status === 'cooldown' ? "bg-orange-500 border-indigo-400" : 
+                                            isMissing ? "bg-indigo-800/50 text-indigo-200 border-indigo-500/50" :
+                                            "bg-red-500 border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
                                         )} 
                                     >
                                         {initial}

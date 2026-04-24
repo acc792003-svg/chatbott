@@ -70,14 +70,14 @@ export function ApiKeysView({
                 <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full border-collapse">
                         <thead>
-                            <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-50">
-                                <th className="py-6 pl-8 text-left">Trạng thái / Tên Key</th>
-                                <th className="py-6 text-left">Loại</th>
-                                <th className="py-6 text-center">Lưu lượng</th>
-                                <th className="py-6 text-center">Lỗi</th>
-                                <th className="py-6 text-center">Tỷ lệ Lỗi</th>
-                                <th className="py-6 text-center">Độ trễ</th>
-                                <th className="py-6 pr-8 text-right">Thao tác</th>
+                            <tr className="text-[10px] font-black text-sky-500 uppercase tracking-widest border-b border-slate-50">
+                                <th className="py-6 pl-8 text-left whitespace-nowrap">Trạng thái / Tên Key</th>
+                                <th className="py-6 text-left whitespace-nowrap w-px">Loại</th>
+                                <th className="py-6 text-center whitespace-nowrap w-px">Lưu lượng</th>
+                                <th className="py-6 text-center whitespace-nowrap w-px">Lỗi</th>
+                                <th className="py-6 text-center whitespace-nowrap w-px">Tỷ lệ Lỗi</th>
+                                <th className="py-6 text-center whitespace-nowrap w-px">Độ trễ</th>
+                                <th className="py-6 pr-8 text-right whitespace-nowrap w-px">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -88,7 +88,7 @@ export function ApiKeysView({
                                         <td className="py-6 pl-8">
                                             <div className="flex flex-col items-center gap-2 w-fit">
                                                 <div className={cn(
-                                                    "w-5 h-5 rounded-full border-4 border-white shadow-md flex items-center justify-center",
+                                                    "w-5 h-5 rounded-full border-4 border-white shadow-md flex items-center justify-center text-slate-900",
                                                     k.status === 'active' ? "bg-emerald-500 shadow-emerald-200 animate-pulse" :
                                                     k.status === 'probing' ? "bg-amber-400 shadow-amber-100" :
                                                     k.status === 'disabled' ? "bg-slate-300 shadow-slate-100" :
@@ -97,7 +97,7 @@ export function ApiKeysView({
                                                     {k.status === 'active' && <Zap size={8} className="text-white fill-white"/>}
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[10px] font-black text-slate-800 uppercase leading-none">{k.name}</p>
+                                                    <p className="text-[10px] font-black text-slate-800 uppercase leading-none whitespace-nowrap">{k.name}</p>
                                                     <p className={cn(
                                                         "text-[7px] font-black uppercase mt-1 tracking-widest",
                                                         k.status === 'active' ? "text-emerald-500" :
@@ -106,7 +106,7 @@ export function ApiKeysView({
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-6">
+                                        <td className="py-6 w-px whitespace-nowrap">
                                             <div className="flex flex-col gap-1">
                                                 <span className={cn(
                                                     "text-[9px] font-black px-2 py-0.5 rounded-md w-fit uppercase",
@@ -119,40 +119,44 @@ export function ApiKeysView({
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-6 text-center text-xs font-black text-slate-600">{k.usage_count || 0}</td>
-                                        <td className="py-6 text-center text-xs font-black text-red-500">{k.error_count || 0}</td>
-                                        <td className="py-6 text-center">
+                                        <td className="py-6 text-center text-xs font-black text-slate-600 w-px whitespace-nowrap">{k.usage_count || 0}</td>
+                                        <td className="py-6 text-center text-xs font-black text-red-500 w-px whitespace-nowrap">{k.error_count || 0}</td>
+                                        <td className="py-6 text-center w-px whitespace-nowrap">
                                             <div className={cn(
                                                 "inline-block px-2 py-0.5 rounded-full text-[10px] font-black border",
                                                 Number(failRate) < 5 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"
                                             )}>{failRate}%</div>
                                         </td>
-                                        <td className="py-6 text-center">
+                                        <td className="py-6 text-center w-px whitespace-nowrap">
                                             <div className="flex items-center justify-center gap-1">
                                                 <Zap size={10} className="text-amber-400 fill-amber-400"/>
                                                 <span className="text-xs font-black text-slate-700">{k.avg_latency || '---'}ms</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 pr-8 text-right">
-                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button 
-                                                    onClick={() => handleAction(k.db_id || k.id, 'reset')}
-                                                    className="p-2 bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm"
-                                                    title="Reset lỗi & Cooldown"
-                                                >
-                                                    <RefreshCcw size={14}/>
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleAction(k.db_id || k.id, 'toggle')}
-                                                    className={cn(
-                                                        "p-2 rounded-xl transition-all shadow-sm",
-                                                        k.status === 'disabled' ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-600 hover:text-white"
-                                                    )}
-                                                    title={k.status === 'disabled' ? "Bật Key" : "Tắt Key"}
-                                                >
-                                                    <Power size={14}/>
-                                                </button>
-                                            </div>
+                                        <td className="py-6 pr-8 text-right w-px whitespace-nowrap">
+                                            {!k.is_env ? (
+                                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button 
+                                                        onClick={() => handleAction(k.db_id || k.id, 'reset')}
+                                                        className="p-2 bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm"
+                                                        title="Reset lỗi & Cooldown"
+                                                    >
+                                                        <RefreshCcw size={14}/>
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleAction(k.db_id || k.id, 'toggle')}
+                                                        className={cn(
+                                                            "p-2 rounded-xl transition-all shadow-sm",
+                                                            k.status === 'disabled' ? "bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white" : "bg-red-50 text-red-500 hover:bg-red-600 hover:text-white"
+                                                        )}
+                                                        title={k.status === 'disabled' ? "Bật Key" : "Tắt Key"}
+                                                    >
+                                                        <Power size={14}/>
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[9px] font-bold text-slate-400 italic">.ENV KEY</span>
+                                            )}
                                         </td>
                                     </tr>
                                 );

@@ -28,21 +28,31 @@ export async function GET() {
         const stats = targetKeys.map((tk: any) => {
             const k = (dbKeys || []).find((dk: any) => dk.key === tk);
             
-            // Tên hiển thị thân thiện
+            // Tên hiển thị thân thiện & Kiểm tra giá trị
             let friendlyName = tk;
+            let hasValue = k?.value && k.value.trim() !== '' && k.value !== 'DeepSeek free';
+
             if (tk === 'gemini_api_key_1') friendlyName = 'Ge Free 1';
             else if (tk === 'gemini_api_key_2') friendlyName = 'Ge Free 2';
             else if (tk === 'gemini_api_key_pro') friendlyName = 'Ge Pro';
             else if (tk === 'deepseek_api_key_free1') friendlyName = 'Ds Free 1';
             else if (tk === 'deepseek_api_key_free2') friendlyName = 'Ds Free 2';
             else if (tk === 'deepseek_api_key_pro') friendlyName = 'Ds Pro';
-            else if (tk === 'gemini_embedding_key_1') friendlyName = 'Ge Embed 1';
-            else if (tk === 'gemini_embedding_key_2') friendlyName = 'Ge Embed 2';
-            else if (tk === 'deepseek_env_key') friendlyName = 'Ds Env';
+            else if (tk === 'gemini_embedding_key_1') {
+                friendlyName = 'Ge Env 1';
+                hasValue = !!process.env.GEMINI_EMBEDDING_KEY_1;
+            }
+            else if (tk === 'gemini_embedding_key_2') {
+                friendlyName = 'Ge Env 2';
+                hasValue = !!process.env.GEMINI_EMBEDDING_KEY_2;
+            }
+            else if (tk === 'deepseek_env_key') {
+                friendlyName = 'Ds Env';
+                // Kiểm tra xem process.env có chứa biến nào thay thế không
+                // Thường thì fallback DeepSeek được lấy từ GEMINI_API_KEY nếu là proxy hoặc DEEPSEEK_API_KEY
+                hasValue = !!process.env.DEEPSEEK_API_KEY || !!process.env.GEMINI_API_KEY; 
+            }
 
-            // Kiểm tra xem đã điền giá trị chưa
-            const hasValue = k?.value && k.value.trim() !== '' && k.value !== 'DeepSeek free';
-            
             let currentStatus = k?.status || 'active';
             
             // Logic Trạng thái thông minh
@@ -58,7 +68,8 @@ export async function GET() {
             }
 
             return {
-                id: k?.id || tk,
+                id: k?.id || tk, // Dùng UUID nếu có, ngược lại dùng string tk
+                key: tk,
                 name: friendlyName,
                 status: currentStatus,
                 usage_count: k?.usage_count || 0,
@@ -66,7 +77,8 @@ export async function GET() {
                 fail_count: k?.fail_count || 0,
                 avg_latency: k?.avg_latency || 0,
                 last_used_at: k?.last_used_at,
-                last_error: k?.last_error
+                last_error: k?.last_error,
+                is_env: tk.includes('embedding') || tk.includes('env')
             };
         });
 
@@ -85,7 +97,7 @@ export async function GET() {
             keys: stats,
             metrics: {
                 total_messages_24h: total,
-                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0
+                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : (0 as any)
             }
         });
 
