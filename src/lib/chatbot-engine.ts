@@ -2,6 +2,7 @@ import { supabase, supabaseAdmin } from './supabase';
 import { callGeminiWithFallback, generateEmbedding } from './gemini';
 import { detectAndSaveLead } from './leads';
 import { validateRateLimit } from './rate-limiter';
+import { reportError } from './radar';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -87,16 +88,15 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     // 🛡️ BẮT BUỘC VALIDATE CONFIG (1 dòng cứu cả hệ)
     if (!shopConfig) {
       console.error(`❌ chatbot_configs NULL cho shop: ${shopId} (#${shopCode})`);
-      // Ghi lỗi vào Radar để admin biết, KHÔNG lộ lỗi kỹ thuật ra ngoài cho khách
-      try {
-        await client.from('system_errors').insert({
-          shop_id: shopId,
-          error_type: 'CHATBOT_CONFIG_MISSING',
-          error_message: `Shop #${shopCode} chưa có chatbot_configs. Khách hàng đang không được phục vụ.`,
-          file_source: 'chatbot-engine.ts',
-          metadata: { shopId, shopCode }
-        });
-      } catch (e) {}
+      // 🔥 BÁO CÁO RADAR (Tự động gửi Telegram)
+      reportError({
+        shopId: shopId,
+        errorType: 'CHATBOT_CONFIG_MISSING',
+        errorMessage: `Shop #${shopCode} chưa có chatbot_configs. Khách hàng đang không được phục vụ.`,
+        fileSource: 'chatbot-engine.ts',
+        severity: 'critical',
+        metadata: { shopId, shopCode }
+      }).catch(() => {});
 
       return {
         answer: "Dạ xin lỗi bạn, hiện tại hệ thống đang bảo trì và sẽ sớm hoạt động trở lại. Bạn vui lòng liên hệ lại sau ít phút hoặc nhắn tin trực tiếp để được hỗ trợ nhé! 🙏",
@@ -322,13 +322,14 @@ ${phoneActionRule}
     } catch (e) {}
 
     if (client) {
-      await client.from('system_errors').insert({
-        shop_id: shopId,
-        error_type: 'ENGINE_CRASH_STABLE',
-        error_message: error.message,
-        file_source: 'chatbot-engine.ts',
+      reportError({
+        shopId: shopId,
+        errorType: 'ENGINE_CRASH_STABLE',
+        errorMessage: error.message,
+        fileSource: 'chatbot-engine.ts',
+        severity: 'high',
         metadata: { shopCode, platform, stack: error.stack, message: message.substring(0, 50) }
-      });
+      }).catch(() => {});
     }
     return { answer: errorResponse, source: 'ai', latency: latency };
   }

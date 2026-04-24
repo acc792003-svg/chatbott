@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
 import { sendFacebookMessage } from '@/lib/facebook';
+import { reportError } from '@/lib/radar';
 import crypto from 'crypto';
 
 /**
@@ -43,13 +44,13 @@ export async function POST(req: NextRequest) {
     // 1. VERIFY SIGNATURE (Bảo vệ khỏi hacker)
     if (!await verifySignature(rawBody, signature)) {
       console.error('❌ Invalid Webhook Signature!');
-      await supabaseAdmin.from('system_errors').insert({
-          shop_id: '1075624b-8941-418e-a0e9-ca8344379cc1', // Fallback ID or null
-          error_type: 'FB_WEBHOOK_INVALID_SIGNATURE',
-          error_message: 'Khớp chữ ký thất bại. rawBody snippet: ' + rawBody.substring(0, 50),
-          file_source: 'fb_webhook',
+      reportError({
+          errorType: 'FB_WEBHOOK_INVALID_SIGNATURE',
+          errorMessage: 'Khớp chữ ký thất bại. rawBody snippet: ' + rawBody.substring(0, 50),
+          fileSource: 'fb_webhook',
+          severity: 'high',
           metadata: { signature }
-      });
+      }).catch(() => {});
       return NextResponse.json({ error: 'Invalid Signature' }, { status: 401 });
     }
 
@@ -145,12 +146,12 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
 
   if (!config || !config.access_token) {
     console.warn(`⚠️ Page ${page_id} chưa được gán cho bất kỳ Shop nào!`);
-    await supabaseAdmin.from('system_errors').insert({
-        shop_id: '1075624b-8941-418e-a0e9-ca8344379cc1', // fallback
-        error_type: 'FB_WEBHOOK_PAGE_NOT_FOUND',
-        error_message: `Page ${page_id} gửi tin nhưng chưa Shop nào gán Facebook Page ID này.`,
-        file_source: 'fb_webhook'
-    });
+    reportError({
+        errorType: 'FB_WEBHOOK_PAGE_NOT_FOUND',
+        errorMessage: `Page ${page_id} gửi tin nhưng chưa Shop nào gán Facebook Page ID này.`,
+        fileSource: 'fb_webhook',
+        severity: 'medium'
+    }).catch(() => {});
     return;
   }
 

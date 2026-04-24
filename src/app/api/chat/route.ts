@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
+import { reportError } from '@/lib/radar';
 
 export async function POST(req: Request) {
   try {
@@ -36,14 +37,15 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error('API Chat Error:', error.message);
     
-    // 🔥 BÁO CÁO RADAR: LỖI API NỘI BỘ (Ví dụ: Sai định dạng UUID)
+    // 🔥 BÁO CÁO RADAR (Tự động gửi Telegram)
     if (supabaseAdmin) {
-       supabaseAdmin.from('system_errors').insert({
-         error_type: 'INTERNAL_API_ERROR',
-         error_message: error.message,
-         file_source: 'api/chat/route.ts',
+       reportError({
+         errorType: 'INTERNAL_API_ERROR',
+         errorMessage: error.message,
+         fileSource: 'api/chat/route.ts',
+         severity: 'high',
          metadata: { error: error.stack }
-       }).then(({error}: any) => { if(error) console.error('Radar report failed:', error.message) });
+       }).catch(() => {});
     }
 
     return NextResponse.json({ error: 'Hệ thống đang bận hoặc ID không hợp lệ. Hãy kiểm tra Radar Super Admin.' }, { status: 503 });

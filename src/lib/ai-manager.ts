@@ -1,4 +1,5 @@
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { reportError } from './radar';
 
 export type AIProvider = 'gemini' | 'deepseek';
 export type AITier = 'free' | 'pro';
@@ -139,6 +140,15 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
     
     updates.cooldown_until = cooldownDate.toISOString();
     updates.status = 'error';
+
+    // 🔥 THÔNG BÁO RADAR: KEY BỊ KHÓA DO LỖI LIÊN TỤC
+    reportError({
+      errorType: 'CIRCUIT_BREAKER_OPEN',
+      errorMessage: `Key ID ${keyId} lỗi liên tục (${newFailCount} lần) -> Nghỉ ${cooldownMinutes} phút. Lỗi cuối: ${errorMessage}`,
+      fileSource: 'ai-manager.ts',
+      severity: 'high',
+      metadata: { keyId, failCount: newFailCount, cooldownMinutes }
+    }).catch(() => {});
   }
 
   await client.from('system_settings').update(updates).eq('id', keyId);

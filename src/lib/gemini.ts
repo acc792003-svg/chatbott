@@ -81,7 +81,7 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
   const timeout = tier === 'pro' ? 8000 : 5000;
 
   if (provider === 'gemini') {
-    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const apiURL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
     const response = await fetchWithTimeout(apiURL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -142,11 +142,11 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
 
   for (const key of validKeys) {
     try {
-      const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent?key=${key}`, {
+      const res = await fetchWithTimeout(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: "models/text-embedding-004",
+          model: "models/gemini-embedding-2",
           content: { parts: [{ text }] }
         })
       }, 3000);
