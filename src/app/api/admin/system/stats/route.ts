@@ -96,22 +96,47 @@ export async function GET() {
             };
         });
 
-        // 4. Thống kê Cache trong 24h
+        // 4. Thống kê Cache trong 24h (Tối ưu hóa Pro Level: 1 RPC = 1 Roundtrip)
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        const { data: messages } = await supabaseAdmin
-            .from('messages')
-            .select('metadata')
-            .gt('created_at', yesterday);
         
-        const total = messages?.length || 0;
-        const cacheHits = messages?.filter((m: any) => m.metadata?.source?.includes('cache') || m.metadata?.source === 'faq').length || 0;
+        let totalCount = 0;
+        let cacheHitCount = 0;
+
+        try {
+            // Gọi RPC để lấy thống kê tập trung (Nhanh nhất)
+            const { data: rpcData, error: rpcErr } = await supabaseAdmin.rpc('get_system_stats', { 
+                _since: yesterday 
+            });
+
+            if (!rpcErr && rpcData && rpcData.length > 0) {
+                totalCount = rpcData[0].total_count || 0;
+                cacheHitCount = rpcData[0].cache_hits || 0;
+            } else {
+                // Fallback nếu chưa tạo RPC: Dùng count planned để tránh scan toàn bộ bảng
+                const { count: total } = await supabaseAdmin
+                    .from('messages')
+                    .select('*', { count: 'planned', head: true })
+                    .gt('created_at', yesterday);
+                
+                const { count: cacheHits } = await supabaseAdmin
+                    .from('messages')
+                    .select('*', { count: 'planned', head: true })
+                    .gt('created_at', yesterday)
+                    .or('metadata->>source.eq.cache,metadata->>source.eq.faq');
+                
+                totalCount = total || 0;
+                cacheHitCount = cacheHits || 0;
+            }
+        } catch (err) {
+            console.error('RPC Stats Error, using fallback:', err);
+        }
 
         return NextResponse.json({
             success: true,
             keys: stats,
             metrics: {
-                total_messages_24h: total,
-                cache_hit_rate: total > 0 ? (cacheHits / total * 100).toFixed(1) : 0
+                total_messages_24h: totalCount,
+                cache_hit_rate: totalCount > 0 ? (cacheHitCount / totalCount * 100).toFixed(1) : 0
             }
         });
 

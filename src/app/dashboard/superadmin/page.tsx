@@ -145,17 +145,31 @@ export default function SuperAdminPage() {
     
     // Nếu là super_admin hoặc staff_admin thì mới cho vào
     if (userData?.role === 'super_admin' || userData?.role === 'staff_admin') {
-      setUserRole(userData.role);
-      setNextGeneratedCode(generateCode()); // Sinh mã sẵn sàng
-      fetchShops();
-      fetchErrorLogs();
-      fetchKnowledgePackages();
-      
-      // Chỉ Super Admin mới fetch thêm các cấu hình nhạy cảm
-      if (userData.role === 'super_admin') {
-          fetchApiKeys();
-          fetchTrialConfig();
-          fetchSystemStats();
+      const role = userData.role;
+      setUserRole(role);
+      setNextGeneratedCode(generateCode());
+
+      setLoading(true);
+      try {
+        // Gom toàn bộ request vào Promise.allSettled để parallel tối đa
+        // Dùng allSettled để 1 API chết không kéo cả Dashboard chết theo
+        const tasks = [
+          fetchShops(),
+          fetchErrorLogs(),
+          fetchKnowledgePackages()
+        ];
+
+        if (role === 'super_admin') {
+          tasks.push(fetchApiKeys());
+          tasks.push(fetchTrialConfig());
+          tasks.push(fetchSystemStats());
+        }
+
+        await Promise.allSettled(tasks);
+      } catch (err) {
+        console.error("Lỗi tải Dashboard:", err);
+      } finally {
+        setLoading(false);
       }
     } else { 
         window.location.href = '/login'; 
@@ -180,7 +194,6 @@ export default function SuperAdminPage() {
   const [shopPackages, setShopPackages] = useState<any>({});
 
   const fetchShops = async () => {
-    setLoading(true);
     try {
         // 1. Lấy danh sách shop trực tiếp từ Supabase (đã có policy select true)
         const { data: shopsData, error: shopsErr } = await supabase
@@ -198,33 +211,46 @@ export default function SuperAdminPage() {
         const { data: mappings } = await supabase.from('shop_templates').select('shop_id, template_id');
         const { data: templates } = await supabase.from('knowledge_templates').select('id, package_name');
 
-        // Map dữ liệu
-        const iconMap: any = {};
-        const configMap: any = {};
+        // Map dữ liệu hiệu năng cao (O(N)) sử dụng Map Object (Pro Level)
+        const iconMap = new Map();
+        const configMap = new Map();
         configs?.forEach((c: any) => {
-            iconMap[c.shop_id] = c.head_icon;
-            configMap[c.shop_id] = c;
+            iconMap.set(c.shop_id, c.head_icon);
+            configMap.set(c.shop_id, c);
         });
 
-        const pkgMap: any = {};
-        shopsData?.forEach((s: any) => {
-            const pkgs = mappings?.filter((m: any) => m.shop_id === s.id).map((m: any) => {
-                const t = templates?.find((tmp: any) => tmp.id === m.template_id);
-                return t ? { id: t.id, name: t.package_name } : null;
-            }).filter(Boolean) || [];
-            pkgMap[s.id] = pkgs;
+        // Tạo map cho templates để tra cứu nhanh (O(1) lookup)
+        const templateLookup = new Map(
+            templates?.map((t: any) => [t.id, { id: t.id, name: t.package_name }]) || []
+        );
+
+        // Nhóm mappings theo shop_id
+        const shopToTemplates = new Map();
+        mappings?.forEach((m: any) => {
+            const t = templateLookup.get(m.template_id);
+            if (t) {
+                if (!shopToTemplates.has(m.shop_id)) {
+                    shopToTemplates.set(m.shop_id, [t]);
+                } else {
+                    shopToTemplates.get(m.shop_id).push(t);
+                }
+            }
         });
 
-        setShops(shopsData?.map((s: any) => ({ ...s, packages: pkgMap[s.id] })) || []);
-        setActiveIcons(iconMap);
-        setShopConfigs(configMap);
-        setShopPackages(pkgMap);
+        const finalShops = shopsData?.map((s: any) => ({ 
+            ...s, 
+            packages: shopToTemplates.get(s.id) || [] 
+        })) || [];
+
+        // Chuyển Map thành Object để tương thích với các State hiện tại của React/JSX
+        setShops(finalShops);
+        setActiveIcons(Object.fromEntries(iconMap));
+        setShopConfigs(Object.fromEntries(configMap));
+        setShopPackages(Object.fromEntries(shopToTemplates));
 
     } catch (e: any) {
         console.error('Lỗi khi load danh sách shop:', e);
         addToast('Lỗi khi tải dữ liệu Shop: ' + e.message, 'error');
-    } finally {
-        setLoading(false);
     }
   };
 
