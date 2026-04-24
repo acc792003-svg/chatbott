@@ -759,20 +759,20 @@ export default function SuperAdminPage() {
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><TrendingUp size={12} className="text-indigo-600"/> Tỷ lệ Cache (Tiết kiệm)</p>
                     <div className="flex items-end gap-2">
-                        <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.cacheRatio}%</h3>
+                        <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.cache_hit_rate || 0}%</h3>
                         <span className="text-[10px] font-bold text-emerald-600 mb-1 lg:block hidden">Tiết kiệm API</span>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Plus size={12} className="text-amber-600"/> AI Generation</p>
                     <div className="flex items-end gap-2">
-                        <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.aiRatio}%</h3>
+                        <h3 className="text-3xl font-black text-slate-900">{(100 - Number(systemStats.metrics?.cache_hit_rate || 0)).toFixed(1)}%</h3>
                         <span className="text-[10px] font-bold text-slate-500 mb-1 lg:block hidden">Lượt gọi AI</span>
                     </div>
                 </div>
                 <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
-                    <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.totalRequests}</h3>
+                    <h3 className="text-3xl font-black text-slate-900">{systemStats.metrics?.total_messages_24h || 0}</h3>
                 </div>
                 <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm group hover:scale-[1.02] transition-transform">
                     <div className="flex justify-between items-center mb-4">

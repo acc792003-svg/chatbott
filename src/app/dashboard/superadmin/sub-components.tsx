@@ -125,34 +125,34 @@ export function ApiKeysView({
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="py-6 w-px whitespace-nowrap">
-                                            <div className="flex flex-col gap-1">
+                                        <td className="py-6 text-center">
+                                            <div className="flex flex-col items-center gap-1">
                                                 <span className={cn(
-                                                    "text-[9px] font-black px-2 py-0.5 rounded-md w-fit uppercase",
-                                                    k.name.includes('Ge') ? "bg-indigo-100 text-indigo-700" : "bg-blue-100 text-blue-700"
+                                                    "text-[9px] font-black px-2 py-0.5 rounded-md uppercase",
+                                                    k.name.includes('Ge') ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-blue-50 text-blue-700 border border-blue-100"
                                                 )}>{k.name.includes('Ge') ? 'gemini' : 'deepseek'}</span>
                                                 {k.last_error && k.status === 'error' && (
-                                                    <p className="text-[8px] text-red-500 font-bold italic line-clamp-1 max-w-[120px]" title={k.last_error}>
-                                                        ⚠ {k.last_error}
+                                                    <p className="text-[8px] text-red-500 font-bold italic line-clamp-1 max-w-[80px]" title={k.last_error}>
+                                                        ⚠ Lỗi API
                                                     </p>
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="py-6 text-center text-xs font-black text-slate-600 w-px whitespace-nowrap">{k.usage_count || 0}</td>
-                                        <td className="py-6 text-center text-xs font-black text-red-500 w-px whitespace-nowrap">{k.error_count || 0}</td>
-                                        <td className="py-6 text-center w-px whitespace-nowrap">
+                                        <td className="py-6 text-center text-xs font-black text-slate-600">{k.usage_count || 0}</td>
+                                        <td className="py-6 text-center text-xs font-black text-red-500">{k.error_count || 0}</td>
+                                        <td className="py-6 text-center">
                                             <div className={cn(
-                                                "inline-block px-2 py-0.5 rounded-full text-[10px] font-black border",
+                                                "inline-block px-3 py-1 rounded-full text-[10px] font-black border",
                                                 Number(failRate) < 5 ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-red-50 text-red-600 border-red-100"
                                             )}>{failRate}%</div>
                                         </td>
-                                        <td className="py-6 text-center w-px whitespace-nowrap">
-                                            <div className="flex items-center justify-center gap-1">
+                                        <td className="py-6 text-center">
+                                            <div className="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 rounded-xl py-1 px-2 w-fit mx-auto">
                                                 <Zap size={10} className="text-amber-400 fill-amber-400"/>
-                                                <span className="text-xs font-black text-slate-700">{k.avg_latency || '---'}ms</span>
+                                                <span className="text-[10px] font-black text-slate-700">{k.avg_latency || '---'}ms</span>
                                             </div>
                                         </td>
-                                        <td className="py-6 pr-8 text-right w-px whitespace-nowrap">
+                                        <td className="py-6 pr-8 text-right">
                                             {!k.is_env ? (
                                                 <div className="flex items-center justify-end gap-2 transition-all">
                                                     <button 
