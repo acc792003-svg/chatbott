@@ -735,34 +735,43 @@ export default function SuperAdminPage() {
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
                     <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.totalRequests}</h3>
                 </div>
-                <div className="bg-indigo-600 p-5 rounded-[2rem] shadow-xl shadow-indigo-100 text-white group hover:scale-[1.02] transition-transform">
-                    <div className="flex justify-between items-center mb-3">
-                        <p className="text-[10px] font-black text-white/90 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12}/> AI Status</p>
-                        <span className="text-[8px] font-black uppercase text-white/80 tracking-tighter bg-indigo-700 px-2 py-0.5 rounded-full">{systemStats.keys?.filter((k: any) => k.status === 'active').length || 0}/9</span>
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-200 shadow-sm group hover:scale-[1.02] transition-transform">
+                    <div className="flex justify-between items-center mb-4">
+                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12} className="text-indigo-600"/> AI Status</p>
+                        <span className="text-[8px] font-black uppercase text-indigo-700 tracking-tighter bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">{systemStats.keys?.filter((k: any) => k.status === 'active').length || 0}/9</span>
                     </div>
-                    <div className="flex flex-wrap gap-x-2 gap-y-3 mt-1.5 justify-start">
-                        {systemStats.keys?.map((k: any, i: number) => {
-                            const isMissing = k.status === 'disabled';
-                            let shortName = k.name.replace('Ge ', '').replace('Ds ', '');
-                            let initial = isMissing ? '∅' : (k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E');
-                            return (
-                                <div key={i} className="flex flex-col items-center gap-1 w-8" title={`${k.name}: ${k.status.toUpperCase()}`}>
-                                    <div 
-                                        className={cn(
-                                            "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center text-[9px] font-black shadow-sm transition-all relative text-slate-900", 
-                                            k.status === 'active' ? "bg-emerald-400 border-indigo-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
-                                            k.status === 'probing' ? "bg-amber-400 border-indigo-400" : 
-                                            k.status === 'cooldown' ? "bg-orange-500 border-indigo-400" : 
-                                            isMissing ? "bg-indigo-800/50 text-indigo-200 border-indigo-500/50" :
-                                            "bg-red-500 border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
-                                        )} 
-                                    >
-                                        {initial}
-                                    </div>
-                                    <span className="text-[6px] font-black uppercase tracking-tighter text-indigo-100 text-center leading-none w-full truncate">{shortName}</span>
-                                </div>
-                            );
-                        })}
+                    <div className="flex flex-col gap-3 mt-2">
+                        {[
+                            systemStats.keys?.filter((k: any) => k.name.includes('Ge Free') || k.name.includes('Ge Pro')) || [],
+                            systemStats.keys?.filter((k: any) => k.name.includes('Ds Free') || k.name.includes('Ds Pro')) || [],
+                            systemStats.keys?.filter((k: any) => k.name.includes('Env')) || []
+                        ].map((rowKeys, rowIndex) => (
+                            <div key={rowIndex} className="flex items-center justify-between gap-2 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
+                                {rowKeys.map((k: any, i: number) => {
+                                    const isMissing = k.status === 'disabled';
+                                    let shortName = k.name.replace('Ge ', '').replace('Ds ', '');
+                                    let initial = isMissing ? '∅' : (k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E');
+                                    return (
+                                        <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}`}>
+                                            <div 
+                                                className={cn(
+                                                    "w-3 h-3 rounded-full flex-shrink-0 relative shadow-sm border", 
+                                                    k.status === 'active' ? "bg-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
+                                                    k.status === 'probing' ? "bg-amber-400 border-amber-500" : 
+                                                    k.status === 'cooldown' ? "bg-orange-500 border-orange-600" : 
+                                                    isMissing ? "bg-slate-300 border-slate-400" :
+                                                    "bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                                )} 
+                                            />
+                                            <div className="flex items-center gap-0.5 flex-1 min-w-0">
+                                                <span className="text-[10px] font-black text-slate-900 leading-none">{initial}</span>
+                                                <span className="text-[8px] font-bold text-slate-600 uppercase tracking-tighter truncate leading-none pt-0.5">{shortName}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
