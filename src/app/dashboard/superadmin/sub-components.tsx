@@ -3,7 +3,7 @@ import {
     Brain, Lock, Settings, AlertTriangle, Info, RefreshCcw, 
     Power, ShieldCheck, Zap, Activity, ShieldAlert, Copy,
     CheckCircle, MessageCircle, Package, Send, Edit2, Square, CheckSquare, Trash2, Layers,
-    Clock, Search, Filter
+    Clock, Search, Filter, Eye, EyeOff
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
@@ -96,23 +96,32 @@ export function ApiKeysView({
                                 return (
                                     <tr key={k.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="py-6 pl-8">
-                                            <div className="flex flex-col items-center gap-2 w-fit">
+                                            <div className="flex items-center gap-4">
                                                 <div className={cn(
-                                                    "w-5 h-5 rounded-full border-4 border-white shadow-md flex items-center justify-center text-slate-900",
-                                                    k.status === 'active' ? "bg-emerald-500 shadow-emerald-200 animate-pulse" :
+                                                    "w-10 h-10 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center shrink-0",
+                                                    k.status === 'active' ? "bg-emerald-500 shadow-emerald-100 animate-pulse" :
                                                     k.status === 'probing' ? "bg-amber-400 shadow-amber-100" :
-                                                    k.status === 'disabled' ? "bg-slate-300 shadow-slate-100" :
-                                                    "bg-red-500 shadow-red-200"
+                                                    k.status === 'disabled' ? "bg-slate-200 shadow-slate-50" :
+                                                    "bg-rose-500 shadow-rose-100"
                                                 )}>
-                                                    {k.status === 'active' && <Zap size={8} className="text-white fill-white"/>}
+                                                    {k.status === 'active' ? <Zap size={16} className="text-white fill-white"/> : 
+                                                     k.status === 'disabled' ? <Power size={14} className="text-slate-400"/> :
+                                                     <AlertTriangle size={16} className="text-white"/>}
                                                 </div>
-                                                <div className="text-center">
-                                                    <p className="text-[10px] font-black text-slate-800 uppercase leading-none whitespace-nowrap">{k.name}</p>
-                                                    <p className={cn(
-                                                        "text-[7px] font-black uppercase mt-1 tracking-widest",
-                                                        k.status === 'active' ? "text-emerald-500" :
-                                                        k.status === 'disabled' ? "text-slate-400" : "text-red-500"
-                                                    )}>{k.status}</p>
+                                                <div className="flex flex-col">
+                                                    <p className="text-xs font-black text-slate-800 uppercase tracking-tight leading-none mb-1.5">{k.name}</p>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            k.status === 'active' ? "bg-emerald-500" :
+                                                            k.status === 'disabled' ? "bg-slate-400" : "bg-rose-500"
+                                                        )}></span>
+                                                        <p className={cn(
+                                                            "text-[8px] font-black uppercase tracking-widest",
+                                                            k.status === 'active' ? "text-emerald-500" :
+                                                            k.status === 'disabled' ? "text-slate-400" : "text-rose-500"
+                                                        )}>{k.status}</p>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
@@ -334,7 +343,7 @@ function KeyInput({ label, value, onChange, show, toggle }: any) {
                     onClick={toggle}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-indigo-600 transition-colors"
                 >
-                    {show ? <Lock size={16} className="text-indigo-600"/> : <Settings size={16}/>}
+                    {show ? <EyeOff size={16} className="text-indigo-600"/> : <Eye size={16}/>}
                 </button>
             </div>
         </div>
