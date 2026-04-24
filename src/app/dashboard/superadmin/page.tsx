@@ -69,6 +69,7 @@ export default function SuperAdminPage() {
   const [addingShop, setAddingShop] = useState(false);
   const [openShopId, setOpenShopId] = useState<string | null>(null);
   const [activeIcons, setActiveIcons] = useState<{ [key: string]: string }>({});
+  const [shopConfigs, setShopConfigs] = useState<{ [key: string]: any }>({});
   const [showManyChatKeys, setShowManyChatKeys] = useState<{ [key: string]: boolean }>({});
 
   // Knowledge Workshop
@@ -192,10 +193,15 @@ export default function SuperAdminPage() {
         
         if (data && !data.error) {
             setShops(data);
-            const { data: configs } = await supabase.from('chatbot_configs').select('shop_id, head_icon');
+            const { data: configs } = await supabase.from('chatbot_configs').select('*');
             const iconMap: any = {};
-            configs?.forEach((c: any) => iconMap[c.shop_id] = c.head_icon);
+            const configMap: any = {};
+            configs?.forEach((c: any) => {
+                iconMap[c.shop_id] = c.head_icon;
+                configMap[c.shop_id] = c;
+            });
             setActiveIcons(iconMap);
+            setShopConfigs(configMap);
 
             const pkgMap: any = {};
             data.forEach((s: any) => {
@@ -658,7 +664,7 @@ export default function SuperAdminPage() {
              <div className="text-[10px] font-black uppercase text-indigo-500 mb-3 px-3 tracking-widest flex items-center gap-1.5"><Settings size={14}/> HỆ THỐNG LÕI (CORE)</div>
              <div className="flex flex-wrap gap-2">
                {[
-                 { id: 'shops', label: 'Cửa hàng', icon: <Users size={14}/> },
+                 { id: 'shops', label: 'Thông tin Cửa hàng', icon: <Users size={14}/> },
                  { id: 'apikeys', label: 'Cấu hình API', icon: <Key size={14}/>, adminOnly: true },
                  { id: 'config', label: 'Cài đặt chung', icon: <Settings size={14}/>, adminOnly: true },
                ].filter(tab => !tab.adminOnly || userRole === 'super_admin').map((tab) => (
@@ -894,6 +900,65 @@ export default function SuperAdminPage() {
                                     <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
                                         <td colSpan={5} className="p-4 md:p-6 pl-4 md:pl-16 border-l-4 border-indigo-600 relative">
                                             <div className="grid grid-cols-1 md:grid-cols-6 gap-6 xl:gap-8">
+                                                {/* NỘI DUNG AI (CORE) */}
+                                                <div className="col-span-1 md:col-span-6 border-b border-slate-100 pb-8 mb-4">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] flex items-center gap-2 underline">
+                                                            <Brain size={14} className="text-indigo-600"/> THÔNG TIN CỬA HÀNG (CORE KNOWLEDGE)
+                                                        </p>
+                                                        <button 
+                                                            onClick={async () => {
+                                                                const productInfo = (document.getElementById(`core-info-${shop.id}`) as HTMLTextAreaElement).value;
+                                                                const pricingInfo = (document.getElementById(`core-price-${shop.id}`) as HTMLTextAreaElement).value;
+                                                                const faq = (document.getElementById(`core-faq-${shop.id}`) as HTMLTextAreaElement).value;
+                                                                
+                                                                const { error } = await supabase.from('chatbot_configs').update({
+                                                                    product_info: productInfo,
+                                                                    pricing_info: pricingInfo,
+                                                                    faq: faq
+                                                                }).eq('shop_id', shop.id);
+                                                                
+                                                                if (!error) {
+                                                                    addToast('Đã cập nhật nội dung AI thành công!', 'success');
+                                                                    fetchShops();
+                                                                } else addToast('Lỗi cập nhật: ' + error.message, 'error');
+                                                            }}
+                                                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg shadow-indigo-100"
+                                                        >
+                                                            Lưu thay đổi nội dung
+                                                        </button>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                        <div>
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block ml-1 tracking-widest">Thông tin sản phẩm</label>
+                                                            <textarea 
+                                                                id={`core-info-${shop.id}`}
+                                                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] font-bold text-slate-700 leading-relaxed outline-none focus:border-indigo-500 min-h-[150px] shadow-inner custom-scrollbar"
+                                                                defaultValue={shopConfigs[shop.id]?.product_info || ''}
+                                                                placeholder="Mô tả sản phẩm, dịch vụ của shop..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block ml-1 tracking-widest">Thông tin giá cả</label>
+                                                            <textarea 
+                                                                id={`core-price-${shop.id}`}
+                                                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] font-bold text-slate-700 leading-relaxed outline-none focus:border-indigo-500 min-h-[150px] shadow-inner custom-scrollbar"
+                                                                defaultValue={shopConfigs[shop.id]?.pricing_info || ''}
+                                                                placeholder="Chính sách giá, khuyến mãi..."
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="text-[9px] font-black text-slate-400 uppercase mb-2 block ml-1 tracking-widest">Câu hỏi thường gặp (FAQ)</label>
+                                                            <textarea 
+                                                                id={`core-faq-${shop.id}`}
+                                                                className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-[11px] font-bold text-slate-700 leading-relaxed outline-none focus:border-indigo-500 min-h-[150px] shadow-inner custom-scrollbar"
+                                                                defaultValue={shopConfigs[shop.id]?.faq || ''}
+                                                                placeholder="Các câu hỏi khách hay hỏi..."
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
                                                 {/* ICON CONFIG */}
                                                 <div>
                                                     <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 underline"><ImageIcon size={12}/> Hình đại diện (Icon Bot)</p>
