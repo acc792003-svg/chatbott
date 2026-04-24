@@ -735,29 +735,34 @@ export default function SuperAdminPage() {
                     <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1 flex items-center gap-2"><Database size={12} className="text-indigo-600"/> Request 24h</p>
                     <h3 className="text-3xl font-black text-slate-900">{systemStats.performance?.totalRequests}</h3>
                 </div>
-                <div className="bg-indigo-600 p-6 rounded-[2rem] shadow-xl shadow-indigo-100 text-white group hover:scale-[1.02] transition-transform">
-                    <p className="text-[10px] font-black text-white/90 uppercase tracking-widest mb-1 flex items-center gap-2"><BrainCircuit size={12}/> AI Multi-Key Status</p>
-                    <div className="flex items-center gap-3 mt-1.5">
-                        <div className="flex gap-1.5">
-                            {systemStats.keys?.map((k: any, i: number) => (
-                                <div 
-                                    key={i} 
-                                    className={cn(
-                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center text-[10px] font-black shadow-sm transition-all", 
-                                        k.status === 'healthy' && k.error === 0 ? "bg-emerald-400 text-white border-indigo-500" : 
-                                        k.status === 'healthy' && k.error > 0 ? "bg-orange-400 text-white border-orange-600" : 
-                                        k.status === 'cooldown' ? "bg-amber-400 text-amber-900 border-indigo-500" : 
-                                        k.status === 'missing' ? "bg-slate-800 text-slate-400 border-slate-600" :
-                                        "bg-red-500 text-white border-red-700"
-                                    )} 
-                                    title={`${k.name}: ${k.status.toUpperCase()} (${k.error} lỗi)`}
-                                >
-                                    {k.status === 'missing' ? 'X' : 
-                                     (k.name === 'Key 1' ? '1' : k.name === 'Key 2' ? '2' : k.name === 'Key PRO' ? 'P' : 'E')}
+                <div className="bg-indigo-600 p-5 rounded-[2rem] shadow-xl shadow-indigo-100 text-white group hover:scale-[1.02] transition-transform">
+                    <div className="flex justify-between items-center mb-3">
+                        <p className="text-[10px] font-black text-white/90 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12}/> AI Status</p>
+                        <span className="text-[8px] font-black uppercase text-white/80 tracking-tighter bg-indigo-700 px-2 py-0.5 rounded-full">{systemStats.keys?.filter((k: any) => k.status === 'active').length || 0}/9</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-2 gap-y-3 mt-1.5 justify-start">
+                        {systemStats.keys?.map((k: any, i: number) => {
+                            const isMissing = k.status === 'disabled';
+                            let shortName = k.name.replace('Ge ', '').replace('Ds ', '');
+                            let initial = isMissing ? '∅' : (k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E');
+                            return (
+                                <div key={i} className="flex flex-col items-center gap-1 w-8" title={`${k.name}: ${k.status.toUpperCase()}`}>
+                                    <div 
+                                        className={cn(
+                                            "w-5 h-5 rounded-full border-[1.5px] flex items-center justify-center text-[9px] font-black shadow-sm transition-all relative", 
+                                            k.status === 'active' ? "bg-emerald-400 text-emerald-900 border-indigo-400 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
+                                            k.status === 'probing' ? "bg-amber-400 text-amber-900 border-indigo-400" : 
+                                            k.status === 'cooldown' ? "bg-orange-500 text-orange-900 border-indigo-400" : 
+                                            isMissing ? "bg-indigo-800/50 text-indigo-400 border-indigo-500/50" :
+                                            "bg-red-500 text-white border-red-300 shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                        )} 
+                                    >
+                                        {initial}
+                                    </div>
+                                    <span className="text-[6px] font-black uppercase tracking-tighter text-indigo-100 text-center leading-none w-full truncate">{shortName}</span>
                                 </div>
-                            ))}
-                        </div>
-                        <span className="text-[10px] font-black uppercase text-white/80 tracking-tighter">Nodes Online</span>
+                            );
+                        })}
                     </div>
                 </div>
             </div>
