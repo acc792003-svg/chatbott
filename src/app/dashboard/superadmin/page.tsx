@@ -851,39 +851,39 @@ export default function SuperAdminPage() {
 
                 {/* --- RADAR ACTIVITY FEED --- */}
                 <div className="px-2 mb-8 animate-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-slate-900 rounded-[2.5rem] p-6 shadow-2xl border border-slate-800 relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[100px] -z-0"></div>
+                    <div className="bg-slate-50 rounded-[2.5rem] p-6 shadow-sm border border-slate-200 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-[100px] -z-0"></div>
                         <div className="flex items-center justify-between mb-6 relative z-10">
                             <div>
-                                <h3 className="text-white font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3">
+                                <h3 className="text-slate-900 font-black text-sm uppercase tracking-[0.2em] flex items-center gap-3">
                                     <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
                                     Radar Real-time Monitoring
                                 </h3>
-                                <p className="text-slate-400 text-[9px] font-bold uppercase tracking-widest mt-1">Theo dõi sự cố & Hiệu năng AI toàn hệ thống</p>
+                                <p className="text-slate-500 text-[9px] font-bold uppercase tracking-widest mt-1">Theo dõi sự cố & Hiệu năng AI toàn hệ thống</p>
                             </div>
-                            <button onClick={() => setActiveTab('errors')} className="text-indigo-400 text-[10px] font-black uppercase hover:text-white transition-colors">Xem tất cả nhật ký →</button>
+                            <button onClick={() => setActiveTab('errors')} className="text-indigo-600 text-[10px] font-black uppercase hover:text-indigo-700 transition-colors">Xem tất cả nhật ký →</button>
                         </div>
 
                         <div className="space-y-3 relative z-10">
                             {errorLogs.filter((l: any) => l.type === 'critical').slice(0, 5).map((log: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 hover:bg-white/10 transition-all group">
+                                <div key={idx} className="flex items-center justify-between bg-white border border-slate-100 rounded-2xl p-4 hover:shadow-md transition-all group">
                                     <div className="flex items-center gap-4 flex-1 min-w-0">
                                         <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg",
-                                            log.severity === 'critical' ? "bg-rose-500/20 text-rose-500 border border-rose-500/30" : "bg-amber-500/20 text-amber-500 border border-amber-500/30"
+                                            "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm",
+                                            log.severity === 'critical' ? "bg-rose-50 text-rose-500 border border-rose-100" : "bg-amber-50 text-amber-500 border border-amber-100"
                                         )}>
                                             <ShieldAlert size={20} />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="text-white text-[11px] font-black uppercase tracking-tight truncate">{log.error_type}</span>
-                                                <span className="text-slate-500 text-[9px] font-bold">• {new Date(log.created_at).toLocaleTimeString()}</span>
+                                                <span className="text-slate-900 text-[11px] font-black uppercase tracking-tight truncate">{log.error_type}</span>
+                                                <span className="text-slate-400 text-[9px] font-bold">• {new Date(log.created_at).toLocaleTimeString()}</span>
                                             </div>
-                                            <p className="text-slate-400 text-[10px] font-medium truncate italic">“{log.error_message}”</p>
+                                            <p className="text-slate-600 text-[10px] font-medium truncate italic">“{log.error_message}”</p>
                                         </div>
                                     </div>
                                     <div className="text-right ml-4">
-                                        <span className="text-indigo-400 text-[9px] font-black uppercase bg-indigo-500/10 px-2 py-1 rounded-lg border border-indigo-500/20">{log.shops?.name || 'SYSTEM'}</span>
+                                        <span className="text-indigo-600 text-[9px] font-black uppercase bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">{log.shops?.name || 'SYSTEM'}</span>
                                     </div>
                                 </div>
                             ))}
