@@ -180,42 +180,49 @@ export default function SuperAdminPage() {
   const [shopPackages, setShopPackages] = useState<any>({});
 
   const fetchShops = async () => {
+    setLoading(true);
     try {
-        // Lấy token từ session hiện tại của Supabase
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        const res = await fetch('/api/admin/shops', {
-            headers: {
-                'Authorization': `Bearer ${session?.access_token}`
-            }
-        });
-        const data = await res.json();
-        
-        if (data && !data.error) {
-            setShops(data);
-            const { data: configs } = await supabase.from('chatbot_configs').select('*');
-            const iconMap: any = {};
-            const configMap: any = {};
-            configs?.forEach((c: any) => {
-                iconMap[c.shop_id] = c.head_icon;
-                configMap[c.shop_id] = c;
-            });
-            setActiveIcons(iconMap);
-            setShopConfigs(configMap);
+        // 1. Lấy danh sách shop trực tiếp từ Supabase (đã có policy select true)
+        const { data: shopsData, error: shopsErr } = await supabase
+            .from('shops')
+            .select('*, users(email, id)')
+            .order('created_at', { ascending: false });
 
-            const pkgMap: any = {};
-            data.forEach((s: any) => {
-                if (s.packages && s.packages.length > 0) {
-                    pkgMap[s.id] = s.packages;
-                }
-            });
-            setShopPackages(pkgMap);
-        } else if (data.error) {
-            console.error('API Error:', data.error);
-        }
-    } catch (e) {
+        if (shopsErr) throw shopsErr;
+
+        // 2. Lấy toàn bộ cấu hình chatbot
+        const { data: configs, error: configsErr } = await supabase.from('chatbot_configs').select('*');
+        if (configsErr) throw configsErr;
+
+        // 3. Lấy mappings gói tri thức
+        const { data: mappings } = await supabase.from('shop_templates').select('shop_id, template_id');
+        const { data: templates } = await supabase.from('knowledge_templates').select('id, package_name');
+
+        // Map dữ liệu
+        const iconMap: any = {};
+        const configMap: any = {};
+        configs?.forEach((c: any) => {
+            iconMap[c.shop_id] = c.head_icon;
+            configMap[c.shop_id] = c;
+        });
+
+        const pkgMap: any = {};
+        shopsData?.forEach((s: any) => {
+            const pkgs = mappings?.filter((m: any) => m.shop_id === s.id).map((m: any) => {
+                const t = templates?.find((tmp: any) => tmp.id === m.template_id);
+                return t ? { id: t.id, name: t.package_name } : null;
+            }).filter(Boolean) || [];
+            pkgMap[s.id] = pkgs;
+        });
+
+        setShops(shopsData?.map(s => ({ ...s, packages: pkgMap[s.id] })) || []);
+        setActiveIcons(iconMap);
+        setShopConfigs(configMap);
+        setShopPackages(pkgMap);
+
+    } catch (e: any) {
         console.error('Lỗi khi load danh sách shop:', e);
-        addToast('Lỗi khi tải danh sách Shop. Đang dùng data cũ.', 'error');
+        addToast('Lỗi khi tải dữ liệu Shop: ' + e.message, 'error');
     } finally {
         setLoading(false);
     }

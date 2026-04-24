@@ -7,24 +7,24 @@ export async function GET(req: NextRequest) {
     // 1. KIỂM TRA ĐĂNG NHẬP (Lấy user từ JWT trong Authorization header)
     const authHeader = req.headers.get('Authorization');
     const token = authHeader?.split(' ')[1];
+    console.log('API Shops - Token exists:', !!token);
     
     let user;
     if (token) {
-        // Nếu có token gửi kèm
         const { data } = await supabase.auth.getUser(token);
         user = data.user;
     } else {
-        // Fallback: Kiểm tra session từ cookie nếu chạy trên cùng domain
         const { data } = await supabase.auth.getUser();
         user = data.user;
     }
 
     if (!user) {
+      console.error('API Shops - Unauthorized');
       return NextResponse.json({ error: 'Unauthorized - Vui lòng đăng nhập' }, { status: 401 });
     }
+    console.log('API Shops - User ID:', user.id);
 
     // 2. KIỂM TRA QUYỀN (ROLE CHECK)
-    // Truy vấn bảng users để kiểm tra role thực tế của người dùng này
     const { data: userData, error: roleError } = await supabaseAdmin
       .from('users')
       .select('role')
@@ -32,28 +32,25 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (roleError || !userData || (userData.role !== 'super_admin' && userData.role !== 'staff_admin')) {
+      console.error('API Shops - Forbidden. Role:', userData?.role);
       return NextResponse.json({ error: 'Forbidden - Bạn không có quyền truy cập' }, { status: 403 });
     }
+    console.log('API Shops - Role OK:', userData.role);
 
-    // 3. TRUY VẤN DỮ LIỆU (Với quyền Admin)
+    // 3. TRUY VẤN DỮ LIỆU
     const { data: shops, error } = await supabaseAdmin
       .from('shops')
       .select(`
-        id, 
-        name, 
-        code, 
-        plan, 
-        plan_expiry_date, 
-        created_at, 
-        slug,
-        manychat_api_key,
-        fb_page_id,
-        fb_page_token,
+        id, name, code, plan, plan_expiry_date, created_at, slug, manychat_api_key, fb_page_id, fb_page_token,
         users (email, id)
       `)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+        console.error('API Shops - DB Error:', error);
+        throw error;
+    }
+    console.log('API Shops - Found shops:', shops?.length || 0);
 
     // 4. BỔ SUNG GÓI TRI THỨC VÀ CẤU HÌNH LIÊN QUAN
     const shopIds = shops.map((s: any) => s.id);
