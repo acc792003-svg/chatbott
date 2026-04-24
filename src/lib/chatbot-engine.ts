@@ -87,6 +87,15 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     shopCode = shopData?.code || 'unknown';
 
     // 🛡️ BẮT BUỘC VALIDATE CONFIG (1 dòng cứu cả hệ)
+    if (configError) {
+      console.error(`❌ Lỗi truy vấn chatbot_configs cho shop: ${shopId}:`, configError);
+      return {
+        answer: "Dạ, hệ thống đang gặp chút sự cố kết nối dữ liệu. Bạn vui lòng thử lại sau giây lát nhe! 🙏",
+        source: 'faq',
+        latency: 0
+      };
+    }
+
     if (!shopConfig) {
       console.error(`❌ chatbot_configs NULL cho shop: ${shopId} (#${shopCode})`);
       // 🔥 BÁO CÁO RADAR (Tự động gửi Telegram)

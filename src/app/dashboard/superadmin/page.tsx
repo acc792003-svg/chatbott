@@ -1030,16 +1030,22 @@ export default function SuperAdminPage() {
                                                                 const pricingInfo = (document.getElementById(`core-price-${shop.id}`) as HTMLTextAreaElement).value;
                                                                 const faq = (document.getElementById(`core-faq-${shop.id}`) as HTMLTextAreaElement).value;
                                                                 
-                                                                const { error } = await supabase.from('chatbot_configs').update({
-                                                                    product_info: productInfo,
-                                                                    pricing_info: pricingInfo,
-                                                                    faq: faq
-                                                                }).eq('shop_id', shop.id);
+                                                                const res = await fetch('/api/admin/update-config', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        shopId: shop.id,
+                                                                        productInfo: productInfo,
+                                                                        pricingInfo: pricingInfo,
+                                                                        faq: faq
+                                                                    })
+                                                                });
+                                                                const data = await res.json();
                                                                 
-                                                                if (!error) {
+                                                                if (res.ok && data.success) {
                                                                     addToast('Đã cập nhật nội dung AI thành công!', 'success');
                                                                     fetchShops();
-                                                                } else addToast('Lỗi cập nhật: ' + error.message, 'error');
+                                                                } else addToast('Lỗi cập nhật: ' + (data.error || 'Lỗi server'), 'error');
                                                             }}
                                                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg shadow-indigo-100"
                                                         >
@@ -1188,15 +1194,21 @@ export default function SuperAdminPage() {
                                                             onClick={async () => {
                                                                 const chatId = (document.getElementById(`tg-chat-id-${shop.id}`) as HTMLInputElement).value;
                                                                 const botToken = (document.getElementById(`tg-bot-token-${shop.id}`) as HTMLInputElement).value;
-                                                                const { error } = await supabase.from('chatbot_configs').update({
-                                                                    telegram_chat_id: chatId.trim(),
-                                                                    telegram_bot_token: botToken.trim()
-                                                                }).eq('shop_id', shop.id);
+                                                                const res = await fetch('/api/admin/update-config', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({
+                                                                        shopId: shop.id,
+                                                                        telegramChatId: chatId.trim(),
+                                                                        telegramBotToken: botToken.trim()
+                                                                    })
+                                                                });
+                                                                const data = await res.json();
                                                                 
-                                                                if (!error) {
+                                                                if (res.ok && data.success) {
                                                                     addToast('Đã bọc thép cấu hình Telegram!', 'success');
                                                                     fetchShops();
-                                                                } else addToast('Lỗi: ' + error.message, 'error');
+                                                                } else addToast('Lỗi: ' + (data.error || 'Lỗi server'), 'error');
                                                             }}
                                                             className="w-full bg-sky-600 hover:bg-sky-500 text-white rounded-xl py-2 text-[10px] font-black uppercase transition-all"
                                                         >
