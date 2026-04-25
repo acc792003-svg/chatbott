@@ -42,13 +42,13 @@ async function fetchWithTimeout(resource: string, options: any, timeout: number)
   }
 }
 
-export async function runAI(payload: { history: any[], temperature: number, systemPrompt?: string, tier: 'free' | 'pro', vectorFaqs: any[] }) {
+export async function runAI(payload: { history: any[], temperature: number, systemPrompt?: string, tier: 'free' | 'pro', vectorFaqs: any[], platform?: string }) {
   let systemPrompt = safeTrim(payload.systemPrompt || '', 6000);
 
   try {
     const result = await callGeminiWithFallback(
       payload.history,
-      { temperature: payload.temperature, isPro: payload.tier === 'pro' },
+      { temperature: payload.temperature, isPro: payload.tier === 'pro', platform: payload.platform },
       null, // shopId
       `chat_${payload.tier}`,
       systemPrompt

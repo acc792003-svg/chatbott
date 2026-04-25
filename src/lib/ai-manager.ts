@@ -44,7 +44,16 @@ export function calculateComplexityScore(userInput: string): number {
 /**
  * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ thông minh
  */
-export function getRetryPath(isPro: boolean, complexity: number): {provider: AIProvider, tier: AITier}[] {
+export function getRetryPath(isPro: boolean, complexity: number, platform?: string): {provider: AIProvider, tier: AITier}[] {
+  if (platform === 'facebook') {
+    // Fanpage Facebook ưu tiên dùng OpenRouter
+    return [
+      { provider: 'openrouter', tier: 'pro' },
+      { provider: 'gemini', tier: 'pro' },
+      { provider: 'deepseek', tier: 'pro' }
+    ];
+  }
+
   if (isPro) {
     // Gói PRO ưu tiên: Gemini Pro -> OpenRouter -> Gemini Pro
     // (OpenRouter sẽ tự động quét qua Key 1 rồi đến Key 2)

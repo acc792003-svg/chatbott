@@ -358,7 +358,8 @@ ${happyHourContext}`;
              temperature: 0.7,
              systemPrompt,
              tier: plan,
-             vectorFaqs: scoredFaqs
+             vectorFaqs: scoredFaqs,
+             platform: platform
         });
 
        finalResponse = aiResult.text;

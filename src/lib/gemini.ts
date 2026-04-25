@@ -38,7 +38,7 @@ export async function callGeminiWithFallback(
   // Trích xuất nội dung tin nhắn cuối cùng từ history
   const lastMsg = history[history.length - 1]?.parts?.[0]?.text || "";
   const complexity = calculateComplexityScore(lastMsg);
-  const path = getRetryPath(options.isPro || false, complexity);
+  const path = getRetryPath(options.isPro || false, complexity, options.platform);
 
   let finalResult = null;
 
