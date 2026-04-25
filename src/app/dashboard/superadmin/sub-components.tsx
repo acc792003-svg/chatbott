@@ -328,6 +328,7 @@ export function ApiKeysView({
  */
 export function LogsView({ errorLogs }: any) {
     const [activeErrorTab, setActiveErrorTab] = useState<'all' | 'ai' | 'webhook' | 'system'>('all');
+    const [visibleCount, setVisibleCount] = useState(8);
 
     if (!errorLogs || errorLogs.length === 0) {
         return (
@@ -351,6 +352,7 @@ export function LogsView({ errorLogs }: any) {
     });
 
     const filteredLogs = activeErrorTab === 'all' ? categorizedLogs : categorizedLogs.filter((l: any) => l.category === activeErrorTab);
+    const displayedLogs = filteredLogs.slice(0, visibleCount);
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
@@ -377,7 +379,10 @@ export function LogsView({ errorLogs }: any) {
                     ].map((tab) => (
                         <button 
                             key={tab.id}
-                            onClick={() => setActiveErrorTab(tab.id as any)}
+                            onClick={() => {
+                                setActiveErrorTab(tab.id as any);
+                                setVisibleCount(8);
+                            }}
                             className={cn(
                                 "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all",
                                 activeErrorTab === tab.id ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
@@ -393,28 +398,40 @@ export function LogsView({ errorLogs }: any) {
                         <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Không có lỗi nào trong mục này</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {filteredLogs.map((log: any) => (
-                            <div key={log.id} className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between">
-                                <div>
-                                    <div className="flex items-start justify-between gap-4 mb-3">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className={cn(
-                                                "text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border",
-                                                log.category === 'webhook' ? "bg-blue-50 text-blue-700 border-blue-100" : 
-                                                log.category === 'ai' ? "bg-purple-50 text-purple-700 border-purple-100" :
-                                                "bg-red-50 text-red-700 border-red-100"
-                                            )}>{log.error_type || log.file_source || 'SYSTEM'}</span>
-                                            {log.shops && <span className="text-[9px] font-black bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-widest">#{log.shops.code}</span>}
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {displayedLogs.map((log: any) => (
+                                <div key={log.id} className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between">
+                                    <div>
+                                        <div className="flex items-start justify-between gap-4 mb-3">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className={cn(
+                                                    "text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border",
+                                                    log.category === 'webhook' ? "bg-blue-50 text-blue-700 border-blue-100" : 
+                                                    log.category === 'ai' ? "bg-purple-50 text-purple-700 border-purple-100" :
+                                                    "bg-red-50 text-red-700 border-red-100"
+                                                )}>{log.error_type || log.file_source || 'SYSTEM'}</span>
+                                                {log.shops && <span className="text-[9px] font-black bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-widest">#{log.shops.code}</span>}
+                                            </div>
                                         </div>
+                                        <p className="text-xs font-bold text-slate-700 leading-relaxed mb-4">{log.error_message}</p>
                                     </div>
-                                    <p className="text-xs font-bold text-slate-700 leading-relaxed mb-4">{log.error_message}</p>
+                                    <div className="text-[10px] font-black text-slate-400 flex items-center gap-1 border-t border-slate-50 pt-4 mt-auto">
+                                        <Clock size={12}/> {new Date(log.created_at).toLocaleString('vi-VN')}
+                                    </div>
                                 </div>
-                                <div className="text-[10px] font-black text-slate-400 flex items-center gap-1 border-t border-slate-50 pt-4 mt-auto">
-                                    <Clock size={12}/> {new Date(log.created_at).toLocaleString('vi-VN')}
-                                </div>
+                            ))}
+                        </div>
+                        {visibleCount < filteredLogs.length && (
+                            <div className="flex justify-center mt-6">
+                                <button 
+                                    onClick={() => setVisibleCount(prev => prev + 8)}
+                                    className="bg-slate-50 hover:bg-slate-100 text-slate-600 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border border-slate-200 hover:border-slate-300 flex items-center gap-2"
+                                >
+                                    Xem thêm ({filteredLogs.length - visibleCount} lỗi nữa) <span className="text-slate-400 text-[10px]">▼</span>
+                                </button>
                             </div>
-                        ))}
+                        )}
                     </div>
                 )}
             </div>
