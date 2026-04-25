@@ -60,6 +60,7 @@ export default function SuperAdminPage() {
   
   // UI States
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState<'shops' | 'knowledge' | 'keywords' | 'apikeys' | 'errors' | 'config' | 'telegram' | 'analytics' | 'facebook'>('shops');
   const [userRole, setUserRole] = useState<string>(''); // Lưu role thực tế (super_admin hoặc staff_admin)
   const [showKeys, setShowKeys] = useState<{ [key: string]: boolean }>({});
