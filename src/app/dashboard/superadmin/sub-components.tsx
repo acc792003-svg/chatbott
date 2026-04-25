@@ -121,7 +121,7 @@ export function ApiKeysView({
                 <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Key đang chạy</p>
                     <h3 className="text-3xl font-black text-slate-800">
-                        {keys.filter((k: any) => k.status === 'active').length}/{keys.length}
+                        {keys.filter((k: any) => (testResults[k.id]?.status || k.status) === 'active').length}/{keys.length}
                     </h3>
                 </div>
             </div>
@@ -166,34 +166,37 @@ export function ApiKeysView({
                         <tbody className="divide-y divide-slate-50">
                             {keys.map((k: any) => {
                                 const failRate = k.usage_count > 0 ? ((k.fail_count / k.usage_count) * 100).toFixed(1) : 0;
+                                const currentStatus = testResults[k.id]?.status || k.status;
                                 return (
                                     <tr key={k.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="py-6 pl-8">
                                             <div className="flex items-center gap-4">
                                                 <div className={cn(
-                                                    "w-10 h-10 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center shrink-0",
-                                                    k.status === 'active' ? "bg-emerald-500 shadow-emerald-100 animate-pulse" :
-                                                    k.status === 'probing' ? "bg-amber-400 shadow-amber-100" :
-                                                    k.status === 'disabled' ? "bg-slate-200 shadow-slate-50" :
+                                                    "w-10 h-10 rounded-2xl border-4 border-white shadow-lg flex items-center justify-center shrink-0 transition-all",
+                                                    currentStatus === 'active' ? "bg-emerald-500 shadow-emerald-100" :
+                                                    currentStatus === 'probing' || currentStatus === 'slow' ? "bg-amber-400 shadow-amber-100" :
+                                                    currentStatus === 'disabled' ? "bg-slate-200 shadow-slate-50" :
                                                     "bg-rose-500 shadow-rose-100"
                                                 )}>
-                                                    {k.status === 'active' ? <Zap size={16} className="text-white fill-white"/> : 
-                                                     k.status === 'disabled' ? <Power size={14} className="text-slate-400"/> :
+                                                    {currentStatus === 'active' ? <Zap size={16} className="text-white fill-white"/> : 
+                                                     currentStatus === 'disabled' ? <Power size={14} className="text-slate-400"/> :
                                                      <AlertTriangle size={16} className="text-white"/>}
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <p className="text-xs font-black text-slate-800 uppercase tracking-tight leading-none mb-1.5">{k.name}</p>
                                                     <div className="flex items-center gap-1.5">
                                                         <span className={cn(
-                                                            "w-1.5 h-1.5 rounded-full",
-                                                            k.status === 'active' ? "bg-emerald-500" :
-                                                            k.status === 'disabled' ? "bg-slate-400" : "bg-rose-500"
+                                                            "w-1.5 h-1.5 rounded-full transition-all",
+                                                            currentStatus === 'active' ? "bg-emerald-500" :
+                                                            currentStatus === 'disabled' ? "bg-slate-400" :
+                                                            currentStatus === 'slow' ? "bg-amber-400" : "bg-rose-500"
                                                         )}></span>
                                                         <p className={cn(
-                                                            "text-[8px] font-black uppercase tracking-widest",
-                                                            k.status === 'active' ? "text-emerald-500" :
-                                                            k.status === 'disabled' ? "text-slate-400" : "text-rose-500"
-                                                        )}>{k.status}</p>
+                                                            "text-[8px] font-black uppercase tracking-widest transition-all",
+                                                            currentStatus === 'active' ? "text-emerald-500" :
+                                                            currentStatus === 'disabled' ? "text-slate-400" :
+                                                            currentStatus === 'slow' ? "text-amber-500" : "text-rose-500"
+                                                        )}>{currentStatus}</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -204,8 +207,8 @@ export function ApiKeysView({
                                                     "text-[9px] font-black px-2 py-0.5 rounded-md uppercase",
                                                     k.name.includes('Ge') ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-blue-50 text-blue-700 border border-blue-100"
                                                 )}>{k.name.includes('Ge') ? 'gemini' : 'deepseek'}</span>
-                                                {k.last_error && k.status === 'error' && (
-                                                    <p className="text-[8px] text-red-500 font-bold italic line-clamp-1 max-w-[80px]" title={k.last_error}>
+                                                {(testResults[k.id]?.error || (k.last_error && currentStatus === 'error')) && (
+                                                    <p className="text-[8px] text-red-500 font-bold italic line-clamp-1 max-w-[80px]" title={testResults[k.id]?.error || k.last_error}>
                                                         ⚠ Lỗi API
                                                     </p>
                                                 )}
