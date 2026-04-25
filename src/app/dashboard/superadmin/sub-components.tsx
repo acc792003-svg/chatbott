@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
     Brain, Lock, Settings, AlertTriangle, Info, RefreshCcw, 
     Power, ShieldCheck, Zap, Activity, ShieldAlert, Copy,
@@ -7,6 +7,26 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+
+// Native concurrency queue
+const runWithLimit = async (tasks: any[], limit = 3) => {
+    const results: Promise<any>[] = [];
+    const executing: Promise<any>[] = [];
+    for (const task of tasks) {
+        const p = Promise.resolve().then(() => task());
+        results.push(p);
+        if (limit <= tasks.length) {
+            let e: Promise<any>;
+            e = p.then(() => {
+                const index = executing.indexOf(e);
+                if (index > -1) executing.splice(index, 1);
+            });
+            executing.push(e);
+            if (executing.length >= limit) await Promise.race(executing);
+        }
+    }
+    return Promise.all(results);
+};
 
 /**
  * 📊 VIEW 1: AI KEY MONITOR (REAL-TIME COMMAND CENTER)
@@ -27,6 +47,45 @@ export function ApiKeysView({
 }: any) {
     const keys = systemStats?.keys || [];
     const metrics = systemStats?.metrics || { total_messages_24h: 0, cache_hit_rate: 0 };
+
+    // Testing State
+    const [testingMap, setTestingMap] = useState<Record<string, boolean>>({});
+    const [testResults, setTestResults] = useState<Record<string, any>>({});
+    const [testingAll, setTestingAll] = useState(false);
+
+    const testKey = async (key: any) => {
+        setTestingMap(p => ({ ...p, [key.id]: true }));
+        try {
+            const res = await fetch('/api/admin/test-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keyStr: key.key })
+            });
+            const data = await res.json();
+            
+            setTestResults(p => ({ ...p, [key.id]: data }));
+            
+            if (data.status) {
+                await fetch('/api/admin/system/keys/update-health', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ keyStr: key.key, status: data.status, latency: data.latency })
+                });
+            }
+        } catch (e) {
+            setTestResults(p => ({ ...p, [key.id]: { status: 'error' } }));
+        }
+        setTestingMap(p => ({ ...p, [key.id]: false }));
+    };
+
+    const handleTestAll = async () => {
+        if (testingAll) return;
+        setTestingAll(true);
+        const tasks = keys.map((k: any) => () => testKey(k));
+        await runWithLimit(tasks, 3);
+        setTestingAll(false);
+        addToast('Đã hoàn tất quá trình Health Check API Keys', 'success');
+    };
 
     const handleAction = async (id: string, action: 'reset' | 'toggle') => {
         try {
@@ -75,6 +134,19 @@ export function ApiKeysView({
                             <Activity className="text-indigo-600" size={24}/> AI Multi-Key Status
                         </h2>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1">Giám sát hiệu năng & Sức khỏe API Key thời gian thực</p>
+                    </div>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleTestAll}
+                            disabled={testingAll}
+                            className={cn(
+                                "px-5 py-2.5 text-xs font-black rounded-xl flex items-center gap-2 shadow-sm transition-all",
+                                testingAll ? "bg-slate-200 text-slate-400 cursor-not-allowed" : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95"
+                            )}
+                        >
+                            <Zap size={14} className={testingAll ? "animate-pulse" : ""} />
+                            {testingAll ? "ĐANG KIỂM TRA..." : "TEST ALL KEYS"}
+                        </button>
                     </div>
                 </div>
 
@@ -148,35 +220,53 @@ export function ApiKeysView({
                                             )}>{failRate}%</div>
                                         </td>
                                         <td className="py-6 text-center">
-                                            <div className="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 rounded-xl py-1 px-2 w-fit mx-auto">
-                                                <Zap size={10} className="text-amber-400 fill-amber-400"/>
-                                                <span className="text-[10px] font-black text-slate-700">{k.avg_latency || '---'}ms</span>
+                                            <div className="flex flex-col items-center gap-1.5">
+                                                <div className="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 rounded-xl py-1 px-2 w-fit mx-auto">
+                                                    <Zap size={10} className="text-amber-400 fill-amber-400"/>
+                                                    <span className="text-[10px] font-black text-slate-700">{testResults[k.id]?.latency || k.avg_latency || '---'}ms</span>
+                                                </div>
+                                                {testResults[k.id] && (
+                                                    <div className="text-[9px] font-black">
+                                                        {testResults[k.id].status === 'active' && <span className="text-emerald-500">● TỐT</span>}
+                                                        {testResults[k.id].status === 'slow' && <span className="text-amber-500">● CHẬM</span>}
+                                                        {testResults[k.id].status === 'error' && <span className="text-red-500">● LỖI</span>}
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="py-6 pr-8 text-right">
-                                            {!k.is_env ? (
-                                                <div className="flex items-center justify-end gap-2 transition-all">
-                                                    <button 
-                                                        onClick={() => handleAction(k.db_id || k.id, 'reset')}
-                                                        className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm border border-indigo-100"
-                                                        title="Reset lỗi & Cooldown"
-                                                    >
-                                                        <RefreshCcw size={14}/>
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleAction(k.db_id || k.id, 'toggle')}
-                                                        className={cn(
-                                                            "p-2 rounded-xl transition-all shadow-sm border",
-                                                            k.status === 'disabled' ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white" : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white"
-                                                        )}
-                                                        title={k.status === 'disabled' ? "Bật Key" : "Tắt Key"}
-                                                    >
-                                                        <Power size={14}/>
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <span className="text-[9px] font-bold text-slate-400 italic">.ENV KEY</span>
-                                            )}
+                                            <div className="flex items-center justify-end gap-2 transition-all">
+                                                <button 
+                                                    onClick={() => testKey(k)}
+                                                    disabled={testingMap[k.id]}
+                                                    className="p-2 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl border border-blue-100 transition-all shadow-sm disabled:opacity-50"
+                                                    title="Test sức khỏe Key"
+                                                >
+                                                    {testingMap[k.id] ? <Activity size={14} className="animate-spin" /> : <Zap size={14} />}
+                                                </button>
+                                                {!k.is_env && (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => handleAction(k.db_id || k.id, 'reset')}
+                                                            className="p-2 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all shadow-sm border border-indigo-100"
+                                                            title="Reset lỗi & Cooldown"
+                                                        >
+                                                            <RefreshCcw size={14}/>
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleAction(k.db_id || k.id, 'toggle')}
+                                                            className={cn(
+                                                                "p-2 rounded-xl transition-all shadow-sm border",
+                                                                k.status === 'disabled' ? "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-600 hover:text-white" : "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-600 hover:text-white"
+                                                            )}
+                                                            title={k.status === 'disabled' ? "Bật Key" : "Tắt Key"}
+                                                        >
+                                                            <Power size={14}/>
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {k.is_env && <span className="text-[9px] font-bold text-slate-400 italic ml-2">.ENV KEY</span>}
+                                            </div>
                                         </td>
                                     </tr>
                                 );
