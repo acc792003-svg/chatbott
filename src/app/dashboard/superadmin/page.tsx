@@ -875,31 +875,46 @@ export default function SuperAdminPage() {
         {/* ==================== TAB: SHOPS ==================== */}
         {activeTab === 'shops' && (
           <div className="space-y-4 animate-in fade-in zoom-in-95 duration-200 px-2 lg:px-0">
-            <div className="flex flex-col md:flex-row gap-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
-                    <input type="text" placeholder="Tìm theo Tên, Mã hoặc Link (QLADY)..." className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pl-9 pr-4 text-xs font-bold focus:border-indigo-500 outline-none shadow-sm" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+                <div className="relative flex-1 w-full">
+                    <label className="text-[10px] font-black text-slate-500 uppercase ml-2 block mb-1.5 tracking-widest">
+                        🔍 Tìm Kiếm Cửa Hàng
+                    </label>
+                    <Search className="absolute left-3 bottom-[13px] text-slate-400" size={16} />
+                    <input 
+                        type="text" 
+                        placeholder="Tìm theo Tên, Mã hoặc Link (QLADY)..." 
+                        className="w-full bg-white border border-slate-200 rounded-xl h-[42px] pl-10 pr-4 text-sm font-bold focus:border-indigo-500 outline-none shadow-sm transition-all" 
+                        value={searchTerm} 
+                        onChange={e => setSearchTerm(e.target.value)} 
+                    />
                 </div>
-                <div className="flex flex-wrap md:flex-nowrap gap-2 items-end w-full">
+                <div className="flex flex-wrap md:flex-nowrap gap-3 items-end w-full lg:w-auto">
                     <button 
                         onClick={fetchShops} 
-                        className="bg-white border border-slate-200 p-2.5 rounded-xl text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+                        className="bg-white border border-slate-200 h-[42px] w-[42px] rounded-xl flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm shrink-0"
                         title="Tải lại danh sách"
                     >
                         <Activity size={18} className={loading ? "animate-spin" : ""} />
                     </button>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1.5 flex-1 md:flex-none">
                         <label className="text-[10px] font-black text-indigo-500 uppercase ml-2 tracking-widest border-b-2 border-indigo-100 w-fit">
-                            {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : 'Nhập tên cửa hàng mới'}
+                            {newShopName.trim() ? `✨ MÃ SẼ TẠO: ${nextGeneratedCode}` : '+ Nhập tên cửa hàng mới'}
                         </label>
-                        <input type="text" placeholder="Ví dụ: Yến Sào Phương Nam..." className="bg-white border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold w-full md:w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" value={newShopName} onChange={e => setNewShopName(e.target.value)} />
+                        <input 
+                            type="text" 
+                            placeholder="Ví dụ: Yến Sào Phương Nam..." 
+                            className="bg-white border-2 border-slate-200 rounded-xl px-4 h-[42px] text-sm font-bold w-full md:w-64 shadow-sm focus:border-indigo-500 outline-none transition-all" 
+                            value={newShopName} 
+                            onChange={e => setNewShopName(e.target.value)} 
+                        />
                     </div>
                     <button 
                         onClick={handleCreateShop} 
                         disabled={addingShop || userRole !== 'super_admin'} 
                         className={cn(
-                            "px-5 py-2.5 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all h-[38px] w-full md:w-auto",
-                            userRole === 'super_admin' ? "bg-indigo-600 text-white active:scale-95" : "bg-slate-200 text-slate-400 cursor-not-allowed"
+                            "px-6 rounded-xl text-xs font-black shadow-lg shadow-indigo-100 transition-all h-[42px] w-full md:w-auto flex items-center justify-center shrink-0",
+                            userRole === 'super_admin' ? "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95" : "bg-slate-200 text-slate-400 cursor-not-allowed"
                         )}
                     >
                         {addingShop ? 'ĐANG TẠO...' : (userRole === 'super_admin' ? '+ TẠO SHOP' : 'KHÓA')}
