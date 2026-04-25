@@ -35,6 +35,38 @@ export function normalizeMessage(text: string): string {
     .replace(/\s+/g, ' ');   
 }
 
+function humanizeResponse(text: string, userMessage: string, shopConfig?: any) {
+  if (!text) return text;
+  // Tránh bọc 2 lần nếu câu trả lời đã có từ đệm lịch sự
+  if (/^(dạ|vâng|chào|chúc|cảm ơn)/i.test(text.trim())) return text;
+
+  const prefix = shopConfig?.prefix || 'Dạ,';
+  const suffix = shopConfig?.suffix || 'ạ.';
+  
+  const isPricing = /(giá|bao nhiêu|nhiêu|mấy tiền|chi phí)/i.test(userMessage);
+  const isLocation = /(địa chỉ|ở đâu|chỗ nào|đường nào)/i.test(userMessage);
+
+  let cleanText = text.trim();
+  
+  // Nếu quá ngắn (trả lời cụt lủn kiểu "50k") -> Thêm prefix và suffix
+  if (cleanText.length < 30) {
+     cleanText = `${prefix} ${cleanText} ${cleanText.endsWith('.') || cleanText.endsWith('!') ? '' : suffix}`;
+  } else {
+     // Vẫn bọc Dạ cho lịch sự
+     cleanText = `${prefix} ${cleanText}`;
+  }
+
+  // Tiêm Context-aware nếu câu trả lời khá ngắn
+  if (isPricing && cleanText.length < 60) {
+     return `${cleanText} Bạn cần tư vấn thêm thì cứ nhắn mình nhé!`;
+  }
+  if (isLocation && cleanText.length < 60) {
+     return `${cleanText} Bạn định ghé lúc nào để mình chuẩn bị đón tiếp nhé!`;
+  }
+  
+  return cleanText;
+}
+
 function keywordMatchScore(input: string, question: string) {
   const tokens = input.split(' ').filter(t => t.length > 2);
   if (tokens.length === 0) return input.length > 0 && question.toLowerCase().includes(input) ? 1 : 0;
@@ -190,7 +222,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     if (cacheMatches && cacheMatches.length > 0) {
       console.log(`[Engine] Cache Match (0.90+) - FAST PATH, SKIP AI!`);
       return { 
-        answer: cacheMatches[0].answer, 
+        answer: humanizeResponse(cacheMatches[0].answer, message, shopConfig), 
         source: 'cache', 
         latency: Date.now() - start,
         shopName: shopConfig?.shop_name || shopData?.name
@@ -238,7 +270,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         if (isSafeToAutoFaq) {
           console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.85) - FAQ PATH`);
           return { 
-            answer: scoredFaqs[0].answer, 
+            answer: humanizeResponse(scoredFaqs[0].answer, message, shopConfig), 
             source: 'faq', 
             latency: Date.now() - start,
             shopName: shopConfig?.shop_name || shopData?.name
