@@ -49,6 +49,7 @@ export function ApiKeysView({
     showKeys, setShowKeys
 }: any) {
     const keys = systemStats?.keys || [];
+    const sortedKeys = [...keys].sort((a: any, b: any) => (a.avg_latency || 9999) - (b.avg_latency || 9999));
     const metrics = systemStats?.metrics || { total_messages_24h: 0, cache_hit_rate: 0 };
 
     // Testing State
@@ -177,9 +178,10 @@ export function ApiKeysView({
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {keys.map((k: any) => {
+                            {sortedKeys.map((k: any) => {
                                 const failRate = k.usage_count > 0 ? ((k.fail_count / k.usage_count) * 100).toFixed(1) : 0;
                                 const currentStatus = testResults[k.id]?.status || k.status;
+                                const displayLatency = testResults[k.id]?.latency || k.avg_latency || 0;
                                 return (
                                     <tr key={k.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="py-6 pl-8">
@@ -242,15 +244,26 @@ export function ApiKeysView({
                                         </td>
                                         <td className="py-6 text-center">
                                             <div className="flex flex-col items-center gap-1.5">
-                                                <div className="flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 rounded-xl py-1 px-2 w-fit mx-auto">
-                                                    <Zap size={10} className="text-amber-400 fill-amber-400"/>
-                                                    <span className="text-[10px] font-black text-slate-700">{testResults[k.id]?.latency || k.avg_latency || '---'}ms</span>
+                                                <div className={cn(
+                                                    "flex items-center justify-center gap-1.5 border rounded-xl py-1 px-2 w-fit mx-auto",
+                                                    displayLatency > 0 && displayLatency < 1500 ? "bg-emerald-50 border-emerald-100 text-emerald-700" :
+                                                    displayLatency >= 1500 && displayLatency <= 3000 ? "bg-amber-50 border-amber-100 text-amber-700" :
+                                                    displayLatency > 3000 ? "bg-rose-50 border-rose-100 text-rose-700" :
+                                                    "bg-slate-50 border-slate-100 text-slate-700"
+                                                )}>
+                                                    <Zap size={10} className={cn(
+                                                        displayLatency > 0 && displayLatency < 1500 ? "text-emerald-500 fill-emerald-500" :
+                                                        displayLatency >= 1500 && displayLatency <= 3000 ? "text-amber-500 fill-amber-500" :
+                                                        displayLatency > 3000 ? "text-rose-500 fill-rose-500" :
+                                                        "text-slate-400 fill-slate-400"
+                                                    )}/>
+                                                    <span className="text-[10px] font-black">{displayLatency > 0 ? `${displayLatency}ms` : '---'}</span>
                                                 </div>
-                                                {testResults[k.id] && (
-                                                    <div className="text-[9px] font-black">
-                                                        {testResults[k.id].status === 'active' && <span className="text-emerald-500">● TỐT</span>}
-                                                        {testResults[k.id].status === 'slow' && <span className="text-amber-500">● CHẬM</span>}
-                                                        {testResults[k.id].status === 'error' && <span className="text-red-500">● LỖI</span>}
+                                                {displayLatency > 0 && (
+                                                    <div className="text-[9px] font-black uppercase">
+                                                        {displayLatency < 1500 ? <span className="text-emerald-500">Fast</span> :
+                                                         displayLatency <= 3000 ? <span className="text-amber-500">Normal</span> :
+                                                         <span className="text-rose-500">Slow</span>}
                                                     </div>
                                                 )}
                                             </div>

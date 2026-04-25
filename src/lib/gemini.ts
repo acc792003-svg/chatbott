@@ -108,8 +108,8 @@ export function normalizeChatPipeline(history: any[], provider: string) {
 /**
  * Gọi API cụ thể (Gemini, DeepSeek hoặc OpenRouter)
  */
-async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string) {
-  const timeout = tier === 'pro' ? 8000 : 5000;
+export async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string, customTimeout?: number, maxTokens?: number) {
+  const timeout = customTimeout || (tier === 'pro' ? 8000 : 5000);
   
   const normalizedHistory = normalizeChatPipeline(history, provider);
 
@@ -118,7 +118,10 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
     
     const payload: any = {
       contents: normalizedHistory,
-      generationConfig: { temperature }
+      generationConfig: { 
+          temperature,
+          maxOutputTokens: maxTokens || (tier === 'pro' ? 600 : 300)
+      }
     };
     
     if (systemPrompt) {
@@ -152,7 +155,8 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: normalizedHistory,
-        temperature
+        temperature,
+        max_tokens: maxTokens || (tier === 'pro' ? 600 : 300)
       })
     }, timeout);
 
@@ -186,7 +190,8 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
       body: JSON.stringify({
         model: targetModel,
         messages: normalizedHistory,
-        temperature
+        temperature,
+        max_tokens: maxTokens || (tier === 'pro' ? 600 : 300)
       })
     }, timeout);
 

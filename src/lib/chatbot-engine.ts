@@ -3,6 +3,7 @@ import { callGeminiWithFallback, generateEmbedding } from './gemini';
 import { detectAndSaveLead } from './leads';
 import { validateRateLimit } from './rate-limiter';
 import { reportError } from './radar';
+import { decideRoute, enforcePolicy, POLICY, runAI } from './ai-router';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -74,6 +75,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   let shopCode = 'unknown';
   let faqContext = '';
   let topScore = 0;
+  let detectedIntent = 'chat';
 
   const client = supabaseAdmin || supabase;
 
@@ -153,35 +155,34 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       }
     }
     
-    // 1. EMBEDDING
+    // 1. EMBEDDING (CHỈ 1 LẦN / REQUEST)
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
-    // 2. Ý ĐỊNH
-    const { data: keywords } = await client
-      .from('keywords')
-      .select('*')
-      .eq('is_active', true)
-      .or(`level.eq.global,level.eq.industry,and(level.eq.shop,shop_id.eq.${shopId})`);
+    // 2. CACHE-FIRST (MỨC 0.9+)
+    const { data: cacheMatches } = await client.rpc('match_cache', {
+      query_embedding: queryEmbedding,
+      match_threshold: 0.90, // Tối ưu: 0.9+ giảm 60-80% call AI
+      match_count: 1,
+      p_shop_id: shopId
+    });
 
-    let detectedIntent = 'unknown';
-    if (keywords && keywords.length > 0) {
-      const intentScores: Record<string, number> = {};
-      keywords.forEach((kw: any) => {
-        if (normalized.includes(kw.keyword.toLowerCase())) {
-          intentScores[kw.intent] = (intentScores[kw.intent] || 0) + (Number(kw.weight) || 1);
-        }
-      });
-      const topIntent = Object.entries(intentScores).sort((a: any, b: any) => b[1] - a[1])[0];
-      if (topIntent) detectedIntent = topIntent[0];
+    if (cacheMatches && cacheMatches.length > 0) {
+      console.log(`[Engine] Cache Match (0.90+) - FAST PATH, SKIP AI!`);
+      return { 
+        answer: cacheMatches[0].answer, 
+        source: 'cache', 
+        latency: Date.now() - start,
+        shopName: shopConfig?.shop_name || shopData?.name
+      };
     }
 
-    // 3. VECTOR SEARCH
+    // 3. VECTOR SEARCH (FAQ)
     faqContext = "";
     topScore = 0;
     const { data: vectorFaqs } = await client.rpc('match_faqs', {
       query_embedding: queryEmbedding,
-      match_threshold: 0.50, // Lấy rộng hơn để tính toán hybrid
-      match_count: 5, // Lấy tối đa 5 FAQ
+      match_threshold: 0.50,
+      match_count: 3, // Chỉ top 2-3 FAQ (Token discipline)
       p_shop_id: shopId
     });
     
@@ -191,42 +192,37 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
       topScore = scoredFaqs[0].hybridScore;
 
-      // 🥇 MỨC 1: >= 0.92 (rất khớp) -> Trả thẳng FAQ, không gọi AI
-      if (topScore >= 0.92) {
-        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.92) - FAST PATH, SKIP AI!`);
-        finalResponse = scoredFaqs[0].answer;
-        resultSource = 'faq';
+      // 🥇 MỨC 1: >= 0.85 (rất khớp) -> Trả thẳng FAQ (FAQ path)
+      if (topScore >= 0.85) {
+        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.85) - FAQ PATH`);
+        return { 
+          answer: scoredFaqs[0].answer, 
+          source: 'faq', 
+          latency: Date.now() - start,
+          shopName: shopConfig?.shop_name || shopData?.name
+        };
       } 
-      // 🥈 MỨC 2: 0.75 - 0.91 -> Inject Vector (Trim)
-      else if (topScore >= 0.75) {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} - 0.75~0.91) - Vector Trim`);
-         const takeCount = topScore >= 0.90 ? 2 : 5;
-         const validFaqs = scoredFaqs.slice(0, takeCount);
-         faqContext = validFaqs.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
-      }
-      else {
-         console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} < 0.75) - No Vector Injection`);
-         faqContext = '';
-      }
-    } else {
-        console.log(`[Engine] No Vector Match`);
-    }
-
-    if (!finalResponse) {
-      const { data: cacheMatches } = await client.rpc('match_cache', {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.92,
-        match_count: 1,
-        p_shop_id: shopId
-      });
-      if (cacheMatches && cacheMatches.length > 0) {
-        console.log(`[Engine] Cache Match (0.95+) - FAST PATH, SKIP AI!`);
-        finalResponse = cacheMatches[0].answer;
-        resultSource = 'cache';
+      // 🥈 MỨC 2: Inject context cho AI
+      else if (topScore >= 0.70) {
+         faqContext = scoredFaqs.slice(0, 3).map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
     }
 
-    // 4. AI INFERENCE
+    // 4. ROUTER QUYẾT ĐỊNH
+    const plan = isPro ? 'pro' : 'free';
+    const decision = decideRoute({
+      cacheHit: false, // Đã check ở trên
+      faqScore: topScore,
+      plan,
+      input: message
+    });
+
+    if (decision === 'CACHE' || decision === 'FAQ') {
+       // Thực tế đã return ở trên, nhưng giữ logic router cho đồng bộ
+       return { answer: "Vui lòng thử lại", source: 'cache', latency: 0 };
+    }
+
+    // 5. AI INFERENCE (CHỈ 1 LẦN GỌI AI - HAPPY PATH)
     if (!finalResponse) {
 
         // Phát hiện khách nhập số điện thoại sai định dạng
@@ -273,14 +269,24 @@ ${bookingContext}
 ${happyHourContext}`;
 
         // Trimming History: Sliding window 8 messages
-        const aiResult = await callGeminiWithFallback([
-          ...(history || []).slice(-8).map((m: any) => ({ role: m.role === 'user' ? 'user' : 'model', parts: [{ text: m.content }] })),
-          { role: 'user', parts: [{ text: message }] }
-        ], { temperature: 0.7, isPro }, shopId, 'API_CHAT_WIDGET', systemPrompt);
+        const rawHistoryForAI = [
+          ...(history || []).slice(-8),
+          { role: 'user', content: message }
+        ];
+
+        const aiResult = await runAI(
+           decision as any, // ép kiểu nếu cần
+           { 
+             history: rawHistoryForAI,
+             temperature: 0.7,
+             systemPrompt,
+             tier: plan
+           }
+        );
 
        finalResponse = aiResult.text;
        totalUsageTokens = aiResult.tokens;
-       resultSource = 'ai';
+       resultSource = aiResult.source as any;
 
        if (queryEmbedding && finalResponse.length < 500) {
           await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
