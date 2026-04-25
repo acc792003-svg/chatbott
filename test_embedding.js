@@ -7,7 +7,7 @@ const supabase = createClient(
 
 async function testEmbedding() {
   // Use the key from .env.local as it's used for embedding
-  const key = 'AIzaSyAxSrcfDZNduuSFT5hLR3GnCscKM5FM4H4'; // GEMINI_EMBEDDING_KEY_1
+  const key = 'AIzaSyB5GDToRK_vPGIT4b2aVyHWu7gswr4hZ-Y'; // GEMINI_EMBEDDING_KEY_1
   
   const models = ['text-embedding-004', 'gemini-embedding-001', 'gemini-embedding-2'];
   

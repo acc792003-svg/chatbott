@@ -173,10 +173,23 @@ async function fetchWithTimeout(resource: string, options: any, timeout: number)
 }
 
 export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
-  const validKeys = [
+  const envKeys = [
     process.env.GEMINI_EMBEDDING_KEY_1,
     process.env.GEMINI_EMBEDDING_KEY_2,
   ].filter(k => k && k.trim() !== '') as string[];
+
+  let dbKeys: DetailedKey[] = [];
+  try {
+    dbKeys = await getHealthyKeys('gemini', 'free');
+    console.log('[DEBUG] dbKeys length:', dbKeys.length);
+  } catch(e) {
+    console.error('[DEBUG] getHealthyKeys error:', e);
+  }
+
+  const allKeys = [...envKeys, ...dbKeys.map(k => k.value)];
+  // Lọc key trùng lặp
+  const validKeys = Array.from(new Set(allKeys));
+  console.log('[DEBUG] validKeys to test:', validKeys.length);
 
   if (validKeys.length === 0) throw new Error('Thiếu GEMINI_EMBEDDING_KEY_1/2');
 
@@ -192,8 +205,26 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
       }, 3000);
 
       const data = await res.json();
-      if (res.ok && data.embedding?.values) return data.embedding.values;
-    } catch (e) {}
+      if (res.ok && data.embedding?.values) {
+         // Nếu key này từ DB thì báo cáo thành công (tuỳ chọn)
+         const dbKeyMatch = dbKeys.find(k => k.value === key);
+         if (dbKeyMatch && dbKeyMatch.id) {
+             reportKeySuccess(dbKeyMatch.id).catch(() => {});
+         }
+         return data.embedding.values;
+      } else {
+         // Gọi reportKeyFailure để kích hoạt Cầu Dao Tự Động (Circuit Breaker)
+         const dbKeyMatch = dbKeys.find(k => k.value === key);
+         if (dbKeyMatch && dbKeyMatch.id) {
+             await reportKeyFailure(dbKeyMatch.id, data.error?.message || 'Lỗi lúc gọi Embedding API');
+         }
+      }
+    } catch (e: any) {
+         const dbKeyMatch = dbKeys.find(k => k.value === key);
+         if (dbKeyMatch && dbKeyMatch.id) {
+             await reportKeyFailure(dbKeyMatch.id, e.message || 'Lỗi mạng lúc gọi Embedding');
+         }
+    }
   }
   throw new Error('Embedding failed');
 }

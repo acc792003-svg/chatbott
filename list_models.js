@@ -6,19 +6,25 @@ const supabase = createClient(
 );
 
 async function listModels() {
-  const { data: keys } = await supabase.from('system_settings').select('*').eq('key', 'gemini_api_key_1').single();
+  const { data: keys } = await supabase.from('system_settings').select('*').eq('key', 'gemini_api_key_2').single();
   const key = keys.value;
   
-  console.log(`Testing gemini_api_key_1: ${key.substring(0, 10)}...`);
+  console.log(`Testing gemini_api_key_2: ${key.substring(0, 10)}...`);
   
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`);
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2:embedContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: "models/gemini-embedding-2",
+        content: { parts: [{ text: "Hello world" }] }
+      })
+    });
     const data = await res.json();
     if (res.ok) {
-      console.log('Available models:');
-      data.models.forEach(m => console.log(` - ${m.name}`));
+      console.log('Embedding works! Vector length:', data.embedding.values.length);
     } else {
-      console.error('Error:', data);
+      console.error('Embedding Error:', data);
     }
   } catch (e) {
     console.error('Fetch Error:', e);
