@@ -31,18 +31,18 @@ export default function AiAnalytics() {
         const avgLatency = Math.round(logs.reduce((acc: number, curr: any) => acc + (curr.latency_ms || 0), 0) / logs.length);
         const faqCount = logs.filter((l: any) => l.source === 'faq').length;
         const cacheCount = logs.filter((l: any) => l.source === 'cache').length;
-        const aiCount = logs.filter((l: any) => l.source === 'ai').length;
+        const aiCount = logs.filter((l: any) => l.source && l.source !== 'faq' && l.source !== 'cache').length;
         const totalTokens = logs.reduce((acc: number, curr: any) => acc + (curr.total_tokens || 0), 0);
 
         setPerfStats({
           avgLatency,
           total: logs.length,
           totalTokens,
-          estimatedCostUsd: (totalTokens / 1000000) * 0.15, // Cost estimation: ~$0.15 / 1M tokens average
+          estimatedCostUsd: (totalTokens / 1000000) * 0.14, // Cost estimation: ~$0.14 / 1M tokens (DeepSeek/Gemini Blended)
           distribution: {
-            faq: Math.round((faqCount / logs.length) * 100),
-            cache: Math.round((cacheCount / logs.length) * 100),
-            ai: Math.round((aiCount / logs.length) * 100)
+            faq: logs.length ? Math.round((faqCount / logs.length) * 100) : 0,
+            cache: logs.length ? Math.round((cacheCount / logs.length) * 100) : 0,
+            ai: logs.length ? Math.round((aiCount / logs.length) * 100) : 0
           }
         });
       }
@@ -211,7 +211,7 @@ export default function AiAnalytics() {
                 {[
                     { label: '0$ Knowledge Base (FAQ)', val: perfStats?.distribution.faq, icon: Database, color: 'text-emerald-600', bg: 'bg-emerald-50', bar: 'bg-emerald-500' },
                     { label: '0$ Semantic Cache', val: perfStats?.distribution.cache, icon: RefreshCw, color: 'text-indigo-600', bg: 'bg-indigo-50', bar: 'bg-indigo-600' },
-                    { label: 'Paid AI Reasoning (Gemini)', val: perfStats?.distribution.ai, icon: Cpu, color: 'text-slate-600', bg: 'bg-slate-50', bar: 'bg-slate-900' }
+                    { label: 'Paid AI (DeepSeek/Gemini/OR)', val: perfStats?.distribution.ai, icon: Cpu, color: 'text-slate-600', bg: 'bg-slate-50', bar: 'bg-slate-900' }
                 ].map((item: any, idx) => (
                     <div key={idx} className="space-y-4">
                         <div className="flex items-center justify-between">
@@ -262,7 +262,7 @@ export default function AiAnalytics() {
                   <Activity size={24} /> ƯỚC TÍNH CHI PHÍ API
               </h2>
               <div className="bg-emerald-950/50 p-6 rounded-3xl border border-emerald-800/50 flex flex-col items-center text-center">
-                  <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest mb-2">Chi phí tạm tính (Dựa trên Gemini 1.5 Flash - $0.15/1M)</p>
+                  <p className="text-[10px] font-black text-emerald-400/70 uppercase tracking-widest mb-2">Chi phí tạm tính (Dựa trên DeepSeek/Gemini - ~$0.14/1M)</p>
                   <h3 className="text-6xl font-black text-emerald-300 drop-shadow-[0_0_15px_rgba(52,211,153,0.5)] tracking-tighter">
                       ${perfStats?.estimatedCostUsd ? perfStats.estimatedCostUsd.toFixed(4) : '0.0000'}
                   </h3>
