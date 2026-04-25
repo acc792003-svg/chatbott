@@ -95,8 +95,32 @@ export default function SuperAdminPage() {
 
   useEffect(() => { 
     checkUser();
-    
-    // THIẾT LẬP REALTIME CHO NHẬT KÝ LỖI (Radar 24/7)
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    if (!userRole) return;
+
+    if (activeTab === 'shops') fetchShops();
+    if (activeTab === 'errors') fetchErrorLogs();
+    if (activeTab === 'knowledge') fetchKnowledgePackages();
+    if ((activeTab === 'apikeys' || activeTab === 'facebook') && userRole === 'super_admin') {
+      fetchApiKeys();
+      fetchSystemStats();
+    }
+    if (activeTab === 'config' && userRole === 'super_admin') {
+      fetchTrialConfig();
+    }
+  }, [activeTab, userRole]);
+
+  useEffect(() => {
+    if (activeTab !== 'errors') return;
+
+    // THIẾT LẬP REALTIME CHO NHẬT KÝ LỖI (Radar)
     const channel = supabase
       .channel('admin-radar')
       .on(
@@ -113,8 +137,6 @@ export default function SuperAdminPage() {
         (payload: any) => {
            fetchErrorLogs();
            addToast(`🚨 LỖI RADAR: ${payload.new.error_type} - ${payload.new.error_message?.substring(0, 50)}`, 'error');
-           
-           // 🔥 Phản xạ âm thanh (tùy chọn) hoặc rung nhẹ nếu cần ở đây
         }
       )
       .subscribe();
@@ -122,7 +144,7 @@ export default function SuperAdminPage() {
     return () => { 
       supabase.removeChannel(channel); 
     };
-  }, []);
+  }, [activeTab]);
 
   const addToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
     const id = Date.now();
@@ -153,21 +175,7 @@ export default function SuperAdminPage() {
 
       setLoading(true);
       try {
-        // Gom toàn bộ request vào Promise.allSettled để parallel tối đa
-        // Dùng allSettled để 1 API chết không kéo cả Dashboard chết theo
-        const tasks = [
-          fetchShops(),
-          fetchErrorLogs(),
-          fetchKnowledgePackages()
-        ];
-
-        if (role === 'super_admin') {
-          tasks.push(fetchApiKeys());
-          tasks.push(fetchTrialConfig());
-          tasks.push(fetchSystemStats());
-        }
-
-        await Promise.allSettled(tasks);
+        // Init
       } catch (err) {
         console.error("Lỗi tải Dashboard:", err);
       } finally {
@@ -197,59 +205,17 @@ export default function SuperAdminPage() {
 
   const fetchShops = async () => {
     try {
-        // 1. Lấy danh sách shop trực tiếp từ Supabase (đã có policy select true)
-        const { data: shopsData, error: shopsErr } = await supabase
-            .from('shops')
-            .select('*, users(email, id)')
-            .order('created_at', { ascending: false });
+        const res = await fetch('/api/admin/shops-full');
+        const data = await res.json();
 
-        if (shopsErr) throw shopsErr;
-
-        // 2. Lấy toàn bộ cấu hình chatbot
-        const { data: configs, error: configsErr } = await supabase.from('chatbot_configs').select('*');
-        if (configsErr) throw configsErr;
-
-        // 3. Lấy mappings gói tri thức
-        const { data: mappings } = await supabase.from('shop_templates').select('shop_id, template_id');
-        const { data: templates } = await supabase.from('knowledge_templates').select('id, package_name');
-
-        // Map dữ liệu hiệu năng cao (O(N)) sử dụng Map Object (Pro Level)
-        const iconMap = new Map();
-        const configMap = new Map();
-        configs?.forEach((c: any) => {
-            iconMap.set(c.shop_id, c.head_icon);
-            configMap.set(c.shop_id, c);
-        });
-
-        // Tạo map cho templates để tra cứu nhanh (O(1) lookup)
-        const templateLookup = new Map(
-            templates?.map((t: any) => [t.id, { id: t.id, name: t.package_name }]) || []
-        );
-
-        // Nhóm mappings theo shop_id
-        const shopToTemplates = new Map();
-        mappings?.forEach((m: any) => {
-            const t = templateLookup.get(m.template_id);
-            if (t) {
-                if (!shopToTemplates.has(m.shop_id)) {
-                    shopToTemplates.set(m.shop_id, [t]);
-                } else {
-                    shopToTemplates.get(m.shop_id).push(t);
-                }
-            }
-        });
-
-        const finalShops = shopsData?.map((s: any) => ({ 
-            ...s, 
-            packages: shopToTemplates.get(s.id) || [] 
-        })) || [];
-
-        // Chuyển Map thành Object để tương thích với các State hiện tại của React/JSX
-        setShops(finalShops);
-        setActiveIcons(Object.fromEntries(iconMap));
-        setShopConfigs(Object.fromEntries(configMap));
-        setShopPackages(Object.fromEntries(shopToTemplates));
-
+        if (data.success) {
+            setShops(data.shops || []);
+            setActiveIcons(data.activeIcons || {});
+            setShopConfigs(data.shopConfigs || {});
+            setShopPackages(data.shopPackages || {});
+        } else {
+            throw new Error(data.error);
+        }
     } catch (e: any) {
         console.error('Lỗi khi load danh sách shop:', e);
         addToast('Lỗi khi tải dữ liệu Shop: ' + e.message, 'error');
