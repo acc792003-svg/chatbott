@@ -1,8 +1,36 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export async function POST(req: Request) {
   try {
+    // 1. KIỂM TRA ĐĂNG NHẬP (Lấy user từ JWT)
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.split(' ')[1];
+    
+    let user;
+    if (token) {
+        const { data } = await supabase.auth.getUser(token);
+        user = data.user;
+    } else {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    }
+
+    if (!user) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. KIỂM TRA QUYỀN SUPER ADMIN
+    const { data: userData, error: roleError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (roleError || !userData || userData.role !== 'super_admin') {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
     const { keyStr, status, latency } = await req.json();
 
     if (!keyStr) {

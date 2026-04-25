@@ -56,19 +56,24 @@ export function ApiKeysView({
     const testKey = async (key: any) => {
         setTestingMap(p => ({ ...p, [key.id]: true }));
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const res = await fetch('/api/admin/test-key', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ keyStr: key.key })
             });
             const data = await res.json();
             
             setTestResults(p => ({ ...p, [key.id]: data }));
             
-            if (data.status) {
+            if (data.status && res.ok) {
                 await fetch('/api/admin/system/keys/update-health', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers,
                     body: JSON.stringify({ keyStr: key.key, status: data.status, latency: data.latency })
                 });
             }
@@ -89,9 +94,14 @@ export function ApiKeysView({
 
     const handleAction = async (id: string, action: 'reset' | 'toggle') => {
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
             const res = await fetch('/api/admin/system/keys/action', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers,
                 body: JSON.stringify({ id, action })
             });
             const data = await res.json();
