@@ -7,9 +7,12 @@ export function decideRoute({ cacheHit, faqScore }: { cacheHit: boolean; faqScor
   return 'DEEPSEEK';
 }
 
-export function safeTrim(text: string, max = 1200) {
+export function safeTrim(text: string, max = 4000) {
   if (!text || text.length <= max) return text || '';
-  return text.slice(0, max).split('.').slice(0, -1).join('.') + '.';
+  const sliced = text.slice(0, max);
+  const parts = sliced.split('.');
+  if (parts.length === 1) return sliced; // Tránh lỗi trả về "." nếu không có dấu chấm
+  return parts.slice(0, -1).join('.') + '.';
 }
 
 export function fallbackResponse(vectorFaqs: any[]) {
@@ -40,7 +43,7 @@ async function fetchWithTimeout(resource: string, options: any, timeout: number)
 }
 
 export async function runAI(payload: { history: any[], temperature: number, systemPrompt?: string, tier: 'free' | 'pro', vectorFaqs: any[] }) {
-  let systemPrompt = safeTrim(payload.systemPrompt || '', 1200);
+  let systemPrompt = safeTrim(payload.systemPrompt || '', 6000);
 
   try {
     const result = await callGeminiWithFallback(
