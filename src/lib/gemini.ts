@@ -95,7 +95,7 @@ export function normalizeChatPipeline(history: any[], provider: string) {
     }));
   }
 
-  if (provider === 'deepseek') {
+  if (provider === 'deepseek' || provider === 'openrouter') {
     return merged.map(m => ({
        role: m.role === 'model' ? 'assistant' : 'user',
        content: m.text
@@ -106,7 +106,7 @@ export function normalizeChatPipeline(history: any[], provider: string) {
 }
 
 /**
- * Gọi API cụ thể (Gemini hoặc DeepSeek)
+ * Gọi API cụ thể (Gemini, DeepSeek hoặc OpenRouter)
  */
 async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string) {
   const timeout = tier === 'pro' ? 8000 : 5000;
@@ -137,7 +137,7 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
     } else if (!response.ok) {
        console.error(`Gemini Error:`, data);
     }
-  } else {
+  } else if (provider === 'deepseek') {
     // DeepSeek API
     if (systemPrompt) {
        normalizedHistory.unshift({ role: 'system', content: systemPrompt });
@@ -151,6 +151,31 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
       },
       body: JSON.stringify({
         model: "deepseek-chat",
+        messages: normalizedHistory,
+        temperature
+      })
+    }, timeout);
+
+    const data = await response.json();
+    if (response.ok && data.choices?.[0]?.message?.content) {
+      return { text: data.choices[0].message.content, tokens: data.usageMetadata?.total_tokens || 0 };
+    }
+  } else if (provider === 'openrouter') {
+    // OpenRouter API (OpenAI Compatible)
+    if (systemPrompt) {
+        normalizedHistory.unshift({ role: 'system', content: systemPrompt });
+    }
+
+    const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://q-chatbot.vercel.app',
+        'X-Title': 'Q-Chatbot SaaS'
+      },
+      body: JSON.stringify({
+        model: "deepseek/deepseek-chat",
         messages: normalizedHistory,
         temperature
       })

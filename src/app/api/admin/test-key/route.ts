@@ -36,6 +36,7 @@ export async function POST(req: Request) {
 
     let apiKey = '';
     let isGemini = keyStr.includes('gemini') || keyStr.includes('Ge');
+    let isOpenRouter = keyStr.includes('openrouter') || keyStr.includes('OR');
 
     // Fetch from DB first
     const { data: dbKey } = await supabaseAdmin
@@ -57,6 +58,8 @@ export async function POST(req: Request) {
         else if (keyStr === 'deepseek_api_key_free1') apiKey = process.env.DEEPSEEK_API_KEY_FREE1 || '';
         else if (keyStr === 'deepseek_api_key_free2') apiKey = process.env.DEEPSEEK_API_KEY_FREE2 || '';
         else if (keyStr === 'deepseek_api_key_pro') apiKey = process.env.DEEPSEEK_API_KEY_PRO || '';
+        else if (keyStr === 'openrouter_api_key_1') apiKey = process.env.OPENROUTER_API_KEY_1 || '';
+        else if (keyStr === 'openrouter_api_key_2') apiKey = process.env.OPENROUTER_API_KEY_2 || '';
     }
 
     if (!apiKey) {
@@ -84,6 +87,24 @@ export async function POST(req: Request) {
                 body: JSON.stringify({
                     contents: [{ parts: [{ text: "Say ok" }] }],
                     generationConfig: { maxOutputTokens: 5 }
+                }),
+                signal: controller.signal
+            });
+            isSuccess = res.ok;
+            if (!isSuccess) errorDetail = await res.text();
+        } else if (isOpenRouter) {
+            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://q-chatbot.vercel.app',
+                    'X-Title': 'Q-Chatbot Test'
+                },
+                body: JSON.stringify({
+                    model: 'deepseek/deepseek-chat',
+                    messages: [{ role: 'user', content: 'Say ok' }],
+                    max_tokens: 5
                 }),
                 signal: controller.signal
             });

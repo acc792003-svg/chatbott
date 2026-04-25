@@ -2,7 +2,7 @@ import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { reportError } from './radar';
 import { decrypt } from './encryption';
 
-export type AIProvider = 'gemini' | 'deepseek';
+export type AIProvider = 'gemini' | 'deepseek' | 'openrouter';
 export type AITier = 'free' | 'pro';
 
 export interface AIKey {
@@ -49,6 +49,7 @@ export function getRetryPath(isPro: boolean, complexity: number): {provider: AIP
     // Ưu tiên Pro cho shop Pro hoặc câu hỏi khó
     return [
       { provider: 'deepseek', tier: 'pro' },
+      { provider: 'openrouter', tier: 'pro' },
       { provider: 'gemini', tier: 'pro' },
       { provider: 'gemini', tier: 'free' }
     ];
@@ -57,6 +58,7 @@ export function getRetryPath(isPro: boolean, complexity: number): {provider: AIP
     return [
       { provider: 'deepseek', tier: 'free' },
       { provider: 'gemini', tier: 'free' },
+      { provider: 'openrouter', tier: 'free' }, // Cứu hộ tầng cuối
       { provider: 'deepseek', tier: 'pro' }
     ];
   }
@@ -73,8 +75,10 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     let searchKeys: string[] = [];
     if (provider === 'gemini') {
       searchKeys = tier === 'pro' ? ['gemini_api_key_pro'] : ['gemini_api_key_1', 'gemini_api_key_2'];
-    } else {
+    } else if (provider === 'deepseek') {
       searchKeys = tier === 'pro' ? ['deepseek_api_key_pro'] : ['deepseek_api_key_free1', 'deepseek_api_key_free2'];
+    } else if (provider === 'openrouter') {
+      searchKeys = ['openrouter_api_key_1', 'openrouter_api_key_2'];
     }
 
     const now = new Date().toISOString();

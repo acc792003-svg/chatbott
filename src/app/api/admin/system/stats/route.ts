@@ -11,6 +11,7 @@ export async function GET() {
         const targetKeys = [
             'gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro',
             'deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro',
+            'openrouter_api_key_1', 'openrouter_api_key_2',
             'gemini_embedding_key_1', 'gemini_embedding_key_2', 'deepseek_env_key'
         ];
 

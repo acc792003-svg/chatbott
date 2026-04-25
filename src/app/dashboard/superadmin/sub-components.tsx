@@ -39,6 +39,8 @@ export function ApiKeysView({
     deepSeekKeyFree1, setDeepSeekKeyFree1,
     deepSeekKeyFree2, setDeepSeekKeyFree2,
     deepSeekKeyPro, setDeepSeekKeyPro,
+    openRouterKey1, setOpenRouterKey1,
+    openRouterKey2, setOpenRouterKey2,
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
@@ -215,8 +217,13 @@ export function ApiKeysView({
                                             <div className="flex flex-col items-center gap-1">
                                                 <span className={cn(
                                                     "text-[9px] font-black px-2 py-0.5 rounded-md uppercase",
-                                                    k.name.includes('Ge') ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : "bg-blue-50 text-blue-700 border border-blue-100"
-                                                )}>{k.name.includes('Ge') ? 'gemini' : 'deepseek'}</span>
+                                                    k.name.includes('Ge') ? "bg-indigo-50 text-indigo-700 border border-indigo-100" : 
+                                                    k.name.includes('OR') || k.name.includes('openrouter') ? "bg-emerald-50 text-emerald-700 border-emerald-100" :
+                                                    "bg-blue-50 text-blue-700 border-blue-100"
+                                                )}>
+                                                    {k.name.includes('Ge') ? 'gemini' : 
+                                                     (k.name.includes('OR') || k.name.includes('openrouter')) ? 'openrouter' : 'deepseek'}
+                                                </span>
                                                 {(testResults[k.id]?.error || (k.last_error && currentStatus === 'error')) && (
                                                     <p className="text-[8px] text-red-500 font-bold italic line-clamp-1 max-w-[80px]" title={testResults[k.id]?.error || k.last_error}>
                                                         ⚠ Lỗi API
@@ -311,6 +318,16 @@ export function ApiKeysView({
                     <KeyInput label="DeepSeek Key 1 (Free)" value={deepSeekKeyFree1} onChange={setDeepSeekKeyFree1} show={showKeys?.ds1} toggle={() => setShowKeys({...showKeys, ds1: !showKeys?.ds1})} />
                     <KeyInput label="DeepSeek Key 2 (Free)" value={deepSeekKeyFree2} onChange={setDeepSeekKeyFree2} show={showKeys?.ds2} toggle={() => setShowKeys({...showKeys, ds2: !showKeys?.ds2})} />
                     <KeyInput label="DeepSeek Key Pro" value={deepSeekKeyPro} onChange={setDeepSeekKeyPro} show={showKeys?.dsp} toggle={() => setShowKeys({...showKeys, dsp: !showKeys?.dsp})} />
+                </div>
+
+                {/* OPENROUTER KEYS */}
+                <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl p-8 space-y-6">
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={20}/></div>
+                        <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">OpenRouter Keys (Fallback)</h3>
+                    </div>
+                    <KeyInput label="OpenRouter Key 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
+                    <KeyInput label="OpenRouter Key 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
                 </div>
 
                 {/* FACEBOOK & TELEGRAM SYSTEM */}
