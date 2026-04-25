@@ -327,6 +327,8 @@ export function ApiKeysView({
  * 📡 VIEW 2: LOGS VIEW (RADAR ERROR TRACKING)
  */
 export function LogsView({ errorLogs }: any) {
+    const [activeErrorTab, setActiveErrorTab] = useState<'all' | 'ai' | 'webhook' | 'system'>('all');
+
     if (!errorLogs || errorLogs.length === 0) {
         return (
             <div className="bg-white rounded-[2.5rem] p-20 border border-slate-100 text-center">
@@ -338,40 +340,83 @@ export function LogsView({ errorLogs }: any) {
         );
     }
 
-    return (
-        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
-            <div className="flex items-center justify-between mb-6 px-4">
-                <h2 className="text-sm font-black text-slate-800 uppercase flex items-center gap-2">
-                    <AlertTriangle size={18} className="text-red-500"/> Nhật ký lỗi (Radar)
-                </h2>
-                <div className="text-[10px] font-black text-slate-400 bg-slate-100 px-3 py-1 rounded-full">
-                    {errorLogs.length} LOGS
-                </div>
-            </div>
+    const categorizedLogs = errorLogs.map((log: any) => {
+        let category = 'system';
+        if (log.file_source === 'fb_webhook' || log.error_type?.includes('FB_WEBHOOK')) {
+            category = 'webhook';
+        } else if (log.error_type?.includes('API_TEST') || log.error_type?.includes('KEY_MISSING') || log.error_type?.includes('AI_')) {
+            category = 'ai';
+        }
+        return { ...log, category };
+    });
 
-            <div className="grid grid-cols-1 gap-3">
-                {errorLogs.map((log: any) => (
-                    <div key={log.id} className="bg-white p-5 rounded-[1.5rem] border border-slate-100 shadow-sm hover:border-indigo-200 transition-all group relative overflow-hidden">
-                        <div className="flex items-start justify-between gap-4">
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <span className={cn(
-                                        "text-[9px] font-black px-2 py-0.5 rounded border uppercase tracking-widest",
-                                        log.file_source === 'fb_webhook' ? "bg-blue-50 text-blue-700 border-blue-100" : "bg-red-50 text-red-700 border-red-100"
-                                    )}>{log.file_source || 'SYSTEM'}</span>
-                                    {log.shops && <span className="text-[9px] font-black bg-slate-900 text-white px-2 py-0.5 rounded uppercase tracking-widest">#{log.shops.code}</span>}
-                                </div>
-                                <p className="text-xs font-bold text-slate-700 line-clamp-2">{log.error_message}</p>
+    const filteredLogs = activeErrorTab === 'all' ? categorizedLogs : categorizedLogs.filter((l: any) => l.category === activeErrorTab);
+
+    return (
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500 pb-20">
+            <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 uppercase flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center">
+                                <AlertTriangle size={20}/>
                             </div>
-                            <div className="text-right">
-                                <div className="text-[10px] font-black text-slate-400 flex items-center justify-end gap-1 mb-1">
-                                    <Clock size={12}/> {new Date(log.created_at).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                                </div>
-                                <p className="text-[9px] font-bold text-slate-300">{new Date(log.created_at).toLocaleDateString('vi-VN')}</p>
-                            </div>
-                        </div>
+                            Nhật ký lỗi trung tâm
+                        </h2>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Radar theo dõi và phân loại sự cố toàn hệ thống</p>
                     </div>
-                ))}
+                </div>
+
+                {/* TABS */}
+                <div className="flex flex-wrap gap-2 mb-8 bg-slate-50 p-2 rounded-2xl w-fit border border-slate-100">
+                    {[
+                        { id: 'all', label: 'TẤT CẢ', count: categorizedLogs.length },
+                        { id: 'ai', label: 'AI & API KEY', count: categorizedLogs.filter((l:any) => l.category === 'ai').length },
+                        { id: 'webhook', label: 'FACEBOOK WEBHOOK', count: categorizedLogs.filter((l:any) => l.category === 'webhook').length },
+                        { id: 'system', label: 'HỆ THỐNG', count: categorizedLogs.filter((l:any) => l.category === 'system').length }
+                    ].map((tab) => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveErrorTab(tab.id as any)}
+                            className={cn(
+                                "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 transition-all",
+                                activeErrorTab === tab.id ? "bg-white text-slate-900 shadow-sm border border-slate-200" : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                            )}
+                        >
+                            {tab.label} <span className={cn("px-1.5 py-0.5 rounded-md text-[9px]", activeErrorTab === tab.id ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-500")}>{tab.count}</span>
+                        </button>
+                    ))}
+                </div>
+
+                {filteredLogs.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-3xl bg-slate-50/50">
+                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Không có lỗi nào trong mục này</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {filteredLogs.map((log: any) => (
+                            <div key={log.id} className="bg-white p-6 rounded-[1.5rem] border border-slate-100 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group relative overflow-hidden flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-start justify-between gap-4 mb-3">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={cn(
+                                                "text-[9px] font-black px-2 py-1 rounded-lg uppercase tracking-widest border",
+                                                log.category === 'webhook' ? "bg-blue-50 text-blue-700 border-blue-100" : 
+                                                log.category === 'ai' ? "bg-purple-50 text-purple-700 border-purple-100" :
+                                                "bg-red-50 text-red-700 border-red-100"
+                                            )}>{log.error_type || log.file_source || 'SYSTEM'}</span>
+                                            {log.shops && <span className="text-[9px] font-black bg-slate-900 text-white px-2 py-1 rounded-lg uppercase tracking-widest">#{log.shops.code}</span>}
+                                        </div>
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-700 leading-relaxed mb-4">{log.error_message}</p>
+                                </div>
+                                <div className="text-[10px] font-black text-slate-400 flex items-center gap-1 border-t border-slate-50 pt-4 mt-auto">
+                                    <Clock size={12}/> {new Date(log.created_at).toLocaleString('vi-VN')}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

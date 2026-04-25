@@ -1528,35 +1528,8 @@ export default function SuperAdminPage() {
                    </div>
                 </div>
              </div>
-
-             {/* FB ERROR LOGS SPECIFIC SECTION */}
-             <div className="mt-10">
-                 <h3 className="text-sm font-black text-slate-800 uppercase mb-4 flex items-center gap-2"><AlertTriangle size={16} className="text-red-500"/> Lỗi Facebook Webhook Gần Đây</h3>
-                 <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200 shadow-inner">
-                    {errorLogs.filter((l: any) => l.file_source === 'fb_webhook' || l.error_type?.includes('FB_WEBHOOK')).length === 0 ? (
-                        <p className="text-[10px] text-slate-500 font-bold uppercase italic text-center py-8">Chưa có lỗi Facebook nào được ghi nhận gần đây.</p>
-                    ) : (
-                        <div className="space-y-3">
-                            {errorLogs.filter((l: any) => l.file_source === 'fb_webhook' || l.error_type?.includes('FB_WEBHOOK')).map((l: any) => (
-                                <div key={l.id} className="bg-white p-4 rounded-xl border border-red-100 flex flex-col md:flex-row justify-between gap-4 hover:border-red-300 transition-all shadow-sm">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <span className="text-[9px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded border border-red-200 uppercase tracking-widest">{l.error_type}</span>
-                                            {l.shops && <span className="text-[9px] font-black bg-amber-50 text-amber-600 px-2 py-0.5 rounded border border-amber-200 uppercase tracking-widest">#{l.shops.code || 'UNKNOWN'}</span>}
-                                        </div>
-                                        <p className="text-xs font-bold text-slate-700">{l.error_message}</p>
-                                    </div>
-                                    <div className="text-[10px] font-black text-slate-400 whitespace-nowrap bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 h-fit">
-                                        {new Date(l.created_at).toLocaleString('vi-VN')}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                 </div>
              </div>
           </div>
-        </div>
       )}
       {activeTab === 'config' && (
         <div className="px-2 lg:px-0">
