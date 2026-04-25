@@ -178,7 +178,7 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
     process.env.GEMINI_EMBEDDING_KEY_2,
   ].filter(k => k && k.trim() !== '') as string[];
 
-  let dbKeys: DetailedKey[] = [];
+  let dbKeys: any[] = [];
   try {
     dbKeys = await getHealthyKeys('gemini', 'free');
     console.log('[DEBUG] dbKeys length:', dbKeys.length);

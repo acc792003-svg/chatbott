@@ -22,6 +22,7 @@ export function ApiKeysView({
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
+    adminTelegramChatId, setAdminTelegramChatId,
     showKeys, setShowKeys
 }: any) {
     const keys = systemStats?.keys || [];
@@ -218,6 +219,7 @@ export function ApiKeysView({
                     <KeyInput label="Facebook Verify Token" value={fbVerifyToken} onChange={setFbVerifyToken} show={showKeys?.fbv} toggle={() => setShowKeys({...showKeys, fbv: !showKeys?.fbv})} />
                     <KeyInput label="Facebook App Secret" value={fbAppSecret} onChange={setFbAppSecret} show={showKeys?.fbs} toggle={() => setShowKeys({...showKeys, fbs: !showKeys?.fbs})} />
                     <KeyInput label="System Telegram Bot Token" value={systemTelegramToken} onChange={setSystemTelegramToken} show={showKeys?.tgt} toggle={() => setShowKeys({...showKeys, tgt: !showKeys?.tgt})} />
+                    <KeyInput label="Chat Tele ID (Super Admin)" value={adminTelegramChatId} onChange={setAdminTelegramChatId} show={showKeys?.tga} toggle={() => setShowKeys({...showKeys, tga: !showKeys?.tga})} />
                 </div>
             </div>
 

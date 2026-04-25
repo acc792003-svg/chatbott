@@ -55,6 +55,7 @@ export default function SuperAdminPage() {
   const [fbVerifyToken, setFbVerifyToken] = useState('');
   const [fbAppSecret, setFbAppSecret] = useState('');
   const [systemTelegramToken, setSystemTelegramToken] = useState('');
+  const [adminTelegramChatId, setAdminTelegramChatId] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
   // UI States
@@ -299,6 +300,7 @@ export default function SuperAdminPage() {
       setFbVerifyToken(data.find((d: any) => d.key === 'fb_verify_token')?.value || '');
       setFbAppSecret(data.find((d: any) => d.key === 'fb_app_secret')?.value || '');
       setSystemTelegramToken(data.find((d: any) => d.key === 'system_telegram_bot_token')?.value || '');
+      setAdminTelegramChatId(data.find((d: any) => d.key === 'admin_telegram_chat_id')?.value || '');
     }
   };
 
@@ -613,6 +615,7 @@ export default function SuperAdminPage() {
             settings.push({ key: 'fb_verify_token', value: fbVerifyToken });
             settings.push({ key: 'fb_app_secret', value: fbAppSecret });
             settings.push({ key: 'system_telegram_bot_token', value: systemTelegramToken });
+            settings.push({ key: 'admin_telegram_chat_id', value: adminTelegramChatId });
         } else {
             settings.push({ key: 'trial_template_shop_code', value: trialTemplateCode });
         }
@@ -829,7 +832,7 @@ export default function SuperAdminPage() {
                                         const isMissing = k.status === 'disabled';
                                         let initial = k.name.includes('Ge') ? 'G' : k.name.includes('Ds') ? 'D' : 'E';
                                         return (
-                                            <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}`}>
+                                            <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0" title={`${k.name}: ${k.status.toUpperCase()}${k.last_error ? `\nLỗi: ${k.last_error}` : ''}`}>
                                                 <div className={cn(
                                                         "w-3 h-3 rounded-full flex-shrink-0 relative shadow-sm border", 
                                                         k.status === 'active' ? "bg-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" : 
@@ -1524,6 +1527,7 @@ export default function SuperAdminPage() {
             fbVerifyToken={fbVerifyToken} setFbVerifyToken={setFbVerifyToken}
             fbAppSecret={fbAppSecret} setFbAppSecret={setFbAppSecret}
             systemTelegramToken={systemTelegramToken} setSystemTelegramToken={setSystemTelegramToken}
+            adminTelegramChatId={adminTelegramChatId} setAdminTelegramChatId={setAdminTelegramChatId}
             systemStats={systemStats} onSave={() => handleSaveSystemSettings('api')}
             addToast={addToast}
           />
