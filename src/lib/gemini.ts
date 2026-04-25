@@ -166,6 +166,15 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
         normalizedHistory.unshift({ role: 'system', content: systemPrompt });
     }
 
+    // Lấy model_id từ DB
+    const { data: modelSetting } = await (supabaseAdmin || supabase)
+        .from('system_settings')
+        .select('value')
+        .eq('key', 'openrouter_model_id')
+        .single();
+    
+    const targetModel = modelSetting?.value || "deepseek/deepseek-chat";
+
     const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: { 
@@ -175,7 +184,7 @@ async function callSpecificAI(provider: string, tier: string, apiKey: string, hi
         'X-Title': 'Q-Chatbot SaaS'
       },
       body: JSON.stringify({
-        model: "deepseek/deepseek-chat",
+        model: targetModel,
         messages: normalizedHistory,
         temperature
       })

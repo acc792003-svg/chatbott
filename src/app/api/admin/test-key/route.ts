@@ -93,6 +93,15 @@ export async function POST(req: Request) {
             isSuccess = res.ok;
             if (!isSuccess) errorDetail = await res.text();
         } else if (isOpenRouter) {
+            // Lấy model_id từ DB cho việc test
+            const { data: modelSetting } = await supabaseAdmin
+                .from('system_settings')
+                .select('value')
+                .eq('key', 'openrouter_model_id')
+                .single();
+            
+            const targetModel = modelSetting?.value || 'deepseek/deepseek-chat';
+
             const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
@@ -102,7 +111,7 @@ export async function POST(req: Request) {
                     'X-Title': 'Q-Chatbot Test'
                 },
                 body: JSON.stringify({
-                    model: 'deepseek/deepseek-chat',
+                    model: targetModel,
                     messages: [{ role: 'user', content: 'Say ok' }],
                     max_tokens: 5
                 }),

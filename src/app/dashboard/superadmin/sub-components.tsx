@@ -41,6 +41,7 @@ export function ApiKeysView({
     deepSeekKeyPro, setDeepSeekKeyPro,
     openRouterKey1, setOpenRouterKey1,
     openRouterKey2, setOpenRouterKey2,
+    openRouterModel, setOpenRouterModel,
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
@@ -328,6 +329,20 @@ export function ApiKeysView({
                     </div>
                     <KeyInput label="OpenRouter Key 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
                     <KeyInput label="OpenRouter Key 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
+                    
+                    <div className="space-y-1.5 border-t border-slate-50 pt-4">
+                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest ml-1 flex items-center gap-2">
+                            <Activity size={12}/> Model ID (Mặc định: deepseek/deepseek-chat)
+                        </label>
+                        <input 
+                            type="text"
+                            placeholder="Ví dụ: deepseek/deepseek-chat"
+                            className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500 transition-all text-emerald-700"
+                            value={openRouterModel || ''}
+                            onChange={e => setOpenRouterModel(e.target.value)}
+                        />
+                        <p className="text-[9px] text-slate-400 italic pl-1">Bạn có thể đổi sang google/gemini-flash-1.5 hoặc meta-llama/llama-3.1-8b...</p>
+                    </div>
                 </div>
 
                 {/* FACEBOOK & TELEGRAM SYSTEM */}
