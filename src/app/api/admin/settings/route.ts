@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { encrypt, decrypt } from '@/lib/encryption';
 
 // GET: Lấy danh sách settings
 export async function GET() {
@@ -9,7 +10,9 @@ export async function GET() {
     
     const { data } = await client.from('system_settings').select('key, value');
     const settings: Record<string, string> = {};
-    data?.forEach((s: any) => { settings[s.key] = s.value; });
+    data?.forEach((s: any) => { 
+        settings[s.key] = decrypt(s.value); 
+    });
     
     return NextResponse.json({ settings });
   } catch (error: any) {
@@ -36,7 +39,7 @@ export async function POST(req: Request) {
       // Cập nhật hàng loạt
       const updates = keys.map((k: any) => ({
         key: k.key,
-        value: k.value,
+        value: encrypt(k.value),
         updated_at: new Date().toISOString()
       }));
       
@@ -45,7 +48,7 @@ export async function POST(req: Request) {
     } else if (key) {
       // Cập nhật một key đơn lẻ
       const { error } = await client.from('system_settings').upsert(
-        { key, value, updated_at: new Date().toISOString() },
+        { key, value: encrypt(value), updated_at: new Date().toISOString() },
         { onConflict: 'key' }
       );
       if (error) throw error;

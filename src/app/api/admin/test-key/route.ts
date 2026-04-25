@@ -1,8 +1,37 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { decrypt } from '@/lib/encryption';
 
 export async function POST(req: Request) {
   try {
+    // 1. KIỂM TRA ĐĂNG NHẬP (Lấy user từ JWT)
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.split(' ')[1];
+    
+    let user;
+    if (token) {
+        const { data } = await supabase.auth.getUser(token);
+        user = data.user;
+    } else {
+        const { data } = await supabase.auth.getUser();
+        user = data.user;
+    }
+
+    if (!user) {
+      return NextResponse.json({ status: 'error', error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. KIỂM TRA QUYỀN SUPER ADMIN
+    const { data: userData, error: roleError } = await supabaseAdmin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (roleError || !userData || userData.role !== 'super_admin') {
+      return NextResponse.json({ status: 'error', error: 'Forbidden' }, { status: 403 });
+    }
+
     const { keyStr } = await req.json(); // e.g., 'gemini_api_key_1'
 
     let apiKey = '';
@@ -16,7 +45,7 @@ export async function POST(req: Request) {
         .single();
 
     if (dbKey?.value && dbKey.value.trim() !== '' && dbKey.value !== 'DeepSeek free') {
-        apiKey = dbKey.value;
+        apiKey = decrypt(dbKey.value);
     } else {
         // Fallback to .env
         if (keyStr === 'gemini_api_key_1') apiKey = process.env.GEMINI_API_KEY_1 || '';

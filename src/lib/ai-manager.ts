@@ -1,5 +1,6 @@
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { reportError } from './radar';
+import { decrypt } from './encryption';
 
 export type AIProvider = 'gemini' | 'deepseek';
 export type AITier = 'free' | 'pro';
@@ -93,9 +94,9 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     let dbKeys = (data || []).map((k: any) => {
       // Nếu đã hết hạn cooldown -> Tự động chuyển sang trạng thái probing
       if (k.status !== 'active' && k.status !== 'disabled' && k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
-        return { ...k, status: 'probing' };
+        return { ...k, status: 'probing', value: decrypt(k.value) };
       }
-      return { ...k, status: k.status || 'active' }; // Dù đã chặn NULL nhưng vẫn fallback an toàn
+      return { ...k, status: k.status || 'active', value: decrypt(k.value) }; // Dù đã chặn NULL nhưng vẫn fallback an toàn
     }) as AIKey[];
 
     // 1 & 2. NẾU DB CÓ KEY HỢP LỆ -> TRẢ VỀ NGAY LẬP TỨC
