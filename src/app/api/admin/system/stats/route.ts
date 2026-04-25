@@ -78,8 +78,6 @@ export async function GET() {
                 const isCooldown = k?.cooldown_until && new Date(k.cooldown_until) > now;
                 if (currentStatus !== 'disabled' && isCooldown) {
                     currentStatus = 'cooldown';
-                } else if (currentStatus === 'error' && !isCooldown) {
-                    currentStatus = 'probing';
                 } else if (!currentStatus) {
                     currentStatus = 'disabled'; // Khắt khe: NULL trong DB -> Hiển thị Disabled
                 }

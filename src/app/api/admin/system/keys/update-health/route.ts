@@ -13,12 +13,12 @@ export async function POST(req: Request) {
     // Actually, we can upsert if we want, but it's safer to just update.
     const { error } = await supabaseAdmin
       .from('system_settings')
-      .update({
+      .upsert({
+        key: keyStr,
         status,
         avg_latency: latency || 0,
         last_used_at: new Date().toISOString()
-      })
-      .eq('key', keyStr);
+      }, { onConflict: 'key' });
 
     if (error) {
       // If error, maybe the key isn't in DB yet (for .env keys)
