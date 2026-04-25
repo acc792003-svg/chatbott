@@ -665,7 +665,7 @@ export default function SuperAdminPage() {
   };
 
   // Filtered Shops
-  const filteredShops = shops.filter(s => s.name.toLowerCase().includes(searchTerm.toLowerCase()) || s.code.toLowerCase().includes(searchTerm.toLowerCase()) || s.slug?.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredShops = shops.filter(s => s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) || s.slug?.toLowerCase().includes(debouncedSearch.toLowerCase()));
 
   if (loading) return <div className="p-8 text-xs font-bold text-slate-400">SYNCING ADMIN CORE...</div>;
 
