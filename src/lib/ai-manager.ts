@@ -121,17 +121,6 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     }
 
     // 3. FALLBACK .ENV (Chỉ khi DB không có key nào dùng được)
-    console.error({ reason: "NO_DB_KEYS", provider, tier, fallback_used: true });
-    
-    // 🔥 Báo cáo Radar: Hệ thống đang phải sống sót bằng ENV
-    reportError({
-      errorType: 'AI_KEY_ENV_FALLBACK',
-      errorMessage: `CẢNH BÁO: Không có API Key hợp lệ trong Database cho ${provider} (${tier}). Hệ thống đang tự động kích hoạt key dự phòng từ file .env để sinh tồn.`,
-      fileSource: 'ai-manager.ts',
-      severity: 'high',
-      metadata: { provider, tier }
-    }).catch(() => {});
-
     let envKeys: AIKey[] = [];
     if (provider === 'gemini') {
       if (tier === 'free') {
@@ -146,7 +135,18 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
        }
     }
 
-    if (envKeys.length > 0) return envKeys;
+    if (envKeys.length > 0) {
+      // 🔥 Báo cáo Radar: Hệ thống đang phải sống sót bằng ENV
+      reportError({
+        errorType: 'AI_KEY_ENV_FALLBACK',
+        errorMessage: `CẢNH BÁO: Không có API Key hợp lệ trong Database cho ${provider} (${tier}). Hệ thống đang tự động kích hoạt key dự phòng từ file .env để sinh tồn.`,
+        fileSource: 'ai-manager.ts',
+        severity: 'high',
+        metadata: { provider, tier }
+      }).catch(() => {});
+      
+      return envKeys;
+    }
 
     // 4. THẤT BẠI HOÀN TOÀN
     throw new Error(`NO_AI_KEYS_AVAILABLE for ${provider} ${tier}`);
