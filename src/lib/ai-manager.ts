@@ -45,21 +45,28 @@ export function calculateComplexityScore(userInput: string): number {
  * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ thông minh
  */
 export function getRetryPath(isPro: boolean, complexity: number): {provider: AIProvider, tier: AITier}[] {
-  if (isPro || complexity > 7) {
-    // Ưu tiên Pro cho shop Pro hoặc câu hỏi khó
+  if (isPro) {
+    // Gói PRO ưu tiên: Gemini Pro -> OpenRouter -> Gemini Pro
+    // (OpenRouter sẽ tự động quét qua Key 1 rồi đến Key 2)
     return [
-      { provider: 'deepseek', tier: 'pro' },
+      { provider: 'gemini', tier: 'pro' },
       { provider: 'openrouter', tier: 'pro' },
       { provider: 'gemini', tier: 'pro' },
-      { provider: 'gemini', tier: 'free' }
+      { provider: 'deepseek', tier: 'pro' } // Backstop an toàn
+    ];
+  } else if (complexity > 7) {
+    // Gói FREE nhưng câu khó
+    return [
+      { provider: 'deepseek', tier: 'pro' },
+      { provider: 'gemini', tier: 'free' },
+      { provider: 'openrouter', tier: 'free' }
     ];
   } else {
-    // Shop thường / Câu hỏi dễ: Tiết kiệm
+    // Gói FREE / Câu hỏi dễ
     return [
       { provider: 'deepseek', tier: 'free' },
       { provider: 'gemini', tier: 'free' },
-      { provider: 'openrouter', tier: 'free' }, // Cứu hộ tầng cuối
-      { provider: 'deepseek', tier: 'pro' }
+      { provider: 'openrouter', tier: 'free' }
     ];
   }
 }

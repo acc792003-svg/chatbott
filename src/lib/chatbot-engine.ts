@@ -1,9 +1,9 @@
 import { supabase, supabaseAdmin } from './supabase';
 import { callGeminiWithFallback, generateEmbedding } from './gemini';
 import { detectAndSaveLead } from './leads';
-import { validateRateLimit } from './rate-limiter';
+import { validateRateLimit, redis } from './rate-limiter';
 import { reportError } from './radar';
-import { decideRoute, enforcePolicy, POLICY, runAI } from './ai-router';
+import { decideRoute, runAI, fallbackResponse } from './ai-router';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -23,7 +23,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   answer: string;
-  source: 'faq' | 'cache' | 'ai';
+  source: string;
   latency: number;
   intent?: string;
   shopName?: string;
@@ -33,6 +33,25 @@ export function normalizeMessage(text: string): string {
   return text.trim().toLowerCase()
     .replace(/[?.,!]/g, '') 
     .replace(/\s+/g, ' ');   
+}
+
+function keywordMatchScore(input: string, question: string) {
+  const tokens = input.split(' ').filter(t => t.length > 2);
+  if (tokens.length === 0) return input.length > 0 && question.toLowerCase().includes(input) ? 1 : 0;
+  const qLower = question.toLowerCase();
+  const matches = tokens.filter(t => qLower.includes(t));
+  return matches.length / tokens.length;
+}
+
+function detectIntentBoost(input: string, f: any) {
+  let score = 0;
+  const combined = ((f.question || '') + ' ' + (f.answer || '')).toLowerCase();
+  if (/(giá|tiền|bao nhiêu|nhiêu|bảng giá)/.test(input) && /(giá|tiền|bao nhiêu|vnd|đ|k|chi phí)/.test(combined)) score += 1;
+  if (/(địa chỉ|ở đâu|chỗ nào|đường nào|quận mấy)/.test(input) && /(địa chỉ|nằm ở|đường|quận|phường)/.test(combined)) score += 1;
+  if (/(giờ|khi nào|mấy giờ|mở cửa|đóng cửa)/.test(input) && /(giờ|sáng|chiều|tối|ngày)/.test(combined)) score += 1;
+  if (/(ship|giao hàng|phí ship)/.test(input) && /(ship|giao|vận chuyển|phí)/.test(combined)) score += 1;
+  
+  return score > 0 ? 1 : 0;
 }
 
 /**
@@ -55,7 +74,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   const { shopId, message, history, externalUserId, platform, isPro, ip } = req;
 
   // 🛡️ LỚP BẢO VỆ REDIS: ĐÁNH CHẶN 4 TẦNG (BLACKLIST, WELCOME, USER, SHOP, IP)
-  const rateLimitResult = await validateRateLimit(shopId, externalUserId, ip || '127.0.0.1', message);
+  const isTrusted = (history && history.length > 2) || platform !== 'widget';
+  const rateLimitResult = await validateRateLimit(shopId, externalUserId, ip || '127.0.0.1', message, isTrusted);
   if (!rateLimitResult.allowed) {
     if (rateLimitResult.reason === 'silence') {
        return { answer: "", source: 'cache', latency: 0 };
@@ -69,13 +89,14 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
   const normalized = normalizeMessage(message);
   let finalResponse = '';
-  let resultSource: 'faq' | 'cache' | 'ai' = 'ai';
+  let resultSource: string = 'ai';
   let queryEmbedding: number[] | null = null;
   let totalUsageTokens = 0;
   let shopCode = 'unknown';
   let faqContext = '';
   let topScore = 0;
   let detectedIntent = 'chat';
+  let scoredFaqs: any[] = [];
 
   const client = supabaseAdmin || supabase;
 
@@ -187,23 +208,48 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     });
     
     if (vectorFaqs && vectorFaqs.length > 0) {
-      const scoredFaqs = vectorFaqs.map((f: any) => ({ ...f, hybridScore: (f.similarity * 0.7) + (f.question.toLowerCase().includes(normalized) ? 0.3 : 0) }))
-                                   .sort((a: any, b: any) => b.hybridScore - a.hybridScore);
+      const wordCount = normalized.split(' ').length;
+      const isShort = wordCount <= 5;
+
+      const vWeight = isShort ? 0.5 : 0.75;
+      const kWeight = isShort ? 0.4 : 0.15;
+      const iWeight = 0.1;
+
+      scoredFaqs = vectorFaqs.map((f: any) => {
+        const keywordScore = keywordMatchScore(normalized, f.question);
+        const intentScore = detectIntentBoost(normalized, f);
+
+        return {
+          ...f,
+          hybridScore:
+            (f.similarity * vWeight) +
+            (keywordScore * kWeight) +
+            (intentScore * iWeight)
+        };
+      }).sort((a: any, b: any) => b.hybridScore - a.hybridScore);
 
       topScore = scoredFaqs[0].hybridScore;
 
       // 🥇 MỨC 1: >= 0.85 (rất khớp) -> Trả thẳng FAQ (FAQ path)
       if (topScore >= 0.85) {
-        console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.85) - FAQ PATH`);
-        return { 
-          answer: scoredFaqs[0].answer, 
-          source: 'faq', 
-          latency: Date.now() - start,
-          shopName: shopConfig?.shop_name || shopData?.name
-        };
+        // 🔥 Re-ranking check (Lớp an toàn cuối)
+        const isSafeToAutoFaq = scoredFaqs.length > 1 ? (topScore - scoredFaqs[1].hybridScore >= 0.05) : true;
+        
+        if (isSafeToAutoFaq) {
+          console.log(`[Engine] FAQ Match (Hybrid: ${topScore.toFixed(2)} >= 0.85) - FAQ PATH`);
+          return { 
+            answer: scoredFaqs[0].answer, 
+            source: 'faq', 
+            latency: Date.now() - start,
+            shopName: shopConfig?.shop_name || shopData?.name
+          };
+        } else {
+          console.log(`[Engine] Re-ranking Check Failed (Distance < 0.05). Downgrading to AI Path.`);
+        }
       } 
-      // 🥈 MỨC 2: Inject context cho AI
-      else if (topScore >= 0.70) {
+      
+      // 🥈 MỨC 2: Inject context cho AI (Kể cả khi Re-ranking check fail ở mức 1)
+      if (topScore >= 0.70) {
          faqContext = scoredFaqs.slice(0, 3).map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
     }
@@ -212,9 +258,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     const plan = isPro ? 'pro' : 'free';
     const decision = decideRoute({
       cacheHit: false, // Đã check ở trên
-      faqScore: topScore,
-      plan,
-      input: message
+      faqScore: topScore
     });
 
     if (decision === 'CACHE' || decision === 'FAQ') {
@@ -274,21 +318,19 @@ ${happyHourContext}`;
           { role: 'user', content: message }
         ];
 
-        const aiResult = await runAI(
-           decision as any, // ép kiểu nếu cần
-           { 
+        const aiResult = await runAI({ 
              history: rawHistoryForAI,
              temperature: 0.7,
              systemPrompt,
-             tier: plan
-           }
-        );
+             tier: plan,
+             vectorFaqs: scoredFaqs
+        });
 
        finalResponse = aiResult.text;
        totalUsageTokens = aiResult.tokens;
        resultSource = aiResult.source as any;
 
-       if (queryEmbedding && finalResponse.length < 500) {
+       if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
           await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
        }
     }
@@ -315,20 +357,16 @@ ${happyHourContext}`;
 
   } catch (error: any) {
     const latency = Date.now() - start;
-    let errorResponse = "Dạ, hiện tại kết nối mạng đang hơi chậm, bạn vui lòng chờ vài giây rồi nhắn lại nhe! 🙏";
     
     // 🔥 Graceful Degradation: Fallback to Vector FAQ if AI fails
-    if (typeof topScore !== 'undefined' && topScore >= 0.60 && faqContext) {
-      // Lấy câu FAQ đầu tiên trong faqContext
-      const firstFaq = faqContext.split('---')[0].replace('Q:', '').replace('A:', '').trim();
-      errorResponse = `Dạ hệ thống đang hơi quá tải, em gửi bạn thông tin phù hợp nhé:\n- ${firstFaq}`;
-    }
+    const fallback = fallbackResponse(scoredFaqs);
+    let errorResponse = fallback.text;
     
     console.error('Core Engine Error:', error);
     
     // LƯU LOG KỂ CẢ KHI LỖI để người dùng thấy tin nhắn họ đã gửi trong lịch sử
     try {
-      await saveLogs(shopId, message, errorResponse, 'ai', latency, platform, externalUserId, 0);
+      await saveLogs(shopId, message, errorResponse, 'fallback', latency, platform, externalUserId, 0);
     } catch (e) {}
 
     if (client) {
@@ -341,7 +379,7 @@ ${happyHourContext}`;
         metadata: { shopCode, platform, stack: error.stack, message: message.substring(0, 50) }
       }).catch(() => {});
     }
-    return { answer: errorResponse, source: 'faq', latency: latency };
+    return { answer: errorResponse, source: 'fallback', latency: latency };
   }
 }
 
@@ -357,17 +395,57 @@ async function saveLogs(shopId: string, message: string, answer: string, source:
 
 async function summarizeThread(shopId: string, externalUserId: string, fullHistory: any[]) {
   try {
-    // Tối ưu Ý 5: Chỉ tóm tắt khi đạt mốc 20 tin nhắn để tiết kiệm 50-80% lượng token (không gọi liên tục mỗi tin)
-    if (fullHistory.length > 0 && fullHistory.length % 20 !== 0) {
-       return; 
-    }
+    if (!fullHistory || fullHistory.length < 2) return;
+
+    const historyText = fullHistory.slice(-20).map((h: any) => `${h.role}: ${h.content}`).join('\n');
+    
+    // 1. Kiểm tra Booking Intent (Strict Regex)
+    const bookingIntent = /(đặt lịch|đặt chỗ|hẹn|book)/i.test(historyText);
+    const pricingIntent = /(giá|bao nhiêu tiền|phí|cost)/i.test(historyText);
+    const hasBookingIntent = bookingIntent || pricingIntent;
 
     const client = supabaseAdmin || supabase;
-    const historyText = fullHistory.slice(-20).map((h: any) => `${h.role}: ${h.content}`).join('\n');
+    // Tạm bỏ select created_at, lấy last_message_at
+    const { data: conv } = await client.from('conversations')
+       .select('last_message_at')
+       .eq('shop_id', shopId)
+       .eq('external_user_id', externalUserId)
+       .maybeSingle();
+    
+    // 2. Kiểm tra Inactive > 5 phút (Chờ khách nghỉ tay rồi mới tổng hợp)
+    const lastMessageAt = conv?.last_message_at;
+    const isActive5Mins = lastMessageAt && (Date.now() - new Date(lastMessageAt).getTime() > 300000);
+
+    if (!isActive5Mins && !hasBookingIntent) return;
+
+    if (redis) {
+       // 4. Kiểm tra Max Summary Limit (Tối đa 3 lần / ngày / user để chống lãng phí cực đoan)
+       const limitKey = `summary_limit:${shopId}:${externalUserId}`;
+       const summaryCount = (await redis.get<number>(limitKey)) || 0;
+       if (summaryCount >= 3) return;
+
+       // 3. Debounce theo Session Bucket (5 phút = 1 bucket mới)
+       const sessionBucket = Math.floor(Date.now() / 300000); 
+       const summaryKey = `summary:${shopId}:${externalUserId}:${sessionBucket}`;
+       
+       const isThrottled = await redis.get(summaryKey);
+       if (isThrottled) return;
+       
+       // Đánh dấu đã gọi trong bucket này và tăng biến đếm limit
+       await redis.set(summaryKey, '1', { ex: 300 }); 
+       await redis.incr(limitKey);
+       await redis.expire(limitKey, 86400); // Reset biến đếm sau 1 ngày
+    }
+
     const { text } = await callGeminiWithFallback([{ role: 'user', parts: [{ text: `Phân tích JSON: {summary, sentiment, satisfaction_score, new_faq} từ: ${historyText}` }] }], { temperature: 0.2, responseMimeType: "application/json" }, shopId, 'API_INTERNAL_ANALYST');
     if (text) {
       const result = JSON.parse(text);
-      await client.from('conversations').update({ summary: result.summary, sentiment: result.sentiment, satisfaction_score: result.satisfaction_score, last_message_at: new Date().toISOString() }).eq('shop_id', shopId).eq('external_user_id', externalUserId);
+      await client.from('conversations').update({ 
+          summary: result.summary, 
+          sentiment: result.sentiment, 
+          satisfaction_score: result.satisfaction_score, 
+          last_message_at: new Date().toISOString() 
+      }).eq('shop_id', shopId).eq('external_user_id', externalUserId);
     }
   } catch (e) {}
 }

@@ -1,4 +1,6 @@
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import crypto from 'crypto';
+import { redis } from './rate-limiter';
 import { 
   getHealthyKeys, 
   reportKeyFailure, 
@@ -212,6 +214,16 @@ async function fetchWithTimeout(resource: string, options: any, timeout: number)
 }
 
 export async function generateEmbedding(text: string, isPro: boolean = false): Promise<number[]> {
+  const hash = crypto.createHash('md5').update(text).digest('hex');
+  const cacheKey = `emb:${hash}`;
+
+  if (redis) {
+    try {
+      const cached = await redis.get<number[]>(cacheKey);
+      if (cached) return cached;
+    } catch (e) {}
+  }
+
   const envKeys = [
     process.env.GEMINI_EMBEDDING_KEY_1,
     process.env.GEMINI_EMBEDDING_KEY_2,
@@ -245,6 +257,10 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
 
       const data = await res.json();
       if (res.ok && data.embedding?.values) {
+         const vector = data.embedding.values;
+         if (redis) {
+           redis.set(cacheKey, vector, { ex: 600 }).catch(() => {});
+         }
          // Nếu key này từ DB thì báo cáo thành công (tuỳ chọn)
          const dbKeyMatch = dbKeys.find(k => k.value === key);
          if (dbKeyMatch && dbKeyMatch.id) {
