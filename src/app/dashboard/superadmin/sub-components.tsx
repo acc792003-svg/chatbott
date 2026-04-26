@@ -416,7 +416,7 @@ export function ApiKeysView({
                     <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Brain size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">Google Gemini</h3></div>
                     <KeyInput label="Gemini Free 1" value={apiKey1} onChange={setApiKey1} show={showKeys?.k1} toggle={() => setShowKeys({...showKeys, k1: !showKeys?.k1})} />
                     <KeyInput label="Gemini Free 2" value={apiKey2} onChange={setApiKey2} show={showKeys?.k2} toggle={() => setShowKeys({...showKeys, k2: !showKeys?.k2})} />
-                    <KeyInput label="Gemini Pro" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.kp} toggle={() => setShowKeys({...showKeys, kp: !showKeys?.kp})} />
+                    <KeyInput label="Gemini Pro" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.kp} toggle={() => setShowKeys({...showKeys, kp: !showKeys?.kp})} name="gemini_pro_key" autoComplete="off" />
                 </div>
                 
                 <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
@@ -449,10 +449,10 @@ export function ApiKeysView({
 
                     {/* OpenRouter Pro */}
                     <div className="p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100 space-y-4">
-                        <KeyInput label="OpenRouter Pro (System)" value={openRouterKeyPro} onChange={setOpenRouterKeyPro} show={showKeys?.orp} toggle={() => setShowKeys({...showKeys, orp: !showKeys?.orp})} />
+                        <KeyInput label="OpenRouter Pro (System)" value={openRouterKeyPro} onChange={setOpenRouterKeyPro} show={showKeys?.orp} toggle={() => setShowKeys({...showKeys, orp: !showKeys?.orp})} name="openrouter_pro_key" autoComplete="off" />
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2 ml-1"><ShieldCheck size={12}/> Model ID cho Pro</label>
-                            <input type="text" className="w-full bg-white border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o-mini" />
+                            <input type="text" name="openrouter_pro_model" autoComplete="off" className="w-full bg-white border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o-mini" />
                         </div>
                     </div>
                 </div>
@@ -728,6 +728,8 @@ function KeyInput({ label, value, onChange, show, toggle }: any) {
             <div className="relative">
                 <input 
                     type={show ? "text" : "password"}
+                    name={props.name || "api_key"}
+                    autoComplete={props.autoComplete || "off"}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500 transition-all"
                     value={value || ''}
                     onChange={e => onChange(e.target.value)}
