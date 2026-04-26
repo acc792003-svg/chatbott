@@ -3,7 +3,7 @@ import {
     Brain, Lock, Settings, AlertTriangle, Info, RefreshCcw, 
     Power, ShieldCheck, Zap, Activity, ShieldAlert, Copy,
     CheckCircle, MessageCircle, Package, Send, Edit2, Square, CheckSquare, Trash2, Layers,
-    Clock, Search, Filter, Eye, EyeOff, X, TrendingUp, TrendingDown, AlertCircle
+    Clock, Search, Filter, Eye, EyeOff, X, TrendingUp, TrendingDown, AlertCircle, BrainCircuit
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -721,7 +721,7 @@ export function SettingsView({ trialTemplateCode, setTrialTemplateCode, onSave }
     );
 }
 
-function KeyInput({ label, value, onChange, show, toggle }: any) {
+function KeyInput({ label, value, onChange, show, toggle, ...props }: any) {
     return (
         <div className="space-y-1.5">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
