@@ -322,7 +322,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
           return { 
             answer: humanizeResponse(scoredFaqs[0].answer, message, shopConfig), 
             source: 'faq', 
-            latency: Date.now() - start,
+            latency: Date.now() - marks.start,
             shopName: shopConfig?.shop_name || shopData?.name
           };
         } else {
@@ -432,16 +432,10 @@ LIVE: ${bookingContext} ${happyHourContext}`;
     };
 
   } catch (error: any) {
-    const latency = Date.now() - start;
-    
-    // 🔥 Graceful Degradation: Fallback to Vector FAQ if AI fails
+    const latency = Date.now() - marks.start;
     const fallback = fallbackResponse(scoredFaqs);
-    let errorResponse = fallback.text;
     
-    console.error('Core Engine Error:', error);
-    
-    // LƯU LOG KỂ CẢ KHI LỖI để người dùng thấy tin nhắn họ đã gửi trong lịch sử
-    saveLogs(shopId, message, errorResponse, 'fallback', latency, platform, externalUserId, 0).catch(() => {});
+    void saveLogs(shopId, message, fallback.text, 'fallback', latency, platform, externalUserId, 0);
 
     if (client) {
       reportError({
