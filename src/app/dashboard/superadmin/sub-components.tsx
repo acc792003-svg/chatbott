@@ -79,6 +79,7 @@ export function ApiKeysView({
     deepSeekKeyPro, setDeepSeekKeyPro,
     openRouterKey1, setOpenRouterKey1,
     openRouterKey2, setOpenRouterKey2,
+    openRouterKeyPro, setOpenRouterKeyPro,
     openRouterModel, setOpenRouterModel,
     openRouterModel2, setOpenRouterModel2,
     openRouterModelPro, setOpenRouterModelPro,
@@ -185,7 +186,7 @@ export function ApiKeysView({
         <div className="space-y-6 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {/* 🔷 KHỐI 1: TỔNG QUAN (TOP RADAR) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                 <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-indigo-100/50 transition-all">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><ShieldCheck size={80}/></div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-2">
@@ -197,12 +198,33 @@ export function ApiKeysView({
                     </div>
                 </div>
 
+                {/* 🎯 MỚI: AI KEY HEALTH NODES */}
+                <div className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm group hover:shadow-indigo-100/30 transition-all flex flex-col justify-between">
+                    <div className="flex justify-between items-center mb-3">
+                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><BrainCircuit size={12} className="text-indigo-600"/> Key Radar</p>
+                        <span className="text-[8px] font-black uppercase text-indigo-700 tracking-tighter bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                            {keys.filter((k: any) => k.status === 'active').length}/9
+                        </span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between gap-1.5 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
+                            {['gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro'].map(kn => <KeyNode key={kn} k={keys.find((x:any)=>x.key===kn)} label="G" />)}
+                        </div>
+                        <div className="flex items-center justify-between gap-1.5 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
+                            {['deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro'].map(kn => <KeyNode key={kn} k={keys.find((x:any)=>x.key===kn)} label="D" />)}
+                        </div>
+                        <div className="flex items-center justify-between gap-1.5 bg-slate-50/50 rounded-xl p-1.5 border border-slate-100">
+                            {['openrouter_api_key_1', 'openrouter_api_key_2', 'openrouter_api_key_pro'].map(kn => <KeyNode key={kn} k={keys.find((x:any)=>x.key===kn)} label="O" />)}
+                        </div>
+                    </div>
+                </div>
+
                 <div className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm relative overflow-hidden group hover:shadow-rose-100/50 transition-all">
                     <div className="absolute -right-4 -top-4 opacity-5 group-hover:scale-110 transition-transform"><AlertCircle size={80}/></div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">System Errors</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Critical Errors</p>
                     <div className="flex items-baseline gap-2">
-                        <h3 className="text-3xl font-black text-rose-600">{keys.filter((k:any) => k.status === 'error').length}</h3>
-                        <span className="text-[10px] font-bold text-slate-400">Critical Alerts</span>
+                        <h3 className="text-3xl font-black text-rose-600">{keys.filter((k:any) => k.status === 'error' || k.status === 'cooldown').length}</h3>
+                        <span className="text-[10px] font-bold text-slate-400">Alerts</span>
                     </div>
                 </div>
 
@@ -213,7 +235,7 @@ export function ApiKeysView({
                         <h3 className="text-3xl font-black text-indigo-600">
                             {(keys.reduce((acc: number, k: any) => acc + (k.avg_latency || 0), 0) / (keys.filter((k: any) => k.avg_latency > 0).length || 1) / 1000).toFixed(2)}s
                         </h3>
-                        <span className="text-[10px] font-bold text-slate-400">Real-time</span>
+                        <span className="text-[10px] font-bold text-slate-400">Avg</span>
                     </div>
                 </div>
 
@@ -427,7 +449,7 @@ export function ApiKeysView({
 
                     {/* OpenRouter Pro */}
                     <div className="p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100 space-y-4">
-                        <KeyInput label="OpenRouter Pro (System)" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.orp} toggle={() => setShowKeys({...showKeys, orp: !showKeys?.orp})} />
+                        <KeyInput label="OpenRouter Pro (System)" value={openRouterKeyPro} onChange={setOpenRouterKeyPro} show={showKeys?.orp} toggle={() => setShowKeys({...showKeys, orp: !showKeys?.orp})} />
                         <div className="space-y-1.5">
                             <label className="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2 ml-1"><ShieldCheck size={12}/> Model ID cho Pro</label>
                             <input type="text" className="w-full bg-white border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o-mini" />
@@ -717,6 +739,29 @@ function KeyInput({ label, value, onChange, show, toggle }: any) {
                     {show ? <EyeOff size={16} className="text-indigo-600"/> : <Eye size={16}/>}
                 </button>
             </div>
+        </div>
+    );
+}
+
+function KeyNode({ k, label }: { k: any, label: string }) {
+    const status = k?.status || 'disabled';
+    const error = k?.last_error || '';
+    const name = k?.name || label;
+
+    return (
+        <div 
+            title={`${name}: ${status.toUpperCase()}${error ? `\nLỗi: ${error}` : ''}`}
+            className="flex items-center gap-1.5 flex-1 min-w-0"
+        >
+            <div className={cn(
+                "w-2.5 h-2.5 rounded-full flex-shrink-0 relative border shadow-sm transition-all",
+                status === 'active' ? "bg-emerald-400 border-emerald-500 shadow-[0_0_8px_rgba(52,211,153,0.4)]" :
+                status === 'error' || status === 'cooldown' ? "bg-rose-400 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.4)]" :
+                "bg-slate-300 border-slate-400"
+            )}>
+                {status === 'active' && <span className="absolute inset-0 rounded-full animate-ping bg-emerald-400 opacity-20"></span>}
+            </div>
+            <span className="text-[10px] font-black text-slate-900 leading-none">{label}</span>
         </div>
     );
 }

@@ -56,6 +56,7 @@ export default function SuperAdminPage() {
   const [fbAppSecret, setFbAppSecret] = useState('');
   const [openRouterKey1, setOpenRouterKey1] = useState('');
   const [openRouterKey2, setOpenRouterKey2] = useState('');
+  const [openRouterKeyPro, setOpenRouterKeyPro] = useState('');
   const [openRouterModel, setOpenRouterModel] = useState('deepseek/deepseek-chat');
   const [openRouterModel2, setOpenRouterModel2] = useState('');
   const [openRouterModelPro, setOpenRouterModelPro] = useState('openai/gpt-4o-mini');
@@ -274,6 +275,7 @@ export default function SuperAdminPage() {
       setFbAppSecret(data.find((d: any) => d.key === 'fb_app_secret')?.value || '');
       setOpenRouterKey1(data.find((d: any) => d.key === 'openrouter_api_key_1')?.value || '');
       setOpenRouterKey2(data.find((d: any) => d.key === 'openrouter_api_key_2')?.value || '');
+      setOpenRouterKeyPro(data.find((d: any) => d.key === 'openrouter_api_key_pro')?.value || '');
       setOpenRouterModel(data.find((d: any) => d.key === 'openrouter_model_id')?.value || 'deepseek/deepseek-chat');
       setOpenRouterModel2(data.find((d: any) => d.key === 'openrouter_model_id_2')?.value || '');
       setOpenRouterModelPro(data.find((d: any) => d.key === 'openrouter_model_id_pro')?.value || 'openai/gpt-4o-mini');
@@ -611,6 +613,7 @@ export default function SuperAdminPage() {
             settings.push({ key: 'fb_app_secret', value: fbAppSecret });
             settings.push({ key: 'openrouter_api_key_1', value: openRouterKey1 });
             settings.push({ key: 'openrouter_api_key_2', value: openRouterKey2 });
+            settings.push({ key: 'openrouter_api_key_pro', value: openRouterKeyPro });
             settings.push({ key: 'openrouter_model_id', value: openRouterModel });
             settings.push({ key: 'openrouter_model_id_2', value: openRouterModel2 });
             settings.push({ key: 'openrouter_model_id_pro', value: openRouterModelPro });
@@ -1450,6 +1453,7 @@ export default function SuperAdminPage() {
             deepSeekKeyPro={deepSeekKeyPro} setDeepSeekKeyPro={setDeepSeekKeyPro}
             openRouterKey1={openRouterKey1} setOpenRouterKey1={setOpenRouterKey1}
             openRouterKey2={openRouterKey2} setOpenRouterKey2={setOpenRouterKey2}
+            openRouterKeyPro={openRouterKeyPro} setOpenRouterKeyPro={setOpenRouterKeyPro}
             openRouterModel={openRouterModel} setOpenRouterModel={setOpenRouterModel}
             openRouterModel2={openRouterModel2} setOpenRouterModel2={setOpenRouterModel2}
             openRouterModelPro={openRouterModelPro} setOpenRouterModelPro={setOpenRouterModelPro}
