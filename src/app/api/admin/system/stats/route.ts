@@ -11,7 +11,7 @@ export async function GET() {
         const targetKeys = [
             'gemini_api_key_1', 'gemini_api_key_2', 'gemini_api_key_pro',
             'deepseek_api_key_free1', 'deepseek_api_key_free2', 'deepseek_api_key_pro',
-            'openrouter_api_key_1', 'openrouter_api_key_2',
+            'openrouter_api_key_1', 'openrouter_api_key_2', 'openrouter_api_key_pro',
             'gemini_embedding_key_1', 'gemini_embedding_key_2', 'deepseek_env_key'
         ];
 
@@ -55,6 +55,18 @@ export async function GET() {
             else if (tk === 'deepseek_api_key_pro') {
                 friendlyName = 'Ds Pro';
             }
+            else if (tk === 'openrouter_api_key_1') {
+                friendlyName = 'OR Free 1';
+                if (!hasValue) hasValue = !!process.env.OPENROUTER_API_KEY_1;
+            }
+            else if (tk === 'openrouter_api_key_2') {
+                friendlyName = 'OR Free 2';
+                if (!hasValue) hasValue = !!process.env.OPENROUTER_API_KEY_2;
+            }
+            else if (tk === 'openrouter_api_key_pro') {
+                friendlyName = 'OR Pro';
+                if (!hasValue) hasValue = !!process.env.OPENROUTER_API_KEY_PRO;
+            }
             else if (tk === 'gemini_embedding_key_1') {
                 friendlyName = 'Ge Env 1';
                 hasValue = !!process.env.GEMINI_EMBEDDING_KEY_1;
@@ -95,6 +107,8 @@ export async function GET() {
                 avg_latency: k?.avg_latency || 0,
                 last_used_at: k?.last_used_at,
                 last_error: k?.last_error,
+                last_error_type: k?.last_error_type,
+                cooldown_until: k?.cooldown_until,
                 is_env: tk.includes('embedding') || tk.includes('env') || (!k?.value && hasValue)
             };
         });
