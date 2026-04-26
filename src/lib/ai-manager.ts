@@ -16,6 +16,7 @@ export interface AIKey {
   cooldown_until: string | null;
   last_used_at: string | null;
   last_error: string | null;
+  model_id?: string; // Bổ sung Model ID riêng cho từng Key
 }
 
 /**
@@ -112,12 +113,28 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
       .not('status', 'eq', 'disabled') // Không lấy key đã bị Admin tắt
       .or(`status.eq.active,cooldown_until.lt.${now}`);
 
+    // 🚀 LẤY DANH SÁCH MODEL TƯƠNG ỨNG (CHO OPENROUTER)
+    let modelMap: Record<string, string> = {};
+    if (provider === 'openrouter') {
+        const modelKeys = ['openrouter_model_id', 'openrouter_model_id_2', 'openrouter_model_id_pro'];
+        const { data: modelData } = await client.from('system_settings').select('key, value').in('key', modelKeys);
+        (modelData || []).forEach(m => {
+            modelMap[m.key] = m.value;
+        });
+    }
+
     let dbKeys = (data || []).map((k: any) => {
+      // Tìm model tương ứng
+      let model_id = undefined;
+      if (k.key === 'openrouter_api_key_1') model_id = modelMap['openrouter_model_id'];
+      if (k.key === 'openrouter_api_key_2') model_id = modelMap['openrouter_model_id_2'];
+      if (k.key === 'openrouter_api_key_pro') model_id = modelMap['openrouter_model_id_pro'];
+
       // Nếu đã hết hạn cooldown -> Tự động chuyển sang trạng thái probing
       if (k.status !== 'active' && k.status !== 'disabled' && k.cooldown_until && new Date(k.cooldown_until) < new Date()) {
-        return { ...k, status: 'probing', value: decrypt(k.value) };
+        return { ...k, status: 'probing', value: decrypt(k.value), model_id };
       }
-      return { ...k, status: k.status || 'active', value: decrypt(k.value) }; // Dù đã chặn NULL nhưng vẫn fallback an toàn
+      return { ...k, status: k.status || 'active', value: decrypt(k.value), model_id };
     }) as AIKey[];
 
     // 1 & 2. NẾU DB CÓ KEY HỢP LỆ -> TRẢ VỀ NGAY LẬP TỨC

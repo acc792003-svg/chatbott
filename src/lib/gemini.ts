@@ -63,7 +63,7 @@ export async function callGeminiWithFallback(
             systemPrompt,
             undefined, // customTimeout (sẽ dùng mặc định trong hàm)
             undefined, // maxTokens
-            step.model // Truyền model ID từ router
+            keyObj.model_id || step.model // Ưu tiên Model riêng của Key, nếu không có mới dùng Model của Router
         );
         
         if (result) {

@@ -80,6 +80,7 @@ export function ApiKeysView({
     openRouterKey1, setOpenRouterKey1,
     openRouterKey2, setOpenRouterKey2,
     openRouterModel, setOpenRouterModel,
+    openRouterModel2, setOpenRouterModel2,
     openRouterModelPro, setOpenRouterModelPro,
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
@@ -404,17 +405,32 @@ export function ApiKeysView({
                 </div>
 
                 <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
-                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">OpenRouter</h3></div>
-                    <KeyInput label="OpenRouter 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
-                    <KeyInput label="OpenRouter 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">OpenRouter Gateway</h3></div>
+                    
+                    {/* OpenRouter 1 Group */}
+                    <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-4">
+                        <KeyInput label="OpenRouter Key 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2"><Activity size={12}/> Model (FREE)</label>
-                            <input type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500" value={openRouterModel || ''} onChange={e => setOpenRouterModel(e.target.value)} placeholder="Ví dụ: deepseek/deepseek-chat" />
+                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 ml-1"><Activity size={12}/> Model ID cho Key 1</label>
+                            <input type="text" className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500" value={openRouterModel || ''} onChange={e => setOpenRouterModel(e.target.value)} placeholder="Mặc định: deepseek/deepseek-chat" />
                         </div>
+                    </div>
+
+                    {/* OpenRouter 2 Group */}
+                    <div className="p-6 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-4">
+                        <KeyInput label="OpenRouter Key 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
                         <div className="space-y-1.5">
-                            <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={12}/> Model (PRO)</label>
-                            <input type="text" className="w-full bg-indigo-50/30 border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o" />
+                            <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2 ml-1"><Activity size={12}/> Model ID cho Key 2</label>
+                            <input type="text" className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModel2 || ''} onChange={e => setOpenRouterModel2(e.target.value)} placeholder="Ví dụ: meta-llama/llama-3.1-8b" />
+                        </div>
+                    </div>
+
+                    {/* OpenRouter Pro */}
+                    <div className="p-6 bg-indigo-50/30 rounded-3xl border border-indigo-100 space-y-4">
+                        <KeyInput label="OpenRouter Pro (System)" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.orp} toggle={() => setShowKeys({...showKeys, orp: !showKeys?.orp})} />
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-indigo-700 uppercase tracking-widest flex items-center gap-2 ml-1"><ShieldCheck size={12}/> Model ID cho Pro</label>
+                            <input type="text" className="w-full bg-white border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o-mini" />
                         </div>
                     </div>
                 </div>
