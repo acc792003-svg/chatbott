@@ -131,9 +131,12 @@ async function checkAndLogMessage(msgId: string): Promise<boolean> {
         if (isSet === null) return true; // Đã tồn tại -> Trùng
         
         // Log DB async không đợi
-        supabaseAdmin.from('webhook_logs').insert({ message_id: msgId })
-          .then(({ error }) => { if (error && error.code !== '23505') console.error('DB dedup log error', error); })
-          .catch(() => {});
+        (async () => {
+            try {
+                const res = await supabaseAdmin.from('webhook_logs').insert({ message_id: msgId });
+                if (res.error && res.error.code !== '23505') console.error('DB dedup log error', res.error);
+            } catch (e) {}
+        })();
         return false;
     }
 
