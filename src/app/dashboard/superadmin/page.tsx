@@ -992,11 +992,11 @@ export default function SuperAdminPage() {
                 <table className="w-full text-left border-collapse">
                     <thead>
                         <tr className="bg-slate-50/50 border-b border-slate-100">
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase pl-6">Thông tin Cửa hàng</th>
-                            <th className="p-4 text-[10px] font-black text-indigo-400 uppercase text-center w-36 bg-indigo-50/30">Mã Shop (Code)</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase text-center w-28">Gói Dùng</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-36">Thời hạn dùng</th>
-                            <th className="p-4 text-[10px] font-black text-slate-400 uppercase w-24">Actions</th>
+                            <th className="p-4 text-[10px] font-black text-indigo-500 uppercase pl-6">Thông tin Cửa hàng</th>
+                            <th className="p-4 text-[10px] font-black text-purple-500 uppercase text-center w-36 bg-purple-50/30">Mã Shop (Code)</th>
+                            <th className="p-4 text-[10px] font-black text-amber-500 uppercase text-center w-28">Gói Dùng</th>
+                            <th className="p-4 text-[10px] font-black text-emerald-500 uppercase w-36">Thời hạn dùng</th>
+                            <th className="p-4 text-[10px] font-black text-rose-500 uppercase w-24">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50">
@@ -1012,15 +1012,15 @@ export default function SuperAdminPage() {
                                 <tr className="hover:bg-slate-50/50 transition-all border-b border-transparent">
                                     <td className="p-4 pl-6">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md">
+                                            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-black text-xs shadow-md">
                                                 {shop.name.charAt(0)}
                                             </div>
                                             <div>
-                                                <p className="text-xs font-black text-slate-900 leading-none mb-1.5">{shop.name}</p>
+                                                <p className="text-xs font-black bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent leading-none mb-1.5">{shop.name}</p>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     {shop.slug && <span className="text-[10px] font-black text-emerald-600 tracking-tighter bg-emerald-50 px-1.5 py-1 rounded-lg leading-none">/{shop.slug}</span>}
-                                                    {shopPackages[shop.id]?.[0] && <span className="text-[9px] font-black text-indigo-500 uppercase bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100 truncate max-w-[100px]" title={shopPackages[shop.id].map((p: any) => p.name).join(', ')}>{shopPackages[shop.id][0].name}</span>}
-                                                    {shopPackages[shop.id]?.length > 1 && <span className="text-[9px] font-black text-indigo-400 bg-indigo-50 px-1.5 py-1 rounded-md border border-indigo-100">+{shopPackages[shop.id].length - 1}</span>}
+                                                    {shopPackages[shop.id]?.[0] && <span className="text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-1.5 py-1 rounded-md border border-blue-100 truncate max-w-[100px]" title={shopPackages[shop.id].map((p: any) => p.name).join(', ')}>{shopPackages[shop.id][0].name}</span>}
+                                                    {shopPackages[shop.id]?.length > 1 && <span className="text-[9px] font-black text-blue-500 bg-blue-50 px-1.5 py-1 rounded-md border border-blue-100">+{shopPackages[shop.id].length - 1}</span>}
                                                     <button onClick={() => setOpenShopId(openShopId === shop.id ? null : shop.id)} className="text-slate-400 hover:text-indigo-600 transition-colors bg-white border border-slate-100 p-1 rounded-lg shadow-sm">
                                                         <Settings size={13}/>
                                                     </button>
@@ -1028,13 +1028,13 @@ export default function SuperAdminPage() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-center bg-indigo-50/10">
+                                    <td className="p-4 text-center bg-purple-50/20">
                                         <button 
                                             onClick={() => {
                                                 navigator.clipboard.writeText(shop.code);
                                                 addToast(`Đã copy mã: ${shop.code}`, 'success');
                                             }}
-                                            className="group/code inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl transition-all shadow-lg hover:shadow-indigo-300 ring-2 ring-indigo-100 mx-auto"
+                                            className="group/code inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-3 py-2 rounded-xl transition-all shadow-lg hover:shadow-purple-300 ring-2 ring-purple-100 mx-auto"
                                             title="Bấm để copy mã nhanh"
                                         >
                                             <span className="text-xs font-black tracking-widest leading-none">{shop.code}</span>
@@ -1042,26 +1042,26 @@ export default function SuperAdminPage() {
                                         </button>
                                     </td>
                                     <td className="p-4 text-center">
-                                        <button onClick={() => togglePlan(shop)} className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all", shop.plan === 'pro' ? "bg-amber-100 border-amber-300 text-amber-900 shadow-sm" : "bg-slate-50 border-slate-100 text-slate-400")}>
+                                        <button onClick={() => togglePlan(shop)} className={cn("px-4 py-1.5 rounded-full text-[9px] font-black uppercase border transition-all", shop.plan === 'pro' ? "bg-gradient-to-r from-amber-200 to-yellow-400 border-amber-400 text-amber-900 shadow-md" : "bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-600")}>
                                             {shop.plan}
                                         </button>
                                     </td>
                                     <td className="p-4">
                                         <div className="flex flex-col gap-1.5">
-                                            <input type="date" className="bg-slate-50 border border-slate-100 rounded-lg p-1.5 text-[10px] font-black text-slate-600 outline-none focus:border-indigo-500 w-full" value={shop.plan_expiry_date?.split('T')[0] || ''} onChange={e => handleUpdateExpiry(shop.id, e.target.value)} />
+                                            <input type="date" className="bg-emerald-50/50 border border-emerald-100 rounded-lg p-1.5 text-[10px] font-black text-emerald-700 outline-none focus:border-emerald-500 w-full" value={shop.plan_expiry_date?.split('T')[0] || ''} onChange={e => handleUpdateExpiry(shop.id, e.target.value)} />
                                             {!expiryDate ? (
                                                 <span className="text-[10px] font-bold text-slate-500">Vô thời hạn</span>
                                             ) : isExpired ? (
                                                 <span className="text-[10px] font-black text-red-500 uppercase">Đã hết hạn 🛑</span>
                                             ) : (
-                                                <span className={cn("text-[10px] font-black uppercase", diffDays <= 7 ? "text-amber-500" : "text-emerald-500")}>
+                                                <span className={cn("text-[10px] font-black uppercase", diffDays <= 7 ? "text-amber-600" : "text-emerald-600")}>
                                                     Còn {diffDays} ngày {diffDays <= 7 && '⚠️'}
                                                 </span>
                                             )}
                                         </div>
                                     </td>
                                     <td className="p-4 text-right pr-8">
-                                        <button onClick={() => handleDeleteShop(shop.id, shop.name)} className="text-slate-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-md transition-all">
+                                        <button onClick={() => handleDeleteShop(shop.id, shop.name)} className="text-rose-400 hover:text-rose-600 p-1 hover:bg-rose-50 rounded-md transition-all">
                                             <Trash2 size={16}/>
                                         </button>
                                     </td>
