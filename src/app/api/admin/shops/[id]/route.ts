@@ -27,21 +27,28 @@ export async function DELETE(
         return NextResponse.json({ error: 'Chỉ Super Admin mới có quyền xóa Shop' }, { status: 403 });
     }
 
-    // 2. Thực hiện xóa Shop
-    // Lưu ý: Tên cột field trong bảng users là shop_id. Cần xóa user trước để tránh lỗi FK.
+    // 2. Thực hiện xóa sạch dữ liệu liên quan (Manual Cascade để đảm bảo tuyệt đối)
     
     // Xóa users thuộc shop này
-    const { error: usersDeleteError } = await supabaseAdmin
-      .from('users')
-      .delete()
-      .eq('shop_id', shopId);
+    await supabaseAdmin.from('users').delete().eq('shop_id', shopId);
 
-    if (usersDeleteError) {
-        console.error('Error deleting users:', usersDeleteError);
-        throw new Error('Không thể xóa người dùng thuộc shop: ' + usersDeleteError.message);
-    }
+    // Xóa cấu hình kênh (FB, Telegram) - Cực kỳ quan trọng để giải phóng Page ID
+    await supabaseAdmin.from('channel_configs').delete().eq('shop_id', shopId);
 
-    // Xóa Shop (Supabase sẽ tự động xóa các bảng khác nếu có ON DELETE CASCADE)
+    // Xóa cấu hình chatbot
+    await supabaseAdmin.from('chatbot_configs').delete().eq('shop_id', shopId);
+
+    // Xóa liên kết gói tri thức
+    await supabaseAdmin.from('shop_templates').delete().eq('shop_id', shopId);
+
+    // Xóa FAQ riêng của shop
+    await supabaseAdmin.from('faqs').delete().eq('shop_id', shopId);
+
+    // Xóa nhật ký chat
+    await supabaseAdmin.from('chat_logs').delete().eq('shop_id', shopId);
+    await supabaseAdmin.from('messages').delete().eq('shop_id', shopId);
+
+    // Xóa Shop chính
     const { error: deleteError } = await supabaseAdmin
       .from('shops')
       .delete()

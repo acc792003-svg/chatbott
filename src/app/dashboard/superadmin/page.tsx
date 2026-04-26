@@ -421,23 +421,40 @@ export default function SuperAdminPage() {
   };
 
   const handleUpdateFBConfig = async (shopId: string, pageId: string, accessToken: string) => {
+    const cleanPageId = pageId.trim();
+    if (!cleanPageId) return;
+
+    // 1. Kiểm tra xem Page ID này đã có Shop nào khác dùng chưa
+    const { data: existing } = await supabase
+        .from('channel_configs')
+        .select('shop_id, shops(name)')
+        .eq('channel_type', 'facebook')
+        .eq('provider_id', cleanPageId)
+        .maybeSingle();
+
+    if (existing && existing.shop_id !== shopId) {
+        addToast(`❌ Lỗi: Fanpage này đang được sử dụng bởi Shop: ${existing.shops?.name || existing.shop_id}. Vui lòng gỡ ở Shop cũ trước khi kết nối Shop mới.`, 'error');
+        return;
+    }
+
+    // 2. Thực hiện Upsert nếu hợp lệ
     const { error } = await supabase.from('channel_configs').upsert({ 
       shop_id: shopId,
       channel_type: 'facebook',
-      provider_id: pageId.trim(), 
+      provider_id: cleanPageId, 
       access_token: accessToken.trim() 
     }, { onConflict: 'shop_id, channel_type' });
 
     if (error) {
         addToast(`Lỗi cấu hình FB: ${error.message}`, 'error');
     } else {
-        // Cập nhật ngược lại shop để hiển thị UI nhanh (Optional)
+        // Cập nhật ngược lại shop để hiển thị UI nhanh
         await supabase.from('shops').update({ 
-            fb_page_id: pageId.trim(), 
+            fb_page_id: cleanPageId, 
             fb_page_token: accessToken.trim() 
         }).eq('id', shopId);
         
-        addToast(`Đã bọc thép cấu hình Facebook!`, 'success');
+        addToast(`✅ Đã kết nối Fanpage thành công!`, 'success');
         fetchShops();
     }
   };
