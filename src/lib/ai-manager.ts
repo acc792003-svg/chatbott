@@ -118,7 +118,7 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     if (provider === 'openrouter') {
         const modelKeys = ['openrouter_model_id', 'openrouter_model_id_2', 'openrouter_model_id_pro'];
         const { data: modelData } = await client.from('system_settings').select('key, value').in('key', modelKeys);
-        (modelData || []).forEach(m => {
+        (modelData || []).forEach((m: any) => {
             modelMap[m.key] = m.value;
         });
     }
