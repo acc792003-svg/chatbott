@@ -169,28 +169,43 @@ export default function SuperAdminPage() {
   };
 
   const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { window.location.href = '/login'; return; }
-    setCurrentUserId(user.id);
-    const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
+    // TẦNG 1: Lấy user ngay lập tức (0ms) từ session
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { window.location.href = '/login'; return; }
     
-    // Nếu là super_admin hoặc staff_admin thì mới cho vào
-    if (userData?.role === 'super_admin' || userData?.role === 'staff_admin') {
-      const role = userData.role;
-      setUserRole(role);
-      setNextGeneratedCode(generateCode());
+    const userId = session.user.id;
+    setCurrentUserId(userId);
+    
+    // TẦNG 2: Fetch role song song (không chờ)
+    fetchUserRole(userId);
+  };
 
+  const fetchUserRole = async (userId: string) => {
+    try {
       setLoading(true);
-      try {
-        // Init
-      } catch (err) {
-        console.error("Lỗi tải Dashboard:", err);
-      } finally {
-        setLoading(false);
+      const { data } = await supabase.from('users').select('role').eq('id', userId).single();
+      
+      if (!data) throw new Error('No role found');
+
+      if (data.role === 'super_admin' || data.role === 'staff_admin') {
+        setUserRole(data.role);
+        setNextGeneratedCode(generateCode());
+        // Load data song song
+        loadDashboardData();
+      } else {
+        window.location.href = '/login';
       }
-    } else { 
-        window.location.href = '/login'; 
+    } catch (err) {
+      console.error("Lỗi tải Dashboard:", err);
+      window.location.href = '/login';
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const loadDashboardData = async () => {
+    // Tải dữ liệu chính của tab đang active hoặc tải song song các phần thiết yếu
+    fetchShops();
   };
 
   const fetchSystemStats = async () => {
@@ -670,10 +685,26 @@ export default function SuperAdminPage() {
   // Filtered Shops
   const filteredShops = shops.filter(s => s.name.toLowerCase().includes(debouncedSearch.toLowerCase()) || s.code.toLowerCase().includes(debouncedSearch.toLowerCase()) || s.slug?.toLowerCase().includes(debouncedSearch.toLowerCase()));
 
-  if (loading) return <div className="p-8 text-xs font-bold text-slate-400">SYNCING ADMIN CORE...</div>;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#F0F2F5] to-indigo-50/30 text-slate-800 p-2 md:p-8 font-sans">
+    <>
+      {/* TẦNG 3 - TÁCH UI LOADING: Overlay loader thay vì chặn toàn bộ UI */}
+      {loading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-50/60 backdrop-blur-sm animate-in fade-in duration-200">
+           <div className="bg-white/80 backdrop-blur-md p-8 rounded-[2rem] shadow-2xl shadow-indigo-100/50 border border-white flex flex-col items-center gap-4">
+              <div className="relative flex items-center justify-center w-16 h-16">
+                  <div className="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                  <div className="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin"></div>
+                  <Zap className="text-indigo-600 animate-pulse" size={20} />
+              </div>
+              <div>
+                  <p className="text-xs font-black text-slate-800 uppercase tracking-widest">SYNCING ADMIN CORE</p>
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center mt-1">Đang tải dữ liệu...</p>
+              </div>
+           </div>
+        </div>
+      )}
+
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-[#F0F2F5] to-indigo-50/30 text-slate-800 p-2 md:p-8 font-sans">
       <div className="max-w-[1400px] mx-auto focus-within:outline-none">
         
         {/* HEADER */}
@@ -1605,5 +1636,6 @@ export default function SuperAdminPage() {
       `}</style>
       </div>
     </div>
+    </>
   );
 }
