@@ -113,7 +113,7 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
       .from('system_settings')
       .select('*')
       .in('key', searchKeys)
-      .neq('value', '')
+      .neq('value', '') // KHÔNG lấy key trống giá trị
       .not('value', 'is', null)
       .not('value', 'eq', 'DeepSeek free')
       .not('status', 'eq', 'disabled') // Không lấy key đã bị Admin tắt
@@ -199,11 +199,17 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
     last_used_at: new Date().toISOString()
   };
 
-  // Cooldown Budget: Exponential Backoff (2p * 2^(fail_count - 5))
-  if (newFailCount >= 5) {
-    const retryLevel = newFailCount - 5; 
-    const baseMinutes = 2;
-    const cooldownMinutes = Math.min(baseMinutes * Math.pow(2, retryLevel), 1440);
+  // Cooldown Budget: 
+  // 1. Nếu là lỗi nghiêm trọng (Key sai/Hết hạn mức) -> Khóa ngay 60 phút
+  // 2. Nếu lỗi khác -> Exponential Backoff (2p * 2^(fail_count - 5))
+  if (errorType === 'invalid_key' || errorType === 'quota_exceeded' || newFailCount >= 5) {
+    let cooldownMinutes = 60; // Mặc định 60 phút cho lỗi nghiêm trọng
+    
+    if (newFailCount >= 5 && errorType !== 'invalid_key' && errorType !== 'quota_exceeded') {
+        const retryLevel = newFailCount - 5; 
+        const baseMinutes = 2;
+        cooldownMinutes = Math.min(baseMinutes * Math.pow(2, retryLevel), 1440);
+    }
     
     const cooldownDate = new Date();
     cooldownDate.setMinutes(cooldownDate.getMinutes() + cooldownMinutes);
@@ -211,10 +217,10 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
     updates.cooldown_until = cooldownDate.toISOString();
     updates.status = 'error';
 
-    // 🔥 THÔNG BÁO RADAR: KEY BỊ KHÓA DO LỖI LIÊN TỤC
+    // 🔥 THÔNG BÁO RADAR: KEY BỊ KHÓA
     reportError({
       errorType: 'CIRCUIT_BREAKER_OPEN',
-      errorMessage: `Key ${keyData?.key} lỗi liên tục (${newFailCount} lần) -> Nghỉ ${cooldownMinutes} phút. Loại: ${errorType}`,
+      errorMessage: `Key ${keyData?.key} bị tạm ngưng (${cooldownMinutes} phút). Lý do: ${errorType} (Lần lỗi: ${newFailCount})`,
       fileSource: 'ai-manager.ts',
       severity: 'high',
       metadata: { keyId, failCount: newFailCount, cooldownMinutes, errorType }
