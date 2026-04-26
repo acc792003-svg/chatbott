@@ -67,14 +67,15 @@ export function getRetryPath(isPro: boolean, complexity: number, platform?: stri
   }
 
   if (isPro) {
-    // Gói PRO: Best OR -> Backup OR -> Gemini Pro
+    // Gói PRO: Thử Pro (OR) -> Thử Free (OR Key 1,2) -> Rescue (Gemini Pro/Free)
     return [
       { provider: 'openrouter', tier: 'pro', model: orModel },
-      { provider: 'openrouter', tier: 'pro', model: 'google/gemini-flash-1.5' }, // Backup Gateway
-      { provider: 'gemini', tier: 'pro' } // Rescue
+      { provider: 'openrouter', tier: 'free', model: orModel },
+      { provider: 'gemini', tier: 'pro' },
+      { provider: 'gemini', tier: 'free' }
     ];
   } else {
-    // Gói FREE: Fast OR -> Gemini Free
+    // Gói FREE: OR (Key 1,2) -> Gemini Free
     return [
       { provider: 'openrouter', tier: 'free', model: orModel },
       { provider: 'gemini', tier: 'free' }
