@@ -377,23 +377,27 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         }
 
         // Schema YAML-like ngắn gọn và giới hạn Token mềm
-        // ⚙️ 8) CONTEXT NHẸ - ĐỦ DÙNG (Cắt systemPrompt ≤ 1500 ký tự)
-        const systemPromptKey = `prompt:${shopId}:${topScore >= 0.75 ? 'no_global' : 'with_global'}`;
-        let systemPrompt = redis ? await redis.get<string>(systemPromptKey) : null;
+        // ⚙️ 8) CONTEXT NHẸ - ĐỦ DÙNG (Cắt basePrompt ≤ 1500 ký tự)
+        const basePromptKey = `prompt:${shopId}:${topScore >= 0.75 ? 'no_global' : 'with_global'}`;
+        let basePrompt = redis ? await redis.get<string>(basePromptKey) : null;
 
-        if (!systemPrompt) {
-          systemPrompt = `SHOP: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
+        if (!basePrompt) {
+          basePrompt = `SHOP: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
 VOICE: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
 INSIGHTS: "${shopConfig?.customer_insights || ''}"
-PRODUCTS: ${(globalProductInfo || shopConfig?.product_info || '').substring(0, 1200)}
+PRODUCTS: ${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
 PRICING: ${(shopConfig?.pricing_info || '').substring(0, 500)}
-RULES: Trả lời ĐẦY ĐỦ Ý, súc tích. Nếu thiếu dữ liệu -> xin SĐT tư vấn.
-${phoneActionRule}
-FAQ: ${faqContext}
-LIVE: ${bookingContext} ${happyHourContext}`;
+RULES: Trả lời ĐẦY ĐỦ Ý, súc tích. Nếu thiếu dữ liệu -> xin SĐT tư vấn.`;
           
-          if (redis) await redis.set(systemPromptKey, systemPrompt, { ex: 600 });
+          if (redis) await redis.set(basePromptKey, basePrompt, { ex: 600 });
         }
+
+        // TẠO DYNAMIC CONTEXT (KHÔNG CACHE VÌ THAY ĐỔI THEO TỪNG LƯỢT CHAT)
+        const finalFaqContext = faqContext || (!shouldUseVector ? (shopConfig?.faq || '').substring(0, 1500) : '');
+        const systemPrompt = `${basePrompt}
+${phoneActionRule}
+FAQ: ${finalFaqContext}
+LIVE: ${bookingContext} ${happyHourContext}`;
 
 
 
