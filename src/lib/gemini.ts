@@ -172,14 +172,27 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
         normalizedHistory.unshift({ role: 'system', content: systemPrompt });
     }
 
-    // Lấy model_id từ DB
+    // Lấy model_id từ DB theo tier
+    const modelKey = tier === 'pro' ? 'openrouter_model_id_pro' : 'openrouter_model_id';
     const { data: modelSetting } = await (supabaseAdmin || supabase)
+        .from('system_settings')
+        .select('value')
+        .eq('key', modelKey)
+        .single();
+    
+    let targetModel = modelSetting?.value;
+    
+    // Nếu là Pro mà chưa cấu hình model riêng, fallback về model chung
+    if (!targetModel && tier === 'pro') {
+      const { data: globalModel } = await (supabaseAdmin || supabase)
         .from('system_settings')
         .select('value')
         .eq('key', 'openrouter_model_id')
         .single();
-    
-    const targetModel = modelSetting?.value || "deepseek/deepseek-chat";
+      targetModel = globalModel?.value;
+    }
+
+    const targetModelFinal = targetModel || "deepseek/deepseek-chat";
 
     const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -190,7 +203,7 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
         'X-Title': 'Q-Chatbot SaaS'
       },
       body: JSON.stringify({
-        model: targetModel,
+        model: targetModelFinal,
         messages: normalizedHistory,
         temperature,
         max_tokens: maxTokens || (tier === 'pro' ? 600 : 300)

@@ -20,8 +20,16 @@ export interface AIKey {
 
 /**
  * 1. SMART ROUTER: Chấm điểm độ khó câu hỏi để chọn Provider
- * Score > 1.2 -> Gemini, Score <= 1.2 -> DeepSeek
  */
+function classifyError(msg: string): string {
+  const m = msg.toLowerCase();
+  if (m.includes('quota') || m.includes('credit') || m.includes('balance')) return 'quota_exceeded';
+  if (m.includes('rate limit') || m.includes('429') || m.includes('too many requests')) return 'rate_limit';
+  if (m.includes('timeout') || m.includes('deadline') || m.includes('abort')) return 'timeout';
+  if (m.includes('key not found') || m.includes('invalid api key')) return 'invalid_key';
+  return 'unknown';
+}
+
 export function calculateComplexityScore(userInput: string): number {
   const tokens = userInput.trim().split(/\s+/);
   
@@ -94,7 +102,7 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
     } else if (provider === 'deepseek') {
       searchKeys = tier === 'pro' ? ['deepseek_api_key_pro'] : ['deepseek_api_key_free1', 'deepseek_api_key_free2'];
     } else if (provider === 'openrouter') {
-      searchKeys = ['openrouter_api_key_1', 'openrouter_api_key_2'];
+      searchKeys = tier === 'pro' ? ['openrouter_api_key_pro'] : ['openrouter_api_key_1', 'openrouter_api_key_2'];
     }
 
     const now = new Date().toISOString();
@@ -142,6 +150,16 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
        if (tier === 'free' && process.env.DEEPSEEK_API_KEY) {
          envKeys.push({ id: '', key: 'deepseek_api_key_free1', value: process.env.DEEPSEEK_API_KEY, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
        }
+    } else if (provider === 'openrouter') {
+       if (tier === 'pro' && process.env.OPENROUTER_API_KEY_PRO) {
+         envKeys.push({ id: '', key: 'openrouter_api_key_pro', value: process.env.OPENROUTER_API_KEY_PRO, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+       }
+       if (process.env.OPENROUTER_API_KEY_1) {
+         envKeys.push({ id: '', key: 'openrouter_api_key_1', value: process.env.OPENROUTER_API_KEY_1, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+       }
+       if (process.env.OPENROUTER_API_KEY_2) {
+         envKeys.push({ id: '', key: 'openrouter_api_key_2', value: process.env.OPENROUTER_API_KEY_2, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
+       }
     }
 
     if (envKeys.length > 0) {
@@ -168,14 +186,16 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
   const client = supabaseAdmin || supabase;
   if (!client) return;
 
-  const { data: keyData } = await client.from('system_settings').select('fail_count, error_count').eq('id', keyId).single();
+  const { data: keyData } = await client.from('system_settings').select('fail_count, error_count, key, value').eq('id', keyId).single();
   const newFailCount = (keyData?.fail_count || 0) + 1;
   const newErrorCount = (keyData?.error_count || 0) + 1;
+  const errorType = classifyError(errorMessage);
   
   const updates: any = {
     fail_count: newFailCount,
     error_count: newErrorCount,
     last_error: errorMessage,
+    last_error_type: errorType,
     last_used_at: new Date().toISOString()
   };
 
@@ -194,21 +214,30 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
     // 🔥 THÔNG BÁO RADAR: KEY BỊ KHÓA DO LỖI LIÊN TỤC
     reportError({
       errorType: 'CIRCUIT_BREAKER_OPEN',
-      errorMessage: `Key ID ${keyId} lỗi liên tục (${newFailCount} lần) -> Nghỉ ${cooldownMinutes} phút. Lỗi cuối: ${errorMessage}`,
+      errorMessage: `Key ${keyData?.key} lỗi liên tục (${newFailCount} lần) -> Nghỉ ${cooldownMinutes} phút. Loại: ${errorType}`,
       fileSource: 'ai-manager.ts',
       severity: 'high',
-      metadata: { keyId, failCount: newFailCount, cooldownMinutes }
+      metadata: { keyId, failCount: newFailCount, cooldownMinutes, errorType }
     }).catch(() => {});
   }
 
   await client.from('system_settings').update(updates).eq('id', keyId);
+  
+  // GHI LOG CHI TIẾT VÀO BẢNG api_key_logs
+  await client.from('api_key_logs').insert({
+    key_id: keyId,
+    provider: keyData?.key?.split('_')[0] || 'unknown',
+    status: 'error',
+    error_type: errorType,
+    error_message: errorMessage.substring(0, 500)
+  }).catch(() => {});
 }
 
 export async function reportKeySuccess(keyId: string, latencyMs?: number) {
   const client = supabaseAdmin || supabase;
   if (!client) return;
 
-  const { data: keyData } = await client.from('system_settings').select('usage_count, avg_latency').eq('id', keyId).single();
+  const { data: keyData } = await client.from('system_settings').select('usage_count, avg_latency, key').eq('id', keyId).single();
   
   const updates: any = {
     fail_count: 0,
@@ -225,4 +254,12 @@ export async function reportKeySuccess(keyId: string, latencyMs?: number) {
   }
 
   await client.from('system_settings').update(updates).eq('id', keyId);
+
+  // GHI LOG THÀNH CÔNG
+  await client.from('api_key_logs').insert({
+    key_id: keyId,
+    provider: keyData?.key?.split('_')[0] || 'unknown',
+    status: 'success',
+    latency: latencyMs
+  }).catch(() => {});
 }
