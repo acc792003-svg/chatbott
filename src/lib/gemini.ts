@@ -41,15 +41,30 @@ export async function callGeminiWithFallback(
   const path = getRetryPath(options.isPro || false, complexity, options.platform);
 
   let finalResult = null;
+  const triedKeys = new Set<string>(); // 🛡️ CHỐNG LẶP KEY
 
   for (const step of path) {
     const keys = await getHealthyKeys(step.provider, step.tier);
     if (keys.length === 0) continue;
 
+    // Chỉ thử tối đa 2 key mỗi tầng để tiết kiệm thời gian
     for (const keyObj of keys.slice(0, 2)) { 
+      if (triedKeys.has(keyObj.value)) continue; // Bỏ qua nếu đã thử key này
+      triedKeys.add(keyObj.value);
+
       const stepStart = Date.now();
       try {
-        const result = await callSpecificAI(step.provider, step.tier, keyObj.value, history, options.temperature || 0.7, systemPrompt);
+        const result = await callSpecificAI(
+            step.provider, 
+            step.tier, 
+            keyObj.value, 
+            history, 
+            options.temperature || 0.7, 
+            systemPrompt,
+            undefined, // customTimeout (sẽ dùng mặc định trong hàm)
+            undefined, // maxTokens
+            step.model // Truyền model ID từ router
+        );
         
         if (result) {
           const stepLatency = Date.now() - stepStart;
@@ -58,12 +73,13 @@ export async function callGeminiWithFallback(
           return { 
             text: result.text, 
             tokens: result.tokens, 
-            source: `${step.provider}_${step.tier}` 
+            source: `${step.provider}_${step.tier}${step.model ? `_${step.model.split('/')[1]}` : ''}` 
           };
         }
       } catch (e: any) {
         if (keyObj.id) reportKeyFailure(keyObj.id, e.message);
-        console.error(`[RetryPath] ${step.provider} ${step.tier} failed, trying next key/step...`);
+        console.error(`[Fail-Fast] ${step.provider} failed (${e.message}), switching...`);
+        // Nhảy sang key/step tiếp theo ngay lập tức
       }
     }
   }
@@ -110,8 +126,9 @@ export function normalizeChatPipeline(history: any[], provider: string) {
 /**
  * Gọi API cụ thể (Gemini, DeepSeek hoặc OpenRouter)
  */
-export async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string, customTimeout?: number, maxTokens?: number) {
-  const timeout = customTimeout || (tier === 'pro' ? 8000 : 5000);
+export async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string, customTimeout?: number, maxTokens?: number, overrideModel?: string) {
+  // ⚡ ULTRA FAIL-FAST: 3.5s cho OR, 5s cho Gemini
+  const timeout = customTimeout || (provider === 'openrouter' ? 3500 : 5000);
   
   const normalizedHistory = normalizeChatPipeline(history, provider);
 
@@ -192,7 +209,7 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
       targetModel = globalModel?.value;
     }
 
-    const targetModelFinal = targetModel || "deepseek/deepseek-chat";
+    const targetModelFinal = overrideModel || targetModel || "deepseek/deepseek-chat";
 
     const response = await fetchWithTimeout('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -266,7 +283,7 @@ export async function generateEmbedding(text: string, isPro: boolean = false): P
           model: "models/gemini-embedding-2",
           content: { parts: [{ text }] }
         })
-      }, 3000);
+      }, 2000); // ⚡ Ép xung Embedding xuống 2s (Phải cực nhanh)
 
       const data = await res.json();
       if (res.ok && data.embedding?.values) {

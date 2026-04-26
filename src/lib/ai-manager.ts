@@ -52,38 +52,31 @@ export function calculateComplexityScore(userInput: string): number {
 /**
  * 2. RETRY MATRIX: Định nghĩa thứ tự ưu tiên cứu hộ thông minh
  */
-export function getRetryPath(isPro: boolean, complexity: number, platform?: string): {provider: AIProvider, tier: AITier}[] {
-  if (platform === 'facebook') {
-    // Fanpage Facebook ưu tiên dùng OpenRouter
-    return [
-      { provider: 'openrouter', tier: 'pro' },
-      { provider: 'gemini', tier: 'pro' },
-      { provider: 'deepseek', tier: 'pro' }
-    ];
+/**
+ * 2. RETRY MATRIX: Chiến lược "Fail-fast & Rescue"
+ * Ưu tiên OpenRouter Gateway -> Cứu hộ bằng Gemini
+ */
+export function getRetryPath(isPro: boolean, complexity: number, platform?: string): {provider: AIProvider, tier: AITier, model?: string}[] {
+  // 🎯 PHÂN LOẠI MODEL THEO ĐỘ KHÓ (Dùng cho OpenRouter)
+  let orModel = "deepseek/deepseek-chat"; // Simple (Fast/Cheap)
+  if (complexity > 12) {
+    orModel = "openai/gpt-4o-mini"; // Complex (High Quality)
+  } else if (complexity > 7) {
+    orModel = "mistralai/mistral-small"; // Medium (Balanced)
   }
 
   if (isPro) {
-    // Gói PRO ưu tiên: Gemini Pro -> OpenRouter -> Gemini Pro
-    // (OpenRouter sẽ tự động quét qua Key 1 rồi đến Key 2)
+    // Gói PRO: Best OR -> Backup OR -> Gemini Pro
     return [
-      { provider: 'gemini', tier: 'pro' },
-      { provider: 'openrouter', tier: 'pro' },
-      { provider: 'gemini', tier: 'pro' },
-      { provider: 'deepseek', tier: 'pro' } // Backstop an toàn
-    ];
-  } else if (complexity > 7) {
-    // Gói FREE nhưng câu khó
-    return [
-      { provider: 'deepseek', tier: 'pro' },
-      { provider: 'gemini', tier: 'free' },
-      { provider: 'openrouter', tier: 'free' }
+      { provider: 'openrouter', tier: 'pro', model: orModel },
+      { provider: 'openrouter', tier: 'pro', model: 'google/gemini-flash-1.5' }, // Backup Gateway
+      { provider: 'gemini', tier: 'pro' } // Rescue
     ];
   } else {
-    // Gói FREE / Câu hỏi dễ
+    // Gói FREE: Fast OR -> Gemini Free
     return [
-      { provider: 'deepseek', tier: 'free' },
-      { provider: 'gemini', tier: 'free' },
-      { provider: 'openrouter', tier: 'free' }
+      { provider: 'openrouter', tier: 'free', model: orModel },
+      { provider: 'gemini', tier: 'free' }
     ];
   }
 }

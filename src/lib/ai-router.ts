@@ -16,16 +16,19 @@ export function safeTrim(text: string, max = 4000) {
 }
 
 export function fallbackResponse(vectorFaqs: any[]) {
+  // Tìm FAQ có độ khớp tốt nhất (> 0.7)
   const bestFaq = vectorFaqs?.find(f => (f.hybridScore || f.score || 0) > 0.7);
+  
   if (bestFaq) {
     return { 
-      text: `Dạ hệ thống đang hơi quá tải, em gửi bạn thông tin phù hợp nhé:\n- ${bestFaq.answer}`, 
-      source: 'fallback', 
+      text: bestFaq.answer, // Trả về trực tiếp câu trả lời FAQ
+      source: 'faq_fallback', 
       tokens: 0 
     };
   }
+  
   return { 
-    text: "Hệ thống đang hơi bận, bạn đợi mình 1 chút nhé 🙏", 
+    text: "Dạ, hiện tại em đang bận xử lý một chút dữ liệu, bạn vui lòng để lại câu hỏi hoặc số điện thoại, em sẽ phản hồi bạn ngay sau ít phút nhe! 🙏", 
     source: 'fallback', 
     tokens: 0 
   };
