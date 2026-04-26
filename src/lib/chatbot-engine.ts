@@ -153,7 +153,7 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       ] = await Promise.all([
         client.from('shops').select('name, code').eq('id', shopId).maybeSingle(),
         client.from('chatbot_configs')
-          .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token, address')
+          .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token')
           .eq('shop_id', shopId)
           .maybeSingle(),
         client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle(),
