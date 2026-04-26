@@ -240,13 +240,15 @@ export async function reportKeyFailure(keyId: string, errorMessage: string) {
   await client.from('system_settings').update(updates).eq('id', keyId);
   
   // GHI LOG CHI TIẾT VÀO BẢNG api_key_logs
-  await client.from('api_key_logs').insert({
-    key_id: keyId,
-    provider: keyData?.key?.split('_')[0] || 'unknown',
-    status: 'error',
-    error_type: errorType,
-    error_message: errorMessage.substring(0, 500)
-  }).catch(() => {});
+  try {
+    await client.from('api_key_logs').insert({
+      key_id: keyId,
+      provider: keyData?.key?.split('_')[0] || 'unknown',
+      status: 'error',
+      error_type: errorType,
+      error_message: errorMessage.substring(0, 500)
+    });
+  } catch (e) {}
 }
 
 export async function reportKeySuccess(keyId: string, latencyMs?: number) {
@@ -272,10 +274,12 @@ export async function reportKeySuccess(keyId: string, latencyMs?: number) {
   await client.from('system_settings').update(updates).eq('id', keyId);
 
   // GHI LOG THÀNH CÔNG
-  await client.from('api_key_logs').insert({
-    key_id: keyId,
-    provider: keyData?.key?.split('_')[0] || 'unknown',
-    status: 'success',
-    latency: latencyMs
-  }).catch(() => {});
+  try {
+    await client.from('api_key_logs').insert({
+      key_id: keyId,
+      provider: keyData?.key?.split('_')[0] || 'unknown',
+      status: 'success',
+      latency: latencyMs
+    });
+  } catch (e) {}
 }

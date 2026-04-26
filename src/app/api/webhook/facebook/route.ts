@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
 import { sendFacebookMessage } from '@/lib/facebook';
 import { reportError } from '@/lib/radar';
+import { redis } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 
 /**
@@ -124,6 +125,18 @@ async function verifySignature(payload: string, signature: string | null): Promi
  * ♻️ KIỂM TRA VÀ GHI NHẬT KÝ TIN NHẮN (DEDUPLICATION)
  */
 async function checkAndLogMessage(msgId: string): Promise<boolean> {
+    if (redis) {
+        // Redis SETNX logic (Trùng lặp trả về null)
+        const isSet = await redis.set(`dedup:${msgId}`, "1", { ex: 300, nx: true });
+        if (isSet === null) return true; // Đã tồn tại -> Trùng
+        
+        // Log DB async không đợi
+        supabaseAdmin.from('webhook_logs').insert({ message_id: msgId })
+          .then(({ error }) => { if (error && error.code !== '23505') console.error('DB dedup log error', error); })
+          .catch(() => {});
+        return false;
+    }
+
     const { error } = await supabaseAdmin
         .from('webhook_logs')
         .insert({ message_id: msgId });
@@ -165,7 +178,7 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
     .eq('external_user_id', sender_id)
     .eq('platform', 'facebook')
     .order('created_at', { ascending: false })
-    .limit(6);
+    .limit(4);
 
   const formattedHistory = (history || [])
     .reverse()

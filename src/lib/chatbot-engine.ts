@@ -347,9 +347,9 @@ LIVE_CONTEXT:
 ${bookingContext}
 ${happyHourContext}`;
 
-        // Trimming History: Sliding window 8 messages
+        // Trimming History: Sliding window 4 messages
         const rawHistoryForAI = [
-          ...(history || []).slice(-8),
+          ...(history || []).slice(-4),
           { role: 'user', content: message }
         ];
 
@@ -372,16 +372,13 @@ ${happyHourContext}`;
     }
 
     const latency = Date.now() - start;
-    await saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens);
+    
+    // Async Fire-and-forget
+    saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens).catch(() => {});
     summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
 
-    // 🔥 PHÁT HIỆN VÀ LƯU LEAD (SĐT) TỪ TIN NHẮN KHÁCH HÀNG
-    // PHẢI AWAIT để tránh bị Vercel Serverless đóng băng (giết tiến trình) trước khi gửi Telegram!
-    try {
-       await detectAndSaveLead(message, shopId, externalUserId, shopConfig);
-    } catch (e) {
-       console.error('[Engine] detectAndSaveLead error:', e);
-    }
+    // 🔥 PHÁT HIỆN VÀ LƯU LEAD (SĐT) TỪ TIN NHẮN KHÁCH HÀNG (CRM) - Chạy Async
+    detectAndSaveLead(message, shopId, externalUserId, shopConfig).catch(e => console.error('[Engine] detectAndSaveLead error:', e));
 
     return { 
       answer: finalResponse, 
@@ -401,9 +398,7 @@ ${happyHourContext}`;
     console.error('Core Engine Error:', error);
     
     // LƯU LOG KỂ CẢ KHI LỖI để người dùng thấy tin nhắn họ đã gửi trong lịch sử
-    try {
-      await saveLogs(shopId, message, errorResponse, 'fallback', latency, platform, externalUserId, 0);
-    } catch (e) {}
+    saveLogs(shopId, message, errorResponse, 'fallback', latency, platform, externalUserId, 0).catch(() => {});
 
     if (client) {
       reportError({
