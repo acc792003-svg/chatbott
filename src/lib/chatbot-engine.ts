@@ -334,7 +334,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
       if (topScore >= 0.70) {
          faqContext = scoredFaqs.slice(0, 3).map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n---\n');
       }
-    }
+    } // End if vectorFaqs
+  } // End if queryEmbedding
 
     // 4. ROUTER QUYẾT ĐỊNH
     const plan = isPro ? 'pro' : 'free';
@@ -413,8 +414,6 @@ LIVE: ${bookingContext} ${happyHourContext}`;
        if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
           await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
        }
-    }
-
     }
 
     const latency = Date.now() - marks.start;
