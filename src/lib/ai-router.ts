@@ -7,12 +7,12 @@ export function decideRoute({ cacheHit, faqScore }: { cacheHit: boolean; faqScor
   return 'DEEPSEEK';
 }
 
-export function safeTrim(text: string, max = 4000) {
+export function safeTrim(text: string, max = 1500) {
   if (!text || text.length <= max) return text || '';
   const sliced = text.slice(0, max);
-  const parts = sliced.split('.');
-  if (parts.length === 1) return sliced; // Tránh lỗi trả về "." nếu không có dấu chấm
-  return parts.slice(0, -1).join('.') + '.';
+  const lastDot = sliced.lastIndexOf('.');
+  if (lastDot === -1) return sliced;
+  return sliced.slice(0, lastDot + 1);
 }
 
 export function fallbackResponse(vectorFaqs: any[]) {

@@ -102,7 +102,7 @@ function detectNearPhone(message: string): { hasNearPhone: boolean; rawNumber: s
 }
 
 export async function processChat(req: ChatRequest): Promise<ChatResponse> {
-  const start = Date.now();
+  const marks: any = { start: Date.now() };
   const { shopId, message, history, externalUserId, platform, isPro, ip } = req;
 
   // 🛡️ LỚP BẢO VỆ REDIS: ĐÁNH CHẶN 4 TẦNG (BLACKLIST, WELCOME, USER, SHOP, IP)
@@ -127,32 +127,50 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   let shopCode = 'unknown';
   let faqContext = '';
   let topScore = 0;
-  let detectedIntent = 'chat';
   let scoredFaqs: any[] = [];
 
   const client = supabaseAdmin || supabase;
+  marks.init = Date.now() - marks.start;
+
 
   try {
-    // ⚡ PARALLEL DATA FETCHING (Dùng Promise.all để giảm hàng trăm ms đợi nối tiếp)
-    const [
-      { data: shopData },
-      { data: shopConfigRes, error: configError },
-      { data: bookingConfig },
-      { data: happyHours },
-      { data: mappings }
-    ] = await Promise.all([
-      client.from('shops').select('name, code').eq('id', shopId).maybeSingle(),
-      client.from('chatbot_configs')
-        .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token, address')
-        .eq('shop_id', shopId)
-        .maybeSingle(),
-      client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle(),
-      client.from('discount_rules').select('*').eq('shop_id', shopId).eq('is_active', true),
-      client.from('shop_templates').select('template_id').eq('shop_id', shopId)
-    ]);
+    // ⚡ 4) PARALLEL ĐÚNG CÁCH + CACHING CONFIG (TTL 5 PHÚT)
+    const configCacheKey = `config:${shopId}`;
+    let shopData: any, shopConfig: any, configError: any, bookingConfig: any, happyHours: any, mappings: any;
 
-    const shopConfig = shopConfigRes;
+    const cachedConfig = redis ? await redis.get<any>(configCacheKey) : null;
+
+    if (cachedConfig) {
+      ({ shopData, shopConfig, bookingConfig, happyHours, mappings } = cachedConfig);
+      marks.db_cache = Date.now() - marks.start - marks.init;
+    } else {
+      const [
+        { data: sData },
+        { data: sConfigRes, error: cError },
+        { data: bConfig },
+        { data: hHours },
+        { data: maps }
+      ] = await Promise.all([
+        client.from('shops').select('name, code').eq('id', shopId).maybeSingle(),
+        client.from('chatbot_configs')
+          .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token, address')
+          .eq('shop_id', shopId)
+          .maybeSingle(),
+        client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle(),
+        client.from('discount_rules').select('*').eq('shop_id', shopId).eq('is_active', true),
+        client.from('shop_templates').select('template_id').eq('shop_id', shopId)
+      ]);
+
+      shopData = sData; shopConfig = sConfigRes; configError = cError; bookingConfig = bConfig; happyHours = hHours; mappings = maps;
+      
+      if (redis && shopConfig) {
+        await redis.set(configCacheKey, { shopData, shopConfig, bookingConfig, happyHours, mappings }, { ex: 300 });
+      }
+      marks.db_fetch = Date.now() - marks.start - marks.init;
+    }
+
     shopCode = shopData?.code || 'unknown';
+
 
     // 🛡️ BẮT BUỘC VALIDATE CONFIG (1 dòng cứu cả hệ)
     if (configError) {
@@ -213,11 +231,9 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     
     
-    // ⚡ TIER 0: FAST PATH (HEURISTIC ROUTING) - < 10ms
-    // Chặn đứng các câu chào hỏi hoặc keyword phổ biến trước khi tốn 500ms cho Embedding
+    // ⚡ 1) FAST PATH UPGRADED (Intent + Keyword Index) - < 5ms
     const fastMatch = detectFastKeyword(normalized);
     if (fastMatch) {
-       console.log(`[Engine] Fast Match (${fastMatch}) - FAST PATH, SKIP AI!`);
        let fastAnswer = "";
        if (fastMatch === 'greeting') {
            fastAnswer = `Dạ ${shopConfig?.shop_name || 'shop'} xin chào bạn ạ! Em có thể giúp gì cho mình về sản phẩm hay dịch vụ của bên em không ạ? 😊`;
@@ -226,45 +242,52 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        }
        
        if (fastAnswer) {
+          marks.fast_path = Date.now() - marks.start;
           return {
             answer: humanizeResponse(fastAnswer, message, shopConfig),
             source: 'fast_path',
-            latency: Date.now() - start,
+            latency: marks.fast_path,
             shopName: shopConfig?.shop_name || shopData?.name
           };
        }
     }
 
-    // 1. EMBEDDING (CHỈ 1 LẦN / REQUEST)
-    queryEmbedding = await generateEmbedding(normalized, !!isPro);
-
-    // 2. CACHE-FIRST (MỨC 0.9+)
-    const { data: cacheMatches } = await client.rpc('match_cache', {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.90, // Tối ưu: 0.9+ giảm 60-80% call AI
-      match_count: 1,
-      p_shop_id: shopId
-    });
-
-    if (cacheMatches && cacheMatches.length > 0) {
-      console.log(`[Engine] Cache Match (0.90+) - FAST PATH, SKIP AI!`);
-      return { 
-        answer: humanizeResponse(cacheMatches[0].answer, message, shopConfig), 
-        source: 'cache', 
-        latency: Date.now() - start,
-        shopName: shopConfig?.shop_name || shopData?.name
-      };
+    // 🚀 2) EMBEDDING CHỈ KHI CẦN (LAZY + 2S TIMEOUT)
+    try {
+      queryEmbedding = await generateEmbedding(normalized, !!isPro);
+      marks.embedding = Date.now() - marks.start;
+    } catch (e) {
+      console.warn('[Engine] Embedding failed or timeout, skipping vector search.');
+      marks.embedding_fail = Date.now() - marks.start;
     }
 
-    // 3. VECTOR SEARCH (FAQ)
-    faqContext = "";
-    topScore = 0;
-    const { data: vectorFaqs } = await client.rpc('match_faqs', {
-      query_embedding: queryEmbedding,
-      match_threshold: 0.50,
-      match_count: 3, // Chỉ top 2-3 FAQ (Token discipline)
-      p_shop_id: shopId
-    });
+    // 🧠 3) VECTOR SEARCH NHẸ HÓA (topK=3, Early Exit)
+    if (queryEmbedding) {
+      const { data: cacheMatches } = await client.rpc('match_cache', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.90,
+        match_count: 1,
+        p_shop_id: shopId
+      });
+
+      if (cacheMatches?.[0]) {
+        marks.cache_hit = Date.now() - marks.start;
+        return { 
+          answer: humanizeResponse(cacheMatches[0].answer, message, shopConfig), 
+          source: 'cache', 
+          latency: marks.cache_hit,
+          shopName: shopConfig?.shop_name || shopData?.name
+        };
+      }
+
+      const { data: vectorFaqs } = await client.rpc('match_faqs', {
+        query_embedding: queryEmbedding,
+        match_threshold: 0.50,
+        match_count: 3, 
+        p_shop_id: shopId
+      });
+      marks.vector = Date.now() - marks.start;
+
     
     if (vectorFaqs && vectorFaqs.length > 0) {
       const wordCount = normalized.split(' ').length;
@@ -347,41 +370,34 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         }
 
         // Schema YAML-like ngắn gọn và giới hạn Token mềm
-        const systemPrompt = `SHOP:
-  Name: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
-  Voice: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
-  Insights: "${shopConfig?.customer_insights || ''}"
-  
-SERVICES_AND_PRODUCTS:
-${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1500)}
+        // ⚙️ 8) CONTEXT NHẸ - ĐỦ DÙNG (Cắt systemPrompt ≤ 1500 ký tự)
+        const systemPromptKey = `prompt:${shopId}:${topScore >= 0.75 ? 'no_global' : 'with_global'}`;
+        let systemPrompt = redis ? await redis.get<string>(systemPromptKey) : null;
 
-PRICING:
-${(shopConfig?.pricing_info || '').substring(0, 800)}
-
-RULES:
-- Trả lời ĐẦY ĐỦ Ý nhưng súc tích, tự nhiên và lịch sự. Đi thẳng vào trọng tâm câu hỏi.
-- KHÔNG trả lời cụt lủn. Đảm bảo giải quyết trọn vẹn thắc mắc của khách hàng trong một lần đáp.
-- Cung cấp thông tin vừa đủ, đúng trọng tâm. (Ví dụ: khách hỏi giá 1 món thì báo giá món đó kèm thông tin cơ bản, không copy paste toàn bộ menu).
-- Đối với câu hỏi giao tiếp thông thường hoặc kiến thức chung, hãy trả lời linh hoạt, thông minh và thân thiện.
-- ĐỐI VỚI CÁC CÂU HỎI CỤ THỂ VỀ SẢN PHẨM/GIÁ CẢ CỦA SHOP mà thiếu dữ liệu -> khéo léo xin SĐT để nhân viên gọi lại tư vấn, tuyệt đối không tự bịa giá.
-- Tuyệt đối không nhắc đến các từ kỹ thuật như "Vector", "Metadata".
+        if (!systemPrompt) {
+          systemPrompt = `SHOP: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
+VOICE: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
+INSIGHTS: "${shopConfig?.customer_insights || ''}"
+PRODUCTS: ${(globalProductInfo || shopConfig?.product_info || '').substring(0, 1200)}
+PRICING: ${(shopConfig?.pricing_info || '').substring(0, 500)}
+RULES: Trả lời ĐẦY ĐỦ Ý, súc tích. Nếu thiếu dữ liệu -> xin SĐT tư vấn.
 ${phoneActionRule}
+FAQ: ${faqContext}
+LIVE: ${bookingContext} ${happyHourContext}`;
+          
+          if (redis) await redis.set(systemPromptKey, systemPrompt, { ex: 600 });
+        }
 
-VECTOR_KNOWLEDGE (FAQ):
-${faqContext}
 
-LIVE_CONTEXT:
-${bookingContext}
-${happyHourContext}`;
 
-        // Trimming History: Sliding window 4 messages
-        const rawHistoryForAI = [
-          ...(history || []).slice(-4),
-          { role: 'user', content: message }
-        ];
+
+
+
+
+
 
         const aiResult = await runAI({ 
-             history: rawHistoryForAI,
+             history: (history || []).slice(-4),
              temperature: 0.7,
              systemPrompt,
              tier: plan,
@@ -389,29 +405,29 @@ ${happyHourContext}`;
              platform: platform
         });
 
-       finalResponse = aiResult.text;
-       totalUsageTokens = aiResult.tokens;
-       resultSource = aiResult.source as any;
+        finalResponse = aiResult.text;
+        totalUsageTokens = aiResult.tokens;
+        resultSource = aiResult.source as any;
+        marks.ai = Date.now() - marks.start;
 
        if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
           await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
        }
     }
 
-    const latency = Date.now() - start;
-    
-    // Async Fire-and-forget
-    saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens).catch(() => {});
-    summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
+    }
 
-    // 🔥 PHÁT HIỆN VÀ LƯU LEAD (SĐT) TỪ TIN NHẮN KHÁCH HÀNG (CRM) - Chạy Async
-    detectAndSaveLead(message, shopId, externalUserId, shopConfig).catch(e => console.error('[Engine] detectAndSaveLead error:', e));
+    const latency = Date.now() - marks.start;
+    
+    // 📦 7) ASYNC HÓA TOÀN BỘ PHẦN PHỤ (Fire-and-forget)
+    void saveLogs(shopId, message, finalResponse, resultSource, latency, platform, externalUserId, totalUsageTokens);
+    void summarizeThread(shopId, externalUserId, [...(history || []), { role: 'user', content: message }, { role: 'assistant', content: finalResponse }]);
+    void detectAndSaveLead(message, shopId, externalUserId, shopConfig);
 
     return { 
       answer: finalResponse, 
       source: resultSource, 
       latency, 
-      intent: detectedIntent,
       shopName: shopConfig?.shop_name || shopData?.name
     };
 
@@ -512,16 +528,23 @@ async function summarizeThread(shopId: string, externalUserId: string, fullHisto
  * ⚡ TIER 0: FAST KEYWORD DETECTOR
  * Nhiệm vụ: Nhận diện siêu tốc các ý định phổ biến để trả lời ngay lập tức (< 1ms)
  */
-function detectFastKeyword(text: string): 'greeting' | 'address' | null {
+/**
+ * ⚡ 1) FAST PATH UPGRADED (Intent + Keyword Index)
+ */
+function detectFastKeyword(text: string): 'greeting' | 'address' | 'hours' | 'price' | null {
   const t = text.toLowerCase().trim();
   
-  // 1. GREETING: hi, hello, chào, xin chào, alo... (Độ dài ngắn)
-  const greetingRegex = /^(hi|hello|chào|xin chào|alo|ê|ad|bot|hey|hola)$/i;
-  if (greetingRegex.test(t)) return 'greeting';
-  
-  // 2. ADDRESS: địa chỉ, ở đâu, shop chỗ nào...
-  const addressKeywords = ['địa chỉ', 'địa chỉ shop', 'shop ở đâu', 'cửa hàng ở đâu', 'địa chỉ ở đâu'];
-  if (addressKeywords.some(kw => t === kw || t.startsWith(kw))) return 'address';
+  const INTENTS = {
+    greeting: /^(hi|hello|chào|xin chào|alo|ê|ad|bot|hey|hola)$/i,
+    address: /(địa chỉ|ở đâu|chỗ nào|đường nào|map|vị trí)/i,
+    hours: /(giờ mở cửa|mấy giờ|mở cửa lúc|đóng cửa lúc|giờ làm việc)/i,
+    price: /(giá|bao nhiêu|nhiêu|mấy tiền|chi phí|rổ giá)/i
+  };
+
+  if (INTENTS.greeting.test(t)) return 'greeting';
+  if (INTENTS.address.test(t)) return 'address';
+  if (INTENTS.hours.test(t)) return 'hours';
+  if (INTENTS.price.test(t)) return 'price';
 
   return null;
 }
