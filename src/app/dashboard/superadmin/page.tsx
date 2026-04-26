@@ -1036,7 +1036,7 @@ export default function SuperAdminPage() {
                                     </td>
                                 </tr>
                                 {openShopId === shop.id && (
-                                    <tr className="bg-slate-900 text-white animate-in slide-in-from-top-2 duration-300">
+                                    <tr className="bg-slate-100 text-slate-900 animate-in slide-in-from-top-2 duration-300">
                                         <td colSpan={5} className="p-0 border-l-4 border-indigo-600 relative">
                                             {/* Sub-Tabs Header */}
                                             <div className="flex border-b border-slate-700/50 bg-slate-800/50 px-4 md:px-16 pt-4 gap-6 overflow-x-auto custom-scrollbar">
