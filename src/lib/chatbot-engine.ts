@@ -133,12 +133,25 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
   const client = supabaseAdmin || supabase;
 
   try {
-    const { data: shopData } = await client.from('shops').select('name, code').eq('id', shopId).maybeSingle();
-    const { data: shopConfig, error: configError } = await client.from('chatbot_configs')
-      .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token')
-      .eq('shop_id', shopId)
-      .maybeSingle();
-    
+    // ⚡ PARALLEL DATA FETCHING (Dùng Promise.all để giảm hàng trăm ms đợi nối tiếp)
+    const [
+      { data: shopData },
+      { data: shopConfigRes, error: configError },
+      { data: bookingConfig },
+      { data: happyHours },
+      { data: mappings }
+    ] = await Promise.all([
+      client.from('shops').select('name, code').eq('id', shopId).maybeSingle(),
+      client.from('chatbot_configs')
+        .select('shop_name, product_info, pricing_info, faq, brand_voice, customer_insights, is_active, telegram_chat_id, telegram_bot_token, address')
+        .eq('shop_id', shopId)
+        .maybeSingle(),
+      client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle(),
+      client.from('discount_rules').select('*').eq('shop_id', shopId).eq('is_active', true),
+      client.from('shop_templates').select('template_id').eq('shop_id', shopId)
+    ]);
+
+    const shopConfig = shopConfigRes;
     shopCode = shopData?.code || 'unknown';
 
     // 🛡️ BẮT BUỘC VALIDATE CONFIG (1 dòng cứu cả hệ)
@@ -153,51 +166,32 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
     if (!shopConfig) {
       console.error(`❌ chatbot_configs NULL cho shop: ${shopId} (#${shopCode})`);
-      // 🔥 BÁO CÁO RADAR (Tự động gửi Telegram)
       reportError({
         shopId: shopId,
         errorType: 'CHATBOT_CONFIG_MISSING',
-        errorMessage: `Shop #${shopCode} chưa có chatbot_configs. Khách hàng đang không được phục vụ.`,
+        errorMessage: `Shop #${shopCode} chưa có chatbot_configs.`,
         fileSource: 'chatbot-engine.ts',
         severity: 'critical',
         metadata: { shopId, shopCode }
       }).catch(() => {});
 
       return {
-        answer: "Dạ xin lỗi bạn, hiện tại hệ thống đang bảo trì và sẽ sớm hoạt động trở lại. Bạn vui lòng liên hệ lại sau ít phút hoặc nhắn tin trực tiếp để được hỗ trợ nhé! 🙏",
+        answer: "Dạ xin lỗi bạn, hiện tại hệ thống đang bảo trì. Bạn vui lòng liên hệ lại sau nhé! 🙏",
         source: 'faq',
         latency: 0
       };
     }
-    
+
     // Kiểm tra trạng thái hoạt động
     if (shopConfig.is_active === false) {
        return { answer: "Dạ, hiện tại chatbot đang tạm nghỉ bảo trì, bạn nhắn lại sau ít phút nhe! 🙏", source: 'faq', latency: 0 };
     }
 
-    console.log(`[Engine] START chat for Shop: ${shopData?.name || shopConfig.shop_name} (#${shopCode})`);
-    
-    // 🌍 TẢI TRI THỨC KẾ THỪA TỪ SUPER ADMIN (Xưởng Tri Thức)
+    // 🌍 TẢI TRI THỨC KẾ THỪA
     let globalProductInfo = '';
     let globalFaq = '';
     let globalInsights = '';
 
-    // 🕒 TẢI CẤU HÌNH ĐẶT LỊCH LIVE & GIỜ VÀNG
-    const { data: bookingConfig } = await client.from('shop_settings').select('*').eq('shop_id', shopId).maybeSingle();
-    const { data: happyHours } = await client.from('discount_rules')
-      .select('*')
-      .eq('shop_id', shopId)
-      .eq('is_active', true);
-
-    const bookingContext = bookingConfig 
-      ? `[TRẠNG THÁI CUỘC HẸN LIVE]:\n- Dự kiến sẽ còn trống chỗ sau: ${bookingConfig.slot_duration_minutes} phút nữa.\n- Số chỗ dự kiến sẽ trống: ${bookingConfig.max_slot_per_block} chỗ.\n(Hãy dùng thông tin này để báo lịch cho khách nếu khách hỏi về chỗ trống hoặc muốn đặt lịch gấp).`
-      : "";
-
-    const happyHourContext = (happyHours && happyHours.length > 0)
-      ? `[ƯU ĐÃI GIỜ VÀNG (HAPPY HOUR)]:\n${happyHours.map((h: any) => `- Từ ${h.start_time.substring(0,5)} đến ${h.end_time.substring(0,5)}: Giảm ${h.discount_value}${h.discount_type === 'percent' ? '%' : 'K'}`).join('\n')}\n(Hãy chủ động gợi ý ưu đãi này nếu khách hỏi giá hoặc đang đắn đo về giá).`
-      : "";
-
-    const { data: mappings } = await client.from('shop_templates').select('template_id').eq('shop_id', shopId);
     if (mappings && mappings.length > 0) {
       const templateIds = mappings.map((m: any) => m.template_id);
       const { data: templates } = await client.from('knowledge_templates').select('*').in('id', templateIds);
@@ -207,7 +201,40 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
          globalInsights = templates.map((t: any) => t.insights || '').join('\n');
       }
     }
+
+    // 🕒 XỬ LÝ CONTEXT ĐẶT LỊCH & GIỜ VÀNG
+    const bookingContext = bookingConfig 
+      ? `[TRẠNG THÁI CUỘC HẸN LIVE]:\n- Dự kiến sẽ còn trống chỗ sau: ${bookingConfig.slot_duration_minutes} phút nữa.\n- Số chỗ dự kiến sẽ trống: ${bookingConfig.max_slot_per_block} chỗ.`
+      : "";
+
+    const happyHourContext = (happyHours && happyHours.length > 0)
+      ? `[ƯU ĐÃI GIỜ VÀNG (HAPPY HOUR)]:\n${happyHours.map((h: any) => `- Từ ${h.start_time.substring(0,5)} đến ${h.end_time.substring(0,5)}: Giảm ${h.discount_value}${h.discount_type === 'percent' ? '%' : 'K'}`).join('\n')}`
+      : "";
+
     
+    
+    // ⚡ TIER 0: FAST PATH (HEURISTIC ROUTING) - < 10ms
+    // Chặn đứng các câu chào hỏi hoặc keyword phổ biến trước khi tốn 500ms cho Embedding
+    const fastMatch = detectFastKeyword(normalized);
+    if (fastMatch) {
+       console.log(`[Engine] Fast Match (${fastMatch}) - FAST PATH, SKIP AI!`);
+       let fastAnswer = "";
+       if (fastMatch === 'greeting') {
+           fastAnswer = `Dạ ${shopConfig?.shop_name || 'shop'} xin chào bạn ạ! Em có thể giúp gì cho mình về sản phẩm hay dịch vụ của bên em không ạ? 😊`;
+       } else if (fastMatch === 'address') {
+           fastAnswer = shopConfig?.address ? `Dạ, địa chỉ của bên em tại: ${shopConfig.address} ạ. Mời bạn ghé qua shop nhe! 🌿` : "";
+       }
+       
+       if (fastAnswer) {
+          return {
+            answer: humanizeResponse(fastAnswer, message, shopConfig),
+            source: 'fast_path',
+            latency: Date.now() - start,
+            shopName: shopConfig?.shop_name || shopData?.name
+          };
+       }
+    }
+
     // 1. EMBEDDING (CHỈ 1 LẦN / REQUEST)
     queryEmbedding = await generateEmbedding(normalized, !!isPro);
 
@@ -479,4 +506,22 @@ async function summarizeThread(shopId: string, externalUserId: string, fullHisto
       }).eq('shop_id', shopId).eq('external_user_id', externalUserId);
     }
   } catch (e) {}
+}
+
+/**
+ * ⚡ TIER 0: FAST KEYWORD DETECTOR
+ * Nhiệm vụ: Nhận diện siêu tốc các ý định phổ biến để trả lời ngay lập tức (< 1ms)
+ */
+function detectFastKeyword(text: string): 'greeting' | 'address' | null {
+  const t = text.toLowerCase().trim();
+  
+  // 1. GREETING: hi, hello, chào, xin chào, alo... (Độ dài ngắn)
+  const greetingRegex = /^(hi|hello|chào|xin chào|alo|ê|ad|bot|hey|hola)$/i;
+  if (greetingRegex.test(t)) return 'greeting';
+  
+  // 2. ADDRESS: địa chỉ, ở đâu, shop chỗ nào...
+  const addressKeywords = ['địa chỉ', 'địa chỉ shop', 'shop ở đâu', 'cửa hàng ở đâu', 'địa chỉ ở đâu'];
+  if (addressKeywords.some(kw => t === kw || t.startsWith(kw))) return 'address';
+
+  return null;
 }
