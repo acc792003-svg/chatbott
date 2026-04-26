@@ -444,10 +444,10 @@ LIVE: ${bookingContext} ${happyHourContext}`;
         errorMessage: error.message,
         fileSource: 'chatbot-engine.ts',
         severity: 'high',
-        metadata: { shopCode, platform, stack: error.stack, message: message.substring(0, 50) }
+        metadata: { shopCode, platform, marks, message: message.substring(0, 50) }
       }).catch(() => {});
     }
-    return { answer: errorResponse, source: 'fallback', latency: latency };
+    return { answer: fallback.text, source: 'fallback', latency: latency };
   }
 }
 
