@@ -1158,12 +1158,12 @@ export default function SuperAdminPage() {
                                                             <div className="space-y-4">
                                                                 <div>
                                                                     <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page ID</label>
-                                                                    <input type="text" placeholder="Nhập ID Fanpage..." id={`fbp-id-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-indigo-500" defaultValue={shopConfigs[shop.id]?.facebook_page_id || ''} />
+                                                                    <input type="text" placeholder="Nhập ID Fanpage..." id={`fbp-id-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-indigo-500" key={`fbp-id-val-${shop.fb_page_id}`} defaultValue={shop.fb_page_id || ''} />
                                                                 </div>
                                                                 <div>
                                                                     <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Page Access Token</label>
                                                                     <div className="relative">
-                                                                        <input type={showKeys[`fbp-${shop.id}`] ? "text" : "password"} placeholder="Nhập Token của Page..." id={`fbp-token-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pr-10 text-[10px] font-bold outline-none focus:border-indigo-500" defaultValue={shopConfigs[shop.id]?.facebook_access_token || ''} />
+                                                                        <input type={showKeys[`fbp-${shop.id}`] ? "text" : "password"} placeholder="Nhập Token của Page..." id={`fbp-token-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 pr-10 text-[10px] font-bold outline-none focus:border-indigo-500" key={`fbp-tk-val-${shop.fb_page_token}`} defaultValue={shop.fb_page_token || ''} />
                                                                         <button type="button" onClick={() => setShowKeys(p => ({ ...p, [`fbp-${shop.id}`]: !p[`fbp-${shop.id}`] }))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"><Eye size={14} /></button>
                                                                     </div>
                                                                 </div>
@@ -1186,11 +1186,11 @@ export default function SuperAdminPage() {
                                                             <div className="space-y-4">
                                                                 <div>
                                                                     <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Chat ID (Admin)</label>
-                                                                    <input type="text" placeholder="Nhập Chat ID Telegram..." id={`tg-chat-id-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500" defaultValue={shopConfigs[shop.id]?.telegram_chat_id || ''} />
+                                                                    <input type="text" placeholder="Nhập Chat ID Telegram..." id={`tg-chat-id-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500" key={`tg-cid-val-${shop.telegram_chat_id}`} defaultValue={shop.telegram_chat_id || ''} />
                                                                 </div>
                                                                 <div>
                                                                     <label className="text-[8px] font-black text-slate-500 uppercase mb-1 block">Bot Token (Riêng - Nếu có)</label>
-                                                                    <input type="password" placeholder="Để trống nếu dùng Bot hệ thống..." id={`tg-bot-token-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500" defaultValue={shopConfigs[shop.id]?.telegram_bot_token || ''} />
+                                                                    <input type="password" placeholder="Để trống nếu dùng Bot hệ thống..." id={`tg-bot-token-${shop.id}`} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[10px] font-bold outline-none focus:border-sky-500" key={`tg-btk-val-${shop.telegram_bot_token}`} defaultValue={shop.telegram_bot_token || ''} />
                                                                 </div>
                                                                 <button onClick={async () => {
                                                                     const tgChatId = (document.getElementById(`tg-chat-id-${shop.id}`) as HTMLInputElement).value;

@@ -387,7 +387,7 @@ export function ApiKeysView({
                 </div>
             </div>
 
-            {/* 🔷 KHỐI 3: KEY INPUTS (DỮ NGUYÊN HOẶC TINH CHỈNH) */}
+            {/* 🔷 KHỐI 3: API CONFIGURATION INPUTS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10 border-t border-slate-100">
                 <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
                     <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Brain size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">Google Gemini</h3></div>
@@ -422,12 +422,13 @@ export function ApiKeysView({
                 <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
                     <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-rose-100 text-rose-600 rounded-2xl"><Settings size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">FB & Telegram</h3></div>
                     <KeyInput label="FB Verify Token" value={fbVerifyToken} onChange={setFbVerifyToken} show={showKeys?.fbv} toggle={() => setShowKeys({...showKeys, fbv: !showKeys?.fbv})} />
+                    <KeyInput label="FB App Secret" value={fbAppSecret} onChange={setFbAppSecret} show={showKeys?.fbs} toggle={() => setShowKeys({...showKeys, fbs: !showKeys?.fbs})} />
                     <KeyInput label="Telegram Token" value={systemTelegramToken} onChange={setSystemTelegramToken} show={showKeys?.tgt} toggle={() => setShowKeys({...showKeys, tgt: !showKeys?.tgt})} />
                     <KeyInput label="Admin Chat ID" value={adminTelegramChatId} onChange={setAdminTelegramChatId} show={showKeys?.tga} toggle={() => setShowKeys({...showKeys, tga: !showKeys?.tga})} />
                 </div>
             </div>
 
-            <button onClick={onSave} className="w-full bg-slate-900 text-white font-black py-6 rounded-[2rem] shadow-2xl hover:bg-black transition-all text-sm uppercase flex items-center justify-center gap-3">
+            <button onClick={onSave} className="w-full bg-slate-900 text-white font-black py-6 rounded-[2rem] shadow-2xl hover:bg-black transition-all text-sm uppercase flex items-center justify-center gap-3 mt-10">
                 <ShieldCheck size={20}/> Deploy & Sync System Configuration
             </button>
 
@@ -515,44 +516,6 @@ export function ApiKeysView({
                     </div>
                 )}
             </AnimatePresence>
-
-            {/* 🔷 KHỐI 3: API CONFIGURATION INPUTS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-10 border-t border-slate-100">
-                <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
-                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-indigo-100 text-indigo-600 rounded-2xl"><Brain size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">Google Gemini</h3></div>
-                    <KeyInput label="Gemini Free 1" value={apiKey1} onChange={setApiKey1} show={showKeys?.k1} toggle={() => setShowKeys({...showKeys, k1: !showKeys?.k1})} />
-                    <KeyInput label="Gemini Free 2" value={apiKey2} onChange={setApiKey2} show={showKeys?.k2} toggle={() => setShowKeys({...showKeys, k2: !showKeys?.k2})} />
-                    <KeyInput label="Gemini Pro" value={apiKeyPro} onChange={setApiKeyPro} show={showKeys?.kp} toggle={() => setShowKeys({...showKeys, kp: !showKeys?.kp})} />
-                </div>
-                
-                <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
-                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-blue-100 text-blue-600 rounded-2xl"><Zap size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">DeepSeek</h3></div>
-                    <KeyInput label="DeepSeek Free 1" value={deepSeekKeyFree1} onChange={setDeepSeekKeyFree1} show={showKeys?.ds1} toggle={() => setShowKeys({...showKeys, ds1: !showKeys?.ds1})} />
-                    <KeyInput label="DeepSeek Free 2" value={deepSeekKeyFree2} onChange={setDeepSeekKeyFree2} show={showKeys?.ds2} toggle={() => setShowKeys({...showKeys, ds2: !showKeys?.ds2})} />
-                    <KeyInput label="DeepSeek Pro" value={deepSeekKeyPro} onChange={setDeepSeekKeyPro} show={showKeys?.dsp} toggle={() => setShowKeys({...showKeys, dsp: !showKeys?.dsp})} />
-                </div>
-
-                <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
-                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">OpenRouter</h3></div>
-                    <KeyInput label="OpenRouter 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
-                    <KeyInput label="OpenRouter 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
-                    <div className="pt-2">
-                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity size={12}/> Model ID</label>
-                        <input type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500" value={openRouterModel || ''} onChange={e => setOpenRouterModel(e.target.value)} />
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-6">
-                    <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-rose-100 text-rose-600 rounded-2xl"><Settings size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">FB & Telegram</h3></div>
-                    <KeyInput label="FB Verify Token" value={fbVerifyToken} onChange={setFbVerifyToken} show={showKeys?.fbv} toggle={() => setShowKeys({...showKeys, fbv: !showKeys?.fbv})} />
-                    <KeyInput label="Telegram Token" value={systemTelegramToken} onChange={setSystemTelegramToken} show={showKeys?.tgt} toggle={() => setShowKeys({...showKeys, tgt: !showKeys?.tgt})} />
-                    <KeyInput label="Admin Chat ID" value={adminTelegramChatId} onChange={setAdminTelegramChatId} show={showKeys?.tga} toggle={() => setShowKeys({...showKeys, tga: !showKeys?.tga})} />
-                </div>
-            </div>
-
-            <button onClick={onSave} className="w-full bg-slate-900 text-white font-black py-6 rounded-[2rem] shadow-2xl hover:bg-black transition-all text-sm uppercase flex items-center justify-center gap-3 mt-10">
-                <ShieldCheck size={20}/> Deploy & Sync System Configuration
-            </button>
 
         </div>
     );
