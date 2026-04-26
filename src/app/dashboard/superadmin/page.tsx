@@ -1070,17 +1070,17 @@ export default function SuperAdminPage() {
                                     <tr className="bg-slate-100 text-slate-900 animate-in slide-in-from-top-2 duration-300">
                                         <td colSpan={5} className="p-0 border-l-4 border-indigo-600 relative">
                                             {/* Sub-Tabs Header */}
-                                            <div className="flex border-b border-slate-700/50 bg-slate-800/50 px-4 md:px-16 pt-4 gap-6 overflow-x-auto custom-scrollbar">
-                                                <button onClick={() => setActiveShopTab('core')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'core' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                                            <div className="flex border-b border-slate-200 bg-white/50 px-4 md:px-16 pt-4 gap-6 overflow-x-auto custom-scrollbar">
+                                                <button onClick={() => setActiveShopTab('core')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'core' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}>
                                                     <Brain size={14} className="inline mr-1 mb-0.5"/> Nền Tảng AI
                                                 </button>
-                                                <button onClick={() => setActiveShopTab('channels')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'channels' ? 'border-sky-500 text-sky-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                                                <button onClick={() => setActiveShopTab('channels')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'channels' ? 'border-sky-600 text-sky-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}>
                                                     <MessageCircle size={14} className="inline mr-1 mb-0.5"/> Đa Kênh
                                                 </button>
-                                                <button onClick={() => setActiveShopTab('settings')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'settings' ? 'border-emerald-500 text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                                                <button onClick={() => setActiveShopTab('settings')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'settings' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}>
                                                     <Settings size={14} className="inline mr-1 mb-0.5"/> Cài Đặt
                                                 </button>
-                                                <button onClick={() => setActiveShopTab('monitor')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'monitor' ? 'border-rose-500 text-rose-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                                                <button onClick={() => setActiveShopTab('monitor')} className={`pb-3 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all whitespace-nowrap ${activeShopTab === 'monitor' ? 'border-rose-600 text-rose-600' : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300'}`}>
                                                     <Layers size={14} className="inline mr-1 mb-0.5"/> Giám Sát
                                                 </button>
                                             </div>
