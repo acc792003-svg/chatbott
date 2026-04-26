@@ -252,13 +252,19 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        }
     }
 
-    // 🚀 2) EMBEDDING CHỈ KHI CẦN (LAZY + 2S TIMEOUT)
-    try {
-      queryEmbedding = await generateEmbedding(normalized, !!isPro);
-      marks.embedding = Date.now() - marks.start;
-    } catch (e) {
-      console.warn('[Engine] Embedding failed or timeout, skipping vector search.');
-      marks.embedding_fail = Date.now() - marks.start;
+    // 🚀 2) EMBEDDING CHỈ KHI CẦN (LAZY + 2S TIMEOUT + SKIP FOR SHORT TEXT)
+    const shouldUseVector = normalized.length > 35;
+
+    if (shouldUseVector) {
+        try {
+          queryEmbedding = await generateEmbedding(normalized, !!isPro);
+          marks.embedding = Date.now() - marks.start;
+        } catch (e) {
+          console.warn('[Engine] Embedding failed or timeout, skipping vector search.');
+          marks.embedding_fail = Date.now() - marks.start;
+        }
+    } else {
+        marks.embedding_skipped = true;
     }
 
     // 🧠 3) VECTOR SEARCH NHẸ HÓA (topK=3, Early Exit)

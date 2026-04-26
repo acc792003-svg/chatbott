@@ -78,8 +78,8 @@ export async function POST(req: NextRequest) {
         if (webhook_event.message && webhook_event.message.text) {
           const message_text = webhook_event.message.text;
           
-          // Xử lý bất đồng bộ (Giai đoạn chuyển tiếp sang Async)
-          handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
+          // Đợi xử lý xong mới trả HTTP 200 để Vercel không kill tiến trình
+          await handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
             console.error('FB logic error:', e)
           );
         }
