@@ -57,6 +57,7 @@ export default function SuperAdminPage() {
   const [openRouterKey1, setOpenRouterKey1] = useState('');
   const [openRouterKey2, setOpenRouterKey2] = useState('');
   const [openRouterModel, setOpenRouterModel] = useState('deepseek/deepseek-chat');
+  const [openRouterModelPro, setOpenRouterModelPro] = useState('openai/gpt-4o');
   const [systemTelegramToken, setSystemTelegramToken] = useState('');
   const [adminTelegramChatId, setAdminTelegramChatId] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -273,6 +274,7 @@ export default function SuperAdminPage() {
       setOpenRouterKey1(data.find((d: any) => d.key === 'openrouter_api_key_1')?.value || '');
       setOpenRouterKey2(data.find((d: any) => d.key === 'openrouter_api_key_2')?.value || '');
       setOpenRouterModel(data.find((d: any) => d.key === 'openrouter_model_id')?.value || 'deepseek/deepseek-chat');
+      setOpenRouterModelPro(data.find((d: any) => d.key === 'openrouter_model_id_pro')?.value || 'openai/gpt-4o');
       setSystemTelegramToken(data.find((d: any) => d.key === 'system_telegram_bot_token')?.value || '');
       setAdminTelegramChatId(data.find((d: any) => d.key === 'admin_telegram_chat_id')?.value || '');
     }
@@ -591,6 +593,7 @@ export default function SuperAdminPage() {
             settings.push({ key: 'openrouter_api_key_1', value: openRouterKey1 });
             settings.push({ key: 'openrouter_api_key_2', value: openRouterKey2 });
             settings.push({ key: 'openrouter_model_id', value: openRouterModel });
+            settings.push({ key: 'openrouter_model_id_pro', value: openRouterModelPro });
             settings.push({ key: 'system_telegram_bot_token', value: systemTelegramToken });
             settings.push({ key: 'admin_telegram_chat_id', value: adminTelegramChatId });
         } else {

@@ -80,6 +80,7 @@ export function ApiKeysView({
     openRouterKey1, setOpenRouterKey1,
     openRouterKey2, setOpenRouterKey2,
     openRouterModel, setOpenRouterModel,
+    openRouterModelPro, setOpenRouterModelPro,
     fbVerifyToken, setFbVerifyToken,
     fbAppSecret, setFbAppSecret,
     systemTelegramToken, setSystemTelegramToken,
@@ -94,7 +95,15 @@ export function ApiKeysView({
     const [filterProvider, setFilterProvider] = useState<'all' | 'gemini' | 'deepseek' | 'openrouter'>('all');
     
     const sortedKeys = [...keys]
-        .filter(k => filterProvider === 'all' || k.key.toLowerCase().includes(filterProvider))
+        .filter(k => {
+            if (filterProvider === 'all') return true;
+            const keyLower = k.key.toLowerCase();
+            const nameLower = k.name.toLowerCase();
+            if (filterProvider === 'gemini') return keyLower.includes('gemini');
+            if (filterProvider === 'deepseek') return keyLower.includes('deepseek');
+            if (filterProvider === 'openrouter') return keyLower.includes('openrouter') || nameLower.includes('openrouter') || nameLower.includes('or ');
+            return true;
+        })
         .sort((a: any, b: any) => {
             if (sortBy === 'latency') return (a.avg_latency || 9999) - (b.avg_latency || 9999);
             if (sortBy === 'usage') return (b.usage_count || 0) - (a.usage_count || 0);
@@ -398,9 +407,15 @@ export function ApiKeysView({
                     <div className="flex items-center gap-3 mb-2"><div className="p-3 bg-emerald-100 text-emerald-600 rounded-2xl"><Layers size={20}/></div><h3 className="text-sm font-black uppercase tracking-widest">OpenRouter</h3></div>
                     <KeyInput label="OpenRouter 1" value={openRouterKey1} onChange={setOpenRouterKey1} show={showKeys?.or1} toggle={() => setShowKeys({...showKeys, or1: !showKeys?.or1})} />
                     <KeyInput label="OpenRouter 2" value={openRouterKey2} onChange={setOpenRouterKey2} show={showKeys?.or2} toggle={() => setShowKeys({...showKeys, or2: !showKeys?.or2})} />
-                    <div className="pt-2">
-                        <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-2 flex items-center gap-2"><Activity size={12}/> Model ID</label>
-                        <input type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500" value={openRouterModel || ''} onChange={e => setOpenRouterModel(e.target.value)} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2"><Activity size={12}/> Model (FREE)</label>
+                            <input type="text" className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-emerald-500" value={openRouterModel || ''} onChange={e => setOpenRouterModel(e.target.value)} placeholder="Ví dụ: deepseek/deepseek-chat" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-[10px] font-black text-indigo-600 uppercase tracking-widest flex items-center gap-2"><ShieldCheck size={12}/> Model (PRO)</label>
+                            <input type="text" className="w-full bg-indigo-50/30 border border-indigo-100 rounded-2xl p-4 text-xs font-black outline-none focus:border-indigo-500" value={openRouterModelPro || ''} onChange={e => setOpenRouterModelPro(e.target.value)} placeholder="Ví dụ: openai/gpt-4o" />
+                        </div>
                     </div>
                 </div>
 
