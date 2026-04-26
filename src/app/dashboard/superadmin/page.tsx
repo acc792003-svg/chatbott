@@ -1451,6 +1451,8 @@ export default function SuperAdminPage() {
             openRouterKey1={openRouterKey1} setOpenRouterKey1={setOpenRouterKey1}
             openRouterKey2={openRouterKey2} setOpenRouterKey2={setOpenRouterKey2}
             openRouterModel={openRouterModel} setOpenRouterModel={setOpenRouterModel}
+            openRouterModel2={openRouterModel2} setOpenRouterModel2={setOpenRouterModel2}
+            openRouterModelPro={openRouterModelPro} setOpenRouterModelPro={setOpenRouterModelPro}
             fbVerifyToken={fbVerifyToken} setFbVerifyToken={setFbVerifyToken}
             fbAppSecret={fbAppSecret} setFbAppSecret={setFbAppSecret}
             systemTelegramToken={systemTelegramToken} setSystemTelegramToken={setSystemTelegramToken}
