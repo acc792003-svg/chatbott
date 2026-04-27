@@ -382,12 +382,16 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         let basePrompt = redis ? await redis.get<string>(basePromptKey) : null;
 
         if (!basePrompt) {
-          basePrompt = `SHOP: "${shopConfig?.shop_name || shopData?.name || 'Shop'}"
-VOICE: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
-INSIGHTS: "${shopConfig?.customer_insights || ''}"
-PRODUCTS: ${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
-PRICING: ${(shopConfig?.pricing_info || '').substring(0, 500)}
-RULES: Trả lời ĐẦY ĐỦ Ý, súc tích. Nếu thiếu dữ liệu -> xin SĐT tư vấn.`;
+          basePrompt = `Bạn là nhân viên CSKH của "${shopConfig?.shop_name || shopData?.name || 'Shop'}".
+Giọng điệu: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
+[DATA]
+${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
+${(shopConfig?.pricing_info || '').substring(0, 500)}
+[/DATA]
+RULES:
+1. NẾU khách hỏi về sản phẩm/giá/chính sách: BẮT BUỘC CHỈ dùng thông tin trong [DATA] để trả lời. Không bịa số liệu.
+2. NẾU dùng từ lóng, teencode, viết tắt (fs, tr, auth...): Tự động dịch để hiểu đúng ý khách.
+3. NẾU câu hỏi KHÔNG có trong [DATA] hoặc là giao tiếp ngoài lề: Dùng kiến thức chung của bạn trả lời ngay lập tức, NGẮN GỌN và CHUẨN XÁC, không cần xin lỗi hay xin SĐT.`;
           
           if (redis) await redis.set(basePromptKey, basePrompt, { ex: 600 });
         }
@@ -408,7 +412,7 @@ LIVE: ${bookingContext} ${happyHourContext}`;
 
 
         const aiResult = await runAI({ 
-             history: (history || []).slice(-4),
+             history: (history || []).slice(-10),
              temperature: 0.7,
              systemPrompt,
              tier: plan,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
-import { sendFacebookMessage } from '@/lib/facebook';
+import { sendFacebookMessage, sendFacebookAction } from '@/lib/facebook';
 import { redis } from '@/lib/rate-limiter';
 import crypto from 'crypto';
 
@@ -202,7 +202,8 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
       { role: 'model', content: m.ai_response }
     ]);
 
-  // 3. Gửi tới Bộ não xử lý
+  // 3. Bật trạng thái "Đang gõ..." và gửi tới Bộ não xử lý
+  await sendFacebookAction(sender_id, config.access_token, 'typing_on');
   const result = await processChat({
     shopId: config.shop_id,
     message: text,

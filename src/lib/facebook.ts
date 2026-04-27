@@ -27,3 +27,29 @@ export async function sendFacebookMessage(sender_id: string, page_access_token: 
     return false;
   }
 }
+
+export async function sendFacebookAction(sender_id: string, page_access_token: string, action: 'typing_on' | 'typing_off' | 'mark_seen') {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v12.0/me/messages?access_token=${page_access_token}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recipient: { id: sender_id },
+        sender_action: action,
+      }),
+    });
+
+    const data = await response.json();
+    if (data.error) {
+      console.error('❌ Facebook Action API Error:', data.error);
+      return false;
+    }
+    
+    return true;
+  } catch (e) {
+    console.error('❌ Network error sending FB action:', e);
+    return false;
+  }
+}
