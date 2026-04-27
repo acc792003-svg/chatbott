@@ -215,7 +215,8 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
 
   console.log(`🤖 AI Result for ${sender_id}: ${result.answer.substring(0, 50)}...`);
 
-  // 4. Phản hồi kèm Retry logic (Giai đoạn nhẹ)
+  // 4. Tắt "Đang gõ..." và Phản hồi kèm Retry logic
+  await sendFacebookAction(sender_id, config.access_token, 'typing_off');
   let success = await sendFacebookMessage(sender_id, config.access_token, result.answer);
   
   if (success) {

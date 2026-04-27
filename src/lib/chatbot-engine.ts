@@ -378,7 +378,8 @@ ${(shopConfig?.pricing_info || '').substring(0, 500)}
 [/DATA]
 HƯỚNG DẪN XỬ LÝ (QUAN TRỌNG):
 1. ƯU TIÊN 1: LUÔN cố gắng tìm thông tin trong [DATA] để trả lời.
-2. ƯU TIÊN 2: NẾU câu hỏi của khách hàng KHÔNG CÓ trong [DATA] (Ví dụ: cách nấu, mẹo vặt, chitchat, hoặc hỏi đáp chung): BẮT BUỘC dùng kiến thức chuyên gia của AI để giải quyết và trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. Không được từ chối trả lời.
+2. ƯU TIÊN 2: NẾU câu hỏi của khách hàng KHÔNG CÓ trong [DATA] (Ví dụ: cách nấu, mẹo vặt, chitchat): BẮT BUỘC dùng kiến thức chuyên gia của AI để giải quyết và trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. 
+3. CHỐNG LẶP LẠI (ANTI-LOOP): Nhìn vào lịch sử chat, NẾU khách hàng hỏi lại một câu hỏi, chứng tỏ câu trả lời trước đó của bạn chưa đúng trọng tâm. TUYỆT ĐỐI KHÔNG lặp lại câu trả lời cũ (đặc biệt là câu chào). Hãy trả lời thẳng vào vấn đề.
 (Lưu ý duy nhất: Tuyệt đối không tự bịa ra "Giá tiền" hoặc "Tên sản phẩm riêng" nếu [DATA] không có).`;
           
           // Đã tắt cache basePrompt để luôn lấy config mới nhất từ DB
