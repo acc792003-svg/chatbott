@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { processChat } from '@/lib/chatbot-engine';
-import { sendFacebookMessage } from '@/lib/facebook';
+import { sendFacebookMessage, sendFacebookAction } from '@/lib/facebook';
 import { reportError } from '@/lib/radar';
 import { redis } from '@/lib/rate-limiter';
 import crypto from 'crypto';
@@ -78,10 +78,12 @@ export async function POST(req: NextRequest) {
         if (webhook_event.message && webhook_event.message.text) {
           const message_text = webhook_event.message.text;
           
-          // Đợi xử lý xong mới trả HTTP 200 để Vercel không kill tiến trình
-          await handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
-            console.error('FB logic error:', e)
-          );
+          // 🚀 TỐI ƯU: Đẩy xử lý nặng sang background (tách webhook) bằng after()
+          after(() => {
+            handleFacebookMessage(sender_id, page_id, message_text).catch(e => 
+              console.error('FB logic error:', e)
+            );
+          });
         }
       }
       return NextResponse.json({ status: 'EVENT_RECEIVED' });
@@ -171,6 +173,10 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
     return;
   }
 
+  // 🚀 TỐI ƯU CẢM NHẬN: Gửi seen + typing_on ngay lập tức (hiệu ứng tức thì)
+  sendFacebookAction(sender_id, config.access_token, 'mark_seen');
+  sendFacebookAction(sender_id, config.access_token, 'typing_on');
+
   const shop: any = config.shops;
 
   // 2. Lấy lịch sử hội thoại
@@ -203,10 +209,13 @@ async function handleFacebookMessage(sender_id: string, page_id: string, text: s
   // 4. Phản hồi kèm Retry logic (Giai đoạn nhẹ)
   let success = await sendFacebookMessage(sender_id, config.access_token, result.answer);
   
-  // Retry đơn giản nếu thất bại (Lần 2 sau 2s)
+  // Retry đơn giản nếu thất bại do mạng (Lần 2 sau 2s)
   if (!success) {
       setTimeout(async () => {
           await sendFacebookMessage(sender_id, config.access_token, result.answer);
       }, 2000);
+  } else {
+      // Tắt typing on sau khi gửi xong
+      sendFacebookAction(sender_id, config.access_token, 'typing_off');
   }
 }
