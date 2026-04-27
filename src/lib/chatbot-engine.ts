@@ -4,7 +4,6 @@ import { detectAndSaveLead } from './leads';
 import { validateRateLimit, redis } from './rate-limiter';
 import { reportError } from './radar';
 import { decideRoute, runAI, fallbackResponse } from './ai-router';
-import crypto from 'crypto';
 
 /**
  * 🧠 CHATBOT ENGINE CORE (V3.1 - Hyper Resilience)
@@ -253,24 +252,6 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
        }
     }
 
-    // 🚀 TỐI ƯU: REDIS EXACT MATCH CACHE (< 10ms)
-    let exactCacheKey = '';
-    if (redis && normalized.length > 5) {
-      const hash = crypto.createHash('md5').update(normalized).digest('hex');
-      exactCacheKey = `ans:${shopId}:${hash}`;
-      const cachedAnswer = await redis.get<string>(exactCacheKey);
-      
-      if (cachedAnswer) {
-        marks.redis_exact_hit = Date.now() - marks.start;
-        return {
-          answer: humanizeResponse(cachedAnswer, message, shopConfig),
-          source: 'cache',
-          latency: marks.redis_exact_hit,
-          shopName: shopConfig?.shop_name || shopData?.name
-        };
-      }
-    }
-
     // 🚀 2) EMBEDDING CHỈ KHI CẦN (LAZY + 2S TIMEOUT + SKIP FOR SHORT TEXT)
     const shouldUseVector = normalized.length > 35;
 
@@ -440,14 +421,9 @@ LIVE: ${bookingContext} ${happyHourContext}`;
         resultSource = aiResult.source as any;
         marks.ai = Date.now() - marks.start;
 
-        if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
-           await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
-        }
-        
-        // Lưu Redis exact match
-        if (redis && exactCacheKey && finalResponse && resultSource !== 'fallback') {
-           await redis.set(exactCacheKey, finalResponse, { ex: 86400 * 7 }); // Cache 7 ngày
-        }
+       if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
+          await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
+       }
     }
 
     const latency = Date.now() - marks.start;
