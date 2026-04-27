@@ -162,7 +162,7 @@ export async function getHealthyKeys(provider: AIProvider, tier: AITier): Promis
          envKeys.push({ id: '', key: 'deepseek_api_key_free1', value: process.env.DEEPSEEK_API_KEY, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
        }
     } else if (provider === 'openrouter') {
-       if (tier === 'pro' && process.env.OPENROUTER_API_KEY_PRO) {
+       if (process.env.OPENROUTER_API_KEY_PRO) {
          envKeys.push({ id: '', key: 'openrouter_api_key_pro', value: process.env.OPENROUTER_API_KEY_PRO, status: 'active', fail_count: 0, success_count: 0, usage_count: 0, cooldown_until: null, last_used_at: null, last_error: null });
        }
        if (process.env.OPENROUTER_API_KEY_1) {

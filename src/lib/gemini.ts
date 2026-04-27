@@ -127,8 +127,8 @@ export function normalizeChatPipeline(history: any[], provider: string) {
  * Gọi API cụ thể (Gemini, DeepSeek hoặc OpenRouter)
  */
 export async function callSpecificAI(provider: string, tier: string, apiKey: string, history: any[], temperature: number, systemPrompt?: string, customTimeout?: number, maxTokens?: number, overrideModel?: string) {
-  // ⚡ ULTRA FAIL-FAST: 3.5s cho OR, 5s cho Gemini
-  const timeout = customTimeout || (provider === 'openrouter' ? 3500 : 5000);
+  // ⚡ Tăng timeout lên 8s để giảm thiểu lỗi "This operation was aborted" khi AI xử lý hơi chậm
+  const timeout = customTimeout || (provider === 'openrouter' ? 8000 : 8000);
   
   const normalizedHistory = normalizeChatPipeline(history, provider);
 
@@ -157,7 +157,9 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
     if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
       return { text: data.candidates[0].content.parts[0].text, tokens: data.usageMetadata?.totalTokenCount || 0 };
     } else if (!response.ok) {
-       console.error(`Gemini Error:`, data);
+       const errorMsg = data.error?.message || JSON.stringify(data);
+       console.error(`Gemini Error:`, errorMsg);
+       throw new Error(`Gemini Error: ${errorMsg}`);
     }
   } else if (provider === 'deepseek') {
     // DeepSeek API
@@ -182,6 +184,9 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
     const data = await response.json();
     if (response.ok && data.choices?.[0]?.message?.content) {
       return { text: data.choices[0].message.content, tokens: data.usageMetadata?.total_tokens || 0 };
+    } else {
+      const errorMsg = data.error?.message || JSON.stringify(data);
+      throw new Error(`DeepSeek Error: ${errorMsg}`);
     }
   } else if (provider === 'openrouter') {
     // OpenRouter API (OpenAI Compatible)
@@ -230,6 +235,9 @@ export async function callSpecificAI(provider: string, tier: string, apiKey: str
     const data = await response.json();
     if (response.ok && data.choices?.[0]?.message?.content) {
       return { text: data.choices[0].message.content, tokens: data.usageMetadata?.total_tokens || 0 };
+    } else {
+      const errorMsg = data.error?.message || JSON.stringify(data);
+      throw new Error(`OpenRouter Error: ${errorMsg}`);
     }
   }
   throw new Error(`${provider} ${tier} failed`);
