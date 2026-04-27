@@ -391,9 +391,9 @@ ${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
 ${(shopConfig?.pricing_info || '').substring(0, 500)}
 [/DATA]
 HƯỚNG DẪN XỬ LÝ (QUAN TRỌNG):
-1. Về GIÁ CẢ / CHÍNH SÁCH / THÔNG TIN CỤ THỂ CỦA SHOP: BẮT BUỘC lấy từ [DATA]. Không tự bịa.
-2. Về MẸO VẶT / CÁCH SỬ DỤNG / CÁCH NẤU (Ví dụ: cách chưng yến): NẾU [DATA] không có, HÃY DÙNG KIẾN THỨC CHUYÊN GIA CỦA AI ĐỂ TRẢ LỜI thật chi tiết và chuẩn xác.
-3. Nếu giao tiếp ngoài lề: Trả lời tự nhiên, ngắn gọn. Tự động hiểu teencode (fs, tr...).`;
+1. ƯU TIÊN 1: LUÔN cố gắng tìm thông tin trong [DATA] để trả lời.
+2. ƯU TIÊN 2: NẾU câu hỏi của khách hàng KHÔNG CÓ trong [DATA] (Ví dụ: cách nấu, mẹo vặt, chitchat, hoặc hỏi đáp chung): BẮT BUỘC dùng kiến thức chuyên gia của AI để giải quyết và trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. Không được từ chối trả lời.
+(Lưu ý duy nhất: Tuyệt đối không tự bịa ra "Giá tiền" hoặc "Tên sản phẩm riêng" nếu [DATA] không có).`;
           
           if (redis) await redis.set(basePromptKey, basePrompt, { ex: 600 });
         }
