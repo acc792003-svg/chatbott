@@ -86,6 +86,22 @@ function detectIntentBoost(input: string, f: any) {
   return score > 0 ? 1 : 0;
 }
 
+function classifyIntent(text: string): 'sales' | 'knowledge' | 'general' {
+    const lowerText = text.toLowerCase();
+    
+    // Knowledge intent keywords
+    if (/(cách|hướng dẫn|mẹo|tại sao|vì sao|bảo quản|nấu|chưng|làm sao|thế nào)/i.test(lowerText)) {
+        return 'knowledge';
+    }
+    
+    // Sales intent keywords
+    if (/(giá|mua|bao nhiêu|ship|tiền|đặt|lấy|cho mình)/i.test(lowerText)) {
+        return 'sales';
+    }
+    
+    return 'general';
+}
+
 /**
  * Phát hiện chuỗi trông giống số điện thoại nhưng không đúng định dạng Việt Nam
  * VD: "4455660909" (thiếu số 0 đầu), "12345" (quá ngắn), "999888777666" (quá dài)
@@ -366,20 +382,36 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
         // KHÔNG cache basePrompt nữa để đảm bảo luật mới nhất từ DB luôn được áp dụng ngay lập tức
         const basePromptKey = `prompt:${shopId}:${topScore >= 0.75 ? 'no_global' : 'with_global'}`;
         let basePrompt: string | null = null;
+        const userIntent = classifyIntent(normalized);
+        let injectedData = '';
+        
+        // HARD ROUTING: Khóa DATA nếu ý định là hỏi kiến thức
+        if (userIntent === 'knowledge') {
+            injectedData = `[DATA]
+(HỆ THỐNG ĐÃ KHÓA BẢNG GIÁ VÌ KHÁCH ĐANG HỎI KIẾN THỨC. BẮT BUỘC DÙNG NÃO AI ĐỂ HƯỚNG DẪN CHI TIẾT.)
+[/DATA]`;
+        } else {
+            injectedData = `[DATA]
+${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
+${(shopConfig?.pricing_info || '').substring(0, 500)}
+[/DATA]`;
+        }
 
         if (!basePrompt) {
           basePrompt = `Bạn là nhân viên CSKH của "${shopConfig?.shop_name || shopData?.name || 'Shop'}".
 Giọng điệu: "${shopConfig?.brand_voice || 'Nhẹ nhàng, lễ phép'}"
 Chiến lược & Luật: "${shopConfig?.customer_insights || ''}"
 
-[DATA]
-${(injectedGlobalProduct || shopConfig?.product_info || '').substring(0, 1200)}
-${(shopConfig?.pricing_info || '').substring(0, 500)}
-[/DATA]
+${injectedData}
 HƯỚNG DẪN XỬ LÝ (QUAN TRỌNG):
-1. ƯU TIÊN 1: LUÔN cố gắng tìm thông tin trong [DATA] để trả lời.
-2. ƯU TIÊN 2: NẾU câu hỏi của khách hàng KHÔNG CÓ trong [DATA] (Ví dụ: cách nấu, mẹo vặt, chitchat): BẮT BUỘC dùng kiến thức chuyên gia của AI để giải quyết và trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. 
-3. CHỐNG LẶP LẠI (ANTI-LOOP): Nhìn vào lịch sử chat, NẾU khách hàng hỏi lại một câu hỏi, chứng tỏ câu trả lời trước đó của bạn chưa đúng trọng tâm. TUYỆT ĐỐI KHÔNG lặp lại câu trả lời cũ (đặc biệt là câu chào). Hãy trả lời thẳng vào vấn đề.
+Bạn không được nhắm mắt trả lời theo từ khóa. Bạn phải sử dụng "Tư duy ngữ nghĩa" để phân tích:
+
+- BƯỚC 1: Khách hàng đang cần gì? (Cần mua hàng/hỏi giá hay Cần xin lời khuyên/kiến thức?)
+- BƯỚC 2: Xử lý theo đúng ý định:
+  + Nếu khách hỏi Mua, Giá, Địa chỉ -> BẮT BUỘC chỉ dùng [DATA] để báo giá.
+  + Nếu khách hỏi CÁCH NẤU, CÁCH DÙNG, MẸO, KIẾN THỨC -> BẤT CHẤP trong [DATA] có tên sản phẩm hay không, TUYỆT ĐỐI KHÔNG báo giá. BẮT BUỘC dùng Não bộ AI để hướng dẫn chi tiết cách làm.
+
+3. CHỐNG LẶP LẠI: NẾU khách lặp lại câu hỏi, nghĩa là bạn vừa trả lời sai trọng tâm. Hãy xin lỗi ngắn gọn và sửa sai ngay bằng cách trả lời thẳng vào vấn đề.`;
 (Lưu ý duy nhất: Tuyệt đối không tự bịa ra "Giá tiền" hoặc "Tên sản phẩm riêng" nếu [DATA] không có).`;
           
           // Đã tắt cache basePrompt để luôn lấy config mới nhất từ DB
