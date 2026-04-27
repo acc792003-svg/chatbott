@@ -253,7 +253,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     }
 
     // 🚀 2) EMBEDDING CHỈ KHI CẦN (LAZY + 2S TIMEOUT + SKIP FOR SHORT TEXT)
-    const shouldUseVector = normalized.length > 35;
+    // Hạ ngưỡng xuống 8 ký tự: Kể cả câu ngắn như "cách nấu" cũng phải qua Vector Search
+    const shouldUseVector = normalized.length > 8;
 
     if (shouldUseVector) {
         try {
@@ -271,12 +272,14 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     if (queryEmbedding) {
       const { data: cacheMatches } = await client.rpc('match_cache', {
         query_embedding: queryEmbedding,
-        match_threshold: 0.90,
+        match_threshold: 0.95, // Nâng lên 0.95: chỉ dùng cache khi khớp gần hoàn hảo, tránh lấy câu trả lời sai
         match_count: 1,
         p_shop_id: shopId
       });
 
-      if (cacheMatches?.[0]) {
+      // Lọc thêm: Câu trả lời từ cache không được là câu chào hỏi thương hiệu
+      const isGreetingAnswer = cacheMatches?.[0]?.answer && /xin chào|rất vui|đón tiếp/i.test(cacheMatches[0].answer);
+      if (cacheMatches?.[0] && !isGreetingAnswer) {
         marks.cache_hit = Date.now() - marks.start;
         return { 
           answer: humanizeResponse(cacheMatches[0].answer, message, shopConfig), 
@@ -378,8 +381,9 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
 
         // Schema YAML-like ngắn gọn và giới hạn Token mềm
         // ⚙️ 8) CONTEXT NHẸ - ĐỦ DÙNG (Cắt basePrompt ≤ 1500 ký tự)
+        // KHÔNG cache basePrompt nữa để đảm bảo luật mới nhất từ DB luôn được áp dụng ngay lập tức
         const basePromptKey = `prompt:${shopId}:${topScore >= 0.75 ? 'no_global' : 'with_global'}`;
-        let basePrompt = redis ? await redis.get<string>(basePromptKey) : null;
+        let basePrompt: string | null = null;
 
         if (!basePrompt) {
           basePrompt = `Bạn là nhân viên CSKH của "${shopConfig?.shop_name || shopData?.name || 'Shop'}".
@@ -395,7 +399,7 @@ HƯỚNG DẪN XỬ LÝ (QUAN TRỌNG):
 2. ƯU TIÊN 2: NẾU câu hỏi của khách hàng KHÔNG CÓ trong [DATA] (Ví dụ: cách nấu, mẹo vặt, chitchat, hoặc hỏi đáp chung): BẮT BUỘC dùng kiến thức chuyên gia của AI để giải quyết và trả lời NGẮN GỌN, ĐÚNG TRỌNG TÂM câu hỏi. Không được từ chối trả lời.
 (Lưu ý duy nhất: Tuyệt đối không tự bịa ra "Giá tiền" hoặc "Tên sản phẩm riêng" nếu [DATA] không có).`;
           
-          if (redis) await redis.set(basePromptKey, basePrompt, { ex: 600 });
+          // Đã tắt cache basePrompt để luôn lấy config mới nhất từ DB
         }
 
         // TẠO DYNAMIC CONTEXT (KHÔNG CACHE VÌ THAY ĐỔI THEO TỪNG LƯỢT CHAT)
