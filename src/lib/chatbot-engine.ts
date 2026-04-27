@@ -269,26 +269,8 @@ export async function processChat(req: ChatRequest): Promise<ChatResponse> {
     }
 
     // 🧠 3) VECTOR SEARCH NHẸ HÓA (topK=3, Early Exit)
+    // Đã bỏ tính năng Cache AI theo yêu cầu để tránh lỗi Cache Poisoning và giúp hội thoại tự nhiên hơn
     if (queryEmbedding) {
-      const { data: cacheMatches } = await client.rpc('match_cache', {
-        query_embedding: queryEmbedding,
-        match_threshold: 0.95, // Nâng lên 0.95: chỉ dùng cache khi khớp gần hoàn hảo, tránh lấy câu trả lời sai
-        match_count: 1,
-        p_shop_id: shopId
-      });
-
-      // Lọc thêm: Câu trả lời từ cache không được là câu chào hỏi thương hiệu
-      const isGreetingAnswer = cacheMatches?.[0]?.answer && /xin chào|rất vui|đón tiếp/i.test(cacheMatches[0].answer);
-      if (cacheMatches?.[0] && !isGreetingAnswer) {
-        marks.cache_hit = Date.now() - marks.start;
-        return { 
-          answer: humanizeResponse(cacheMatches[0].answer, message, shopConfig), 
-          source: 'cache', 
-          latency: marks.cache_hit,
-          shopName: shopConfig?.shop_name || shopData?.name
-        };
-      }
-
       const { data: vectorFaqs } = await client.rpc('match_faqs', {
         query_embedding: queryEmbedding,
         match_threshold: 0.50,
@@ -431,9 +413,7 @@ LIVE: ${bookingContext} ${happyHourContext}`;
         resultSource = aiResult.source as any;
         marks.ai = Date.now() - marks.start;
 
-       if (queryEmbedding && finalResponse.length < 500 && resultSource !== 'fallback') {
-          await client.from('cache_answers').insert({ shop_id: shopId, question: normalized, answer: finalResponse, embedding: queryEmbedding });
-       }
+       // Đã tắt lưu cache AI để giảm tải Database và tránh nhiễm độc dữ liệu
     }
 
     const latency = Date.now() - marks.start;
